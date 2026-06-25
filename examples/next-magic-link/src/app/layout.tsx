@@ -1,9 +1,21 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+export const metadata: Metadata = {
+  title: "Infi magic-link demo",
+  description: "Embedded, hosted, and headless auth delivery modes",
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ fontFamily: "system-ui, sans-serif", margin: "2rem", maxWidth: 640 }}>
-        {children}
-      </body>
+      <body className={`${inter.variable} min-h-screen bg-muted/30 font-sans`}>{children}</body>
     </html>
   );
 }

@@ -8,7 +8,7 @@ export {
 } from "./hosted.js";
 export { clearSessionCookie, setSessionCookie } from "./session.js";
 export type {
-  AppUser,
+  AppIdentity,
   AuthResult,
   CustomerSummary,
   ExchangeCodeOptions,

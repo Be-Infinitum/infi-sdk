@@ -28,7 +28,7 @@ export interface ExchangeCodeOptions {
   sessionMode?: SessionMode;
 }
 
-export interface AppUser {
+export interface AppIdentity {
   id: string;
   appId: string;
   email: string;
@@ -39,7 +39,7 @@ export interface AppUser {
 export interface CustomerSummary {
   id: string;
   externalId?: string;
-  userId?: string | null;
+  identityId?: string | null;
   email?: string | null;
 }
 
@@ -49,7 +49,7 @@ export interface SessionPayload {
 }
 
 export interface AuthResult {
-  user: AppUser;
+  identity: AppIdentity;
   customer?: CustomerSummary | null;
   session?: SessionPayload | null;
 }
