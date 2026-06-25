@@ -1,0 +1,42 @@
+{
+  "name": "@infi/sdk",
+  "version": "0.1.0",
+  "description": "Infi SDK — magic-link auth and revenue infrastructure for technical founders",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "codegen": "bash ../../scripts/codegen.sh"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}
