@@ -23,6 +23,9 @@ export function setSessionCookie(
       (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV ===
         "production");
   const path = options.path ?? "/";
+  if (!session.token) {
+    return;
+  }
   const parts = [
     `${SESSION_COOKIE_NAME}=${encodeURIComponent(session.token)}`,
     "HttpOnly",

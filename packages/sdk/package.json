@@ -1,7 +1,7 @@
 {
   "name": "@infi/sdk",
-  "version": "0.1.0",
-  "description": "Infi SDK — magic-link auth and revenue infrastructure for technical founders",
+  "version": "0.2.0",
+  "description": "Infi SDK — email-code auth and revenue infrastructure for technical founders",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",

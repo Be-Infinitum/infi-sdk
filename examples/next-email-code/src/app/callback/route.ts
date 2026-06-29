@@ -7,12 +7,8 @@ const infi = new Infi({
 });
 
 export async function GET(req: NextRequest) {
-  const url = req.url;
-  const hasCode = new URL(url).searchParams.has("code");
-
-  const result = hasCode
-    ? await infi.exchangeCodeFromRequest({ url })
-    : await infi.validateMagicLinkFromRequest({ url });
+  // The hosted flow lands here with a single-use ?code=… — exchange it for a session.
+  const result = await infi.exchangeCodeFromRequest({ url: req.url });
 
   const res = NextResponse.json(result);
   if (result.session) {

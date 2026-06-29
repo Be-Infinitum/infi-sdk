@@ -1,12 +1,15 @@
 import { InfiError, parseErrorResponse } from "./errors.js";
-import { extractCodeFromUrl, extractTokenFromUrl } from "./hosted.js";
+import { extractCodeFromUrl } from "./hosted.js";
 import type {
   AuthResult,
   ExchangeCodeOptions,
+  HostedAppConfig,
   InfiConfig,
   InfiRequestLike,
-  SendMagicLinkOptions,
-  ValidateMagicLinkOptions,
+  IngestResult,
+  SendEmailCodeOptions,
+  UsageEvent,
+  VerifyEmailCodeOptions,
 } from "./types.js";
 import { DEFAULT_API_BASE, DEFAULT_AUTH_BASE } from "./types.js";
 
@@ -18,19 +21,8 @@ function isSecretKey(key: string): boolean {
   return key.startsWith("sk_");
 }
 
-function headerValue(
-  headers: Record<string, string | string[] | undefined> | undefined,
-  name: string,
-): string | undefined {
-  if (!headers) return undefined;
-  const v = headers[name.toLowerCase()] ?? headers[name];
-  if (Array.isArray(v)) return v[0];
-  return v;
-}
-
 export class Infi {
   readonly #secretKey?: string;
-  readonly #publishableKey?: string;
   readonly #baseUrl: string;
   readonly #authBaseUrl: string;
 
@@ -46,13 +38,11 @@ export class Infi {
     }
 
     this.#secretKey = config.secretKey;
-    this.#publishableKey = config.publishableKey;
     this.#baseUrl = (config.baseUrl ?? DEFAULT_API_BASE).replace(/\/$/, "");
     this.#authBaseUrl = (config.authBaseUrl ?? DEFAULT_AUTH_BASE).replace(/\/$/, "");
-
-    if (!this.#secretKey && !this.#publishableKey) {
-      throw new InfiError("Infi requires secretKey and/or publishableKey", 400, "missing_key");
-    }
+    // No key is required for the public email-code endpoints (sendEmailCode /
+    // verifyEmailCode / getAppConfig). The secret key is only needed server-side
+    // for exchangeCode and metering, which guard with #requireSecretKey().
   }
 
   get baseUrl(): string {
@@ -63,18 +53,19 @@ export class Infi {
     return this.#authBaseUrl;
   }
 
-  async sendMagicLink(options: SendMagicLinkOptions): Promise<{ status: "sent" }> {
-    const key = this.#pickKeyForSend();
-    const res = await fetch(`${this.#baseUrl}/identity/magic-link`, {
+  // ── Identity: email-code login (public, slug-scoped) ───────────────────────
+
+  /**
+   * Send a 6-digit email verification code for the given app slug.
+   * Public endpoint — always resolves on success (no account enumeration).
+   */
+  async sendEmailCode(options: SendEmailCodeOptions): Promise<{ status: "sent" }> {
+    const res = await fetch(this.#appUrl(options.slug, "email-code"), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: options.email,
         redirectTo: options.redirectTo,
-        mode: options.mode,
         state: options.state,
       }),
     });
@@ -85,29 +76,39 @@ export class Infi {
     throw await parseErrorResponse(res);
   }
 
-  async validateMagicLink(
-    token: string,
-    options: ValidateMagicLinkOptions = {},
-  ): Promise<AuthResult> {
-    this.#requireSecretKey("validateMagicLink");
-    const res = await fetch(`${this.#baseUrl}/identity/validate`, {
+  /**
+   * Verify an email code and obtain the redirect URL carrying a single-use auth code.
+   * Navigate the browser to `redirectUrl` to complete the hosted flow.
+   */
+  async verifyEmailCode(options: VerifyEmailCodeOptions): Promise<{ redirectUrl: string }> {
+    const res = await fetch(this.#appUrl(options.slug, "verify-code"), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.#secretKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        token,
-        sessionMode: options.sessionMode,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: options.email, code: options.code }),
     });
 
     if (!res.ok) {
       throw await parseErrorResponse(res);
     }
-    return (await res.json()) as AuthResult;
+    return (await res.json()) as { redirectUrl: string };
   }
 
+  /** Fetch public branding/config for an app's hosted login page. */
+  async getAppConfig(slug: string): Promise<HostedAppConfig> {
+    const res = await fetch(this.#appUrl(slug, "config"), {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      throw await parseErrorResponse(res);
+    }
+    return (await res.json()) as HostedAppConfig;
+  }
+
+  // ── Identity: auth-code exchange (server-side, secret key) ─────────────────
+
+  /** Exchange a single-use auth code for a verified identity and optional session. */
   async exchangeCode(code: string, options: ExchangeCodeOptions = {}): Promise<AuthResult> {
     this.#requireSecretKey("exchangeCode");
     const res = await fetch(`${this.#baseUrl}/identity/exchange`, {
@@ -128,15 +129,6 @@ export class Infi {
     return (await res.json()) as AuthResult;
   }
 
-  /** Extract token from a callback request and validate it. */
-  async validateMagicLinkFromRequest(req: InfiRequestLike): Promise<AuthResult> {
-    const token = await this.#extractTokenFromRequest(req);
-    if (!token) {
-      throw new InfiError("Missing magic-link token in request", 400, "missing_token");
-    }
-    return this.validateMagicLink(token);
-  }
-
   /** Extract auth code from a hosted callback request and exchange it. */
   async exchangeCodeFromRequest(req: InfiRequestLike): Promise<AuthResult> {
     const code = extractCodeFromUrl(req.url);
@@ -146,31 +138,46 @@ export class Infi {
     return this.exchangeCode(code);
   }
 
-  async #extractTokenFromRequest(req: InfiRequestLike): Promise<string | null> {
-    const fromUrl = extractTokenFromUrl(req.url);
-    if (fromUrl) return fromUrl;
+  // ── Metering: usage ingestion (server-side, secret key) ────────────────────
 
-    const contentType = headerValue(req.headers, "content-type") ?? "";
-    if (contentType.includes("application/json") && req.json) {
-      try {
-        const body = (await req.json()) as { token?: string };
-        if (body.token) return body.token;
-      } catch {
-        // fall through
-      }
+  /** Ingest a single usage event. */
+  async track(event: UsageEvent): Promise<IngestResult> {
+    this.#requireSecretKey("track");
+    const res = await fetch(`${this.#baseUrl}/metering/events`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.#secretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(event),
+    });
+
+    if (!res.ok) {
+      throw await parseErrorResponse(res);
     }
-
-    return null;
+    return (await res.json()) as IngestResult;
   }
 
-  #pickKeyForSend(): string {
-    if (this.#publishableKey) {
-      return this.#publishableKey;
+  /** Ingest a batch of usage events (all-or-nothing). */
+  async trackBatch(events: UsageEvent[]): Promise<IngestResult> {
+    this.#requireSecretKey("trackBatch");
+    const res = await fetch(`${this.#baseUrl}/metering/events/batch`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.#secretKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ events }),
+    });
+
+    if (!res.ok) {
+      throw await parseErrorResponse(res);
     }
-    if (this.#secretKey) {
-      return this.#secretKey;
-    }
-    throw new InfiError("sendMagicLink requires publishableKey or secretKey", 400, "missing_key");
+    return (await res.json()) as IngestResult;
+  }
+
+  #appUrl(slug: string, action: string): string {
+    return `${this.#baseUrl}/identity/apps/${encodeURIComponent(slug)}/${action}`;
   }
 
   #requireSecretKey(method: string): void {

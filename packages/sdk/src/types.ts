@@ -1,39 +1,46 @@
+import type { components } from "./generated/openapi.js";
+
 export type SessionMode = "infi" | "byo";
 
-export type MagicLinkMode = "embedded" | "hosted";
+/** Backend schema aliases — single source of truth via OpenAPI codegen. */
+export type EmailCodeRequest = components["schemas"]["EmailCodeRequest"];
+export type VerifyCodeRequest = components["schemas"]["VerifyCodeRequest"];
+export type HostedAppConfig = components["schemas"]["HostedAppConfig"];
+export type ExchangeRequest = components["schemas"]["ExchangeRequest"];
+export type AuthResult = components["schemas"]["AuthResult"];
+export type AppIdentity = components["schemas"]["AppIdentity"];
+export type UsageEvent = components["schemas"]["UsageEvent"];
+export type IngestResult = components["schemas"]["IngestResult"];
 
 export interface InfiConfig {
   /** Secret API key (`sk_live_...` / `sk_test_...`) for server-side calls. */
   secretKey?: string;
-  /** Publishable key (`pk_live_...`) for browser-safe sendMagicLink. */
-  publishableKey?: string;
   /** Beinfi API base URL. Default: https://api.beinfi.com */
   baseUrl?: string;
   /** Hosted login base URL. Default: https://auth.beinfi.com */
   authBaseUrl?: string;
 }
 
-export interface SendMagicLinkOptions {
+export interface SendEmailCodeOptions {
+  /** App slug the login is scoped to. */
+  slug: string;
   email: string;
+  /** Where to land after the auth code is verified (must be in the app allowlist). */
   redirectTo?: string;
-  mode?: MagicLinkMode;
+  /** Opaque value echoed back on the redirect URL. */
   state?: string;
 }
 
-export interface ValidateMagicLinkOptions {
-  sessionMode?: SessionMode;
+export interface VerifyEmailCodeOptions {
+  /** App slug the login is scoped to. */
+  slug: string;
+  email: string;
+  /** The 6-digit code from the email. */
+  code: string;
 }
 
 export interface ExchangeCodeOptions {
   sessionMode?: SessionMode;
-}
-
-export interface AppIdentity {
-  id: string;
-  appId: string;
-  email: string;
-  verifiedAt?: string | null;
-  createdAt: string;
 }
 
 export interface CustomerSummary {
@@ -43,16 +50,8 @@ export interface CustomerSummary {
   email?: string | null;
 }
 
-export interface SessionPayload {
-  token: string;
-  expiresAt: string;
-}
-
-export interface AuthResult {
-  identity: AppIdentity;
-  customer?: CustomerSummary | null;
-  session?: SessionPayload | null;
-}
+/** Session payload as returned by the backend (`AuthResult.session`). */
+export type SessionPayload = NonNullable<AuthResult["session"]>;
 
 /** Minimal request shape for framework adapters (Next.js, Express, etc.). */
 export interface InfiRequestLike {

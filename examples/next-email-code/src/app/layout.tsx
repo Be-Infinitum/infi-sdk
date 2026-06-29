@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Infi magic-link demo",
-  description: "Embedded, hosted, and headless auth delivery modes",
+  title: "Infi email-code demo",
+  description: "Embedded, hosted, and headless email-code auth delivery modes",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
