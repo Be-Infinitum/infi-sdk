@@ -1,0 +1,55 @@
+import type { AuthResult, SessionMode } from "@beinfi/sdk";
+import type { NextRequest, NextResponse } from "next/server";
+
+/** Forwarded to `setSessionCookie` from `@beinfi/sdk`. */
+export interface CookieOptions {
+  /** Cookie max-age in seconds. Defaults to 7 days. */
+  maxAgeSeconds?: number;
+  /** Force the Secure flag (default: true in production). */
+  secure?: boolean;
+  /** Cookie path. Default: / */
+  path?: string;
+}
+
+export interface LoginOptions {
+  /** App slug the hosted login is scoped to. */
+  slug: string;
+  /** Where the hosted flow lands after the code is verified. Relative paths are resolved against the request origin. */
+  redirectTo: string;
+  /** Hosted login base URL. Defaults to the SDK's `DEFAULT_AUTH_BASE`. */
+  authBaseUrl?: string;
+  /** Opaque value echoed back on the redirect. A function receives the incoming request. */
+  state?: string | ((req: NextRequest) => string | undefined);
+}
+
+export interface CallbackOptions {
+  /** Secret key (`sk_...`) used to exchange the auth code server-side. */
+  secretKey: string;
+  /** Where to send the browser after a successful exchange. Relative paths are resolved against the request origin. */
+  successUrl: string;
+  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
+  baseUrl?: string;
+  /** Session mode passed to `exchangeCode` ("infi" | "byo"). */
+  sessionMode?: SessionMode;
+  /** Cookie options forwarded to `setSessionCookie`. */
+  cookie?: CookieOptions;
+  /**
+   * Runs after a successful exchange, before the default redirect. Return a
+   * `NextResponse` to take over the response entirely (e.g. persist a BYO session).
+   */
+  onAuth?: (
+    result: AuthResult,
+    req: NextRequest,
+  ) => void | NextResponse | Promise<void | NextResponse>;
+  /** Handle a failed exchange. Defaults to a JSON error response. */
+  onError?: (error: unknown, req: NextRequest) => NextResponse;
+}
+
+export interface UsageOptions {
+  /** Secret key (`sk_...`) used to ingest events server-side. */
+  secretKey: string;
+  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
+  baseUrl?: string;
+  /** Resolve the authed customer's id and stamp it onto every event in the request. */
+  resolveCustomerId?: (req: NextRequest) => string | undefined | Promise<string | undefined>;
+}

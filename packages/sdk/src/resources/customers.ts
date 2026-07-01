@@ -1,0 +1,80 @@
+import type { Transport } from "../http.js";
+import type {
+  CreateCustomerRequest,
+  CreditSummary,
+  Customer,
+  GrantCreditInput,
+  PriceInput,
+  RateCard,
+} from "../types.js";
+
+const enc = encodeURIComponent;
+
+class RateCardsResource {
+  constructor(private readonly t: Transport) {}
+
+  /** Set a per-customer price override (same shape as a plan price). */
+  set(customerId: string, input: PriceInput, idempotencyKey?: string): Promise<RateCard> {
+    return this.t.request("POST", `/metering/customers/${enc(customerId)}/rate-cards`, {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+
+  list(customerId: string): Promise<RateCard[]> {
+    return this.t.request("GET", `/metering/customers/${enc(customerId)}/rate-cards`, {
+      requireSecret: true,
+    });
+  }
+
+  delete(customerId: string, rateCardId: string): Promise<void> {
+    return this.t.request(
+      "DELETE",
+      `/metering/customers/${enc(customerId)}/rate-cards/${enc(rateCardId)}`,
+      { requireSecret: true },
+    );
+  }
+}
+
+class CreditsResource {
+  constructor(private readonly t: Transport) {}
+
+  /** Read the customer's credit balance + ledger. */
+  balance(customerId: string): Promise<CreditSummary> {
+    return this.t.request("GET", `/metering/customers/${enc(customerId)}/credit`, {
+      requireSecret: true,
+    });
+  }
+
+  /** Grant credit (e.g. after a credit-pack payment is confirmed). */
+  grant(customerId: string, input: GrantCreditInput, idempotencyKey?: string): Promise<CreditSummary> {
+    return this.t.request("POST", `/metering/customers/${enc(customerId)}/credit`, {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+}
+
+export class CustomersResource {
+  readonly rateCards: RateCardsResource;
+  readonly credits: CreditsResource;
+
+  constructor(private readonly t: Transport) {
+    this.rateCards = new RateCardsResource(t);
+    this.credits = new CreditsResource(t);
+  }
+
+  create(input: CreateCustomerRequest, idempotencyKey?: string): Promise<Customer> {
+    return this.t.request("POST", "/metering/customers", {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+
+  get(customerId: string): Promise<Customer> {
+    return this.t.request("GET", `/metering/customers/${enc(customerId)}`, { requireSecret: true });
+  }
+}

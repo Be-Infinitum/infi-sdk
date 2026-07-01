@@ -1,0 +1,48 @@
+// CRM example — SQLite. Status/stage are strings (SQLite has no native enum).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// The signed-in operator — one row per Infi customer that logs into the CRM.
+/// No session table needed: getSession() resolves the infi_session cookie to the
+/// customer via the SDK, and we lazily upsert this row on first request.
+model CrmUser {
+  id        String    @id // Infi customer id (SessionIntrospection.customer.id)
+  email     String?
+  createdAt DateTime  @default(now())
+  contacts  Contact[]
+  deals     Deal[]
+}
+
+/// A lead/contact. status: LEAD | QUALIFIED | CUSTOMER | LOST
+model Contact {
+  id        String   @id @default(cuid())
+  ownerId   String
+  owner     CrmUser  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  email     String?
+  company   String?
+  status    String   @default("LEAD")
+  source    String?
+  createdAt DateTime @default(now())
+  deals     Deal[]
+}
+
+/// A deal in the pipeline. stage: LEAD | CONTACTED | PROPOSAL | WON | LOST
+model Deal {
+  id         String   @id @default(cuid())
+  ownerId    String
+  owner      CrmUser  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  contactId  String?
+  contact    Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  title      String
+  valueCents Int      @default(0)
+  stage      String   @default("LEAD")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

@@ -1,17 +1,26 @@
 import { InfiError, parseErrorResponse } from "./errors.js";
 import { extractCodeFromUrl } from "./hosted.js";
+import { Transport } from "./http.js";
+import { ProductsResource } from "./resources/products.js";
+import { CustomersResource } from "./resources/customers.js";
+import { UsageResource } from "./resources/usage.js";
+import { InvoicesResource } from "./resources/invoices.js";
+import { verifyWebhook, type WebhookEvent, type WebhookInput } from "./webhooks.js";
 import type {
   AuthResult,
+  CreateInvoiceRequest,
   ExchangeCodeOptions,
   HostedAppConfig,
   InfiConfig,
   InfiRequestLike,
   IngestResult,
+  Invoice,
   SendEmailCodeOptions,
+  SessionIntrospection,
   UsageEvent,
   VerifyEmailCodeOptions,
 } from "./types.js";
-import { DEFAULT_API_BASE, DEFAULT_AUTH_BASE } from "./types.js";
+import { DEFAULT_API_BASE, DEFAULT_AUTH_BASE, DEFAULT_PAY_BASE } from "./types.js";
 
 function isPublishableKey(key: string): boolean {
   return key.startsWith("pk_");
@@ -25,6 +34,16 @@ export class Infi {
   readonly #secretKey?: string;
   readonly #baseUrl: string;
   readonly #authBaseUrl: string;
+  readonly #payBaseUrl: string;
+
+  /** Catalog: products, versions, prices, meters. */
+  readonly products: ProductsResource;
+  /** Customers: rate-cards (per-org pricing) and credits. */
+  readonly customers: CustomersResource;
+  /** Usage totals per meter for a customer window. */
+  readonly usage: UsageResource;
+  /** Invoices: create, send, void, charge, generate-from-subscription. */
+  readonly invoices: InvoicesResource;
 
   constructor(config: InfiConfig | string) {
     if (typeof config === "string") {
@@ -34,15 +53,22 @@ export class Infi {
       this.#secretKey = config;
       this.#baseUrl = DEFAULT_API_BASE;
       this.#authBaseUrl = DEFAULT_AUTH_BASE;
-      return;
+      this.#payBaseUrl = DEFAULT_PAY_BASE;
+    } else {
+      // No key is required for the public email-code endpoints (sendEmailCode /
+      // verifyEmailCode / getAppConfig). The secret key is only needed server-side
+      // for exchangeCode, metering and the billing surface (guarded per method).
+      this.#secretKey = config.secretKey;
+      this.#baseUrl = (config.baseUrl ?? DEFAULT_API_BASE).replace(/\/$/, "");
+      this.#authBaseUrl = (config.authBaseUrl ?? DEFAULT_AUTH_BASE).replace(/\/$/, "");
+      this.#payBaseUrl = (config.payBaseUrl ?? DEFAULT_PAY_BASE).replace(/\/$/, "");
     }
 
-    this.#secretKey = config.secretKey;
-    this.#baseUrl = (config.baseUrl ?? DEFAULT_API_BASE).replace(/\/$/, "");
-    this.#authBaseUrl = (config.authBaseUrl ?? DEFAULT_AUTH_BASE).replace(/\/$/, "");
-    // No key is required for the public email-code endpoints (sendEmailCode /
-    // verifyEmailCode / getAppConfig). The secret key is only needed server-side
-    // for exchangeCode and metering, which guard with #requireSecretKey().
+    const transport = new Transport(this.#baseUrl, this.#secretKey);
+    this.products = new ProductsResource(transport);
+    this.customers = new CustomersResource(transport);
+    this.usage = new UsageResource(transport);
+    this.invoices = new InvoicesResource(transport);
   }
 
   get baseUrl(): string {
@@ -129,6 +155,27 @@ export class Infi {
     return (await res.json()) as AuthResult;
   }
 
+  /**
+   * Resolve a session token (from the infi_session cookie) back to its identity
+   * and customer. Server-side — requires the secret key.
+   */
+  async getSession(token: string): Promise<SessionIntrospection> {
+    this.#requireSecretKey("getSession");
+    const res = await fetch(`${this.#baseUrl}/identity/session`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${this.#secretKey}`,
+        "X-Infi-Session": token,
+        Accept: "application/json",
+      },
+    });
+
+    if (!res.ok) {
+      throw await parseErrorResponse(res);
+    }
+    return (await res.json()) as SessionIntrospection;
+  }
+
   /** Extract auth code from a hosted callback request and exchange it. */
   async exchangeCodeFromRequest(req: InfiRequestLike): Promise<AuthResult> {
     const code = extractCodeFromUrl(req.url);
@@ -174,6 +221,44 @@ export class Infi {
       throw await parseErrorResponse(res);
     }
     return (await res.json()) as IngestResult;
+  }
+
+  // ── Checkout: create an invoice and hand back the hosted pay URL ──────────
+
+  /**
+   * Create an invoice and return the hosted checkout URL a buyer opens to pay
+   * (pix / boleto / card). One call to sell a credit pack, an ebook, anything.
+   */
+  async checkout(opts: {
+    /** Merchant slug for the hosted /pay page. */
+    slug: string;
+    /** Payer (tenant customer) id. */
+    payerId: string;
+    lineItems: CreateInvoiceRequest["lineItems"];
+    currency?: string;
+    dueDate?: string;
+    /** Finalize + email the invoice on creation. */
+    send?: boolean;
+  }): Promise<{ invoice: Invoice; url: string }> {
+    const invoice = await this.invoices.create({
+      payerId: opts.payerId,
+      currency: opts.currency,
+      dueDate: opts.dueDate,
+      send: opts.send,
+      lineItems: opts.lineItems,
+    });
+    const url = `${this.#payBaseUrl}/pay/${encodeURIComponent(opts.slug)}/invoices/${invoice.id}`;
+    return { invoice, url };
+  }
+
+  // ── Webhooks: verify an inbound event server-side ─────────────────────────
+
+  /**
+   * Verify an inbound webhook (signature + timestamp) and return the parsed
+   * event. Throws on mismatch/expiry. Mirrors the backend signer.
+   */
+  verifyWebhook(input: WebhookInput, secret: string, toleranceSeconds?: number): WebhookEvent {
+    return verifyWebhook(input, secret, toleranceSeconds);
   }
 
   #appUrl(slug: string, action: string): string {

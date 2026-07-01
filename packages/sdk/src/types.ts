@@ -11,14 +11,47 @@ export type AuthResult = components["schemas"]["AuthResult"];
 export type AppIdentity = components["schemas"]["AppIdentity"];
 export type UsageEvent = components["schemas"]["UsageEvent"];
 export type IngestResult = components["schemas"]["IngestResult"];
+export type SessionIntrospection = components["schemas"]["SessionIntrospection"];
+
+// ── Catalog / billing surface ──────────────────────────────────────────────
+export type Product = components["schemas"]["Product"];
+export type CreateProductRequest = components["schemas"]["CreateProductRequest"];
+export type Version = components["schemas"]["Version"];
+export type Price = components["schemas"]["Price"];
+export type PriceInput = components["schemas"]["PriceInput"];
+export type Meter = components["schemas"]["Meter"];
+export type CreateMeterRequest = components["schemas"]["CreateMeterRequest"];
+export type RateCard = components["schemas"]["RateCard"];
+export type CreditSummary = components["schemas"]["CreditSummary"];
+export type UsageReport = components["schemas"]["UsageReport"];
+export type Invoice = components["schemas"]["Invoice"];
+export type CreateInvoiceRequest = components["schemas"]["CreateInvoiceRequest"];
+export type CheckoutSession = components["schemas"]["CheckoutSession"];
+export type Payment = components["schemas"]["Payment"];
+export type Customer = components["schemas"]["Customer"];
+export type CreateCustomerRequest = components["schemas"]["CreateCustomerRequest"];
+
+// Inline request bodies (no named schema in the OpenAPI spec).
+export interface VersionInput {
+  billingCycle?: "weekly" | "monthly" | "annual" | null;
+  basePrice?: string | null;
+}
+export interface GrantCreditInput {
+  /** Decimal string amount to grant. */
+  amount: string;
+  reference?: string | null;
+}
+export type PaymentMethod = "pix" | "boleto" | "card";
 
 export interface InfiConfig {
   /** Secret API key (`sk_live_...` / `sk_test_...`) for server-side calls. */
   secretKey?: string;
   /** Beinfi API base URL. Default: https://api.beinfi.com */
   baseUrl?: string;
-  /** Hosted login base URL. Default: https://auth.beinfi.com */
+  /** Hosted login base URL (the API host). Default: https://api.beinfi.com */
   authBaseUrl?: string;
+  /** Hosted checkout base URL (the frontend app). Default: https://app.beinfi.com */
+  payBaseUrl?: string;
 }
 
 export interface SendEmailCodeOptions {
@@ -76,5 +109,10 @@ export interface StartHostedLoginOptions {
 }
 
 export const DEFAULT_API_BASE = "https://api.beinfi.com";
-export const DEFAULT_AUTH_BASE = "https://auth.beinfi.com";
+// Hosted login is served off the API host (`/identity/apps/{slug}/login`, which
+// 302s to the frontend login page). There is no auth.* subdomain.
+export const DEFAULT_AUTH_BASE = "https://api.beinfi.com";
+// Hosted checkout pages (`/pay/{slug}/invoices/{id}`) are rendered by the frontend
+// app, not a pay.* subdomain.
+export const DEFAULT_PAY_BASE = "https://app.beinfi.com";
 export const SESSION_COOKIE_NAME = "infi_session";

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { InfiLogin, startHostedLogin } from "@infi/sdk/react";
-import { Infi } from "@infi/sdk";
+import { InfiLogin, startHostedLogin } from "@beinfi/sdk/react";
+import { Infi } from "@beinfi/sdk";
 import {
   buttonClass,
   errorClass,

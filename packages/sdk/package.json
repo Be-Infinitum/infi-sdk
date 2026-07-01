@@ -1,6 +1,6 @@
 {
-  "name": "@infi/sdk",
-  "version": "0.2.0",
+  "name": "@beinfi/sdk",
+  "version": "0.3.0",
   "description": "Infi SDK — email-code auth and revenue infrastructure for technical founders",
   "license": "MIT",
   "type": "module",
@@ -19,7 +19,13 @@
       "require": "./dist/react/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -30,7 +36,16 @@
     "react": ">=18",
     "react-dom": ">=18"
   },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@types/node": "^22",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "react": "^19.2.4",

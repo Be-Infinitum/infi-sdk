@@ -3,12 +3,13 @@
   "private": true,
   "workspaces": [
     "packages/sdk",
+    "packages/nextjs",
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run --filter '@infi/sdk' build",
-    "test": "bun run --filter '@infi/sdk' test",
-    "typecheck": "bun run --filter '@infi/*' typecheck",
+    "build": "bun run --filter '@beinfi/*' build",
+    "test": "bun run --filter '@beinfi/*' test",
+    "typecheck": "bun run --filter '@beinfi/*' typecheck",
     "codegen": "bash scripts/codegen.sh"
   },
   "devDependencies": {

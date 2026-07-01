@@ -1,18 +1,8 @@
-import { Infi, setSessionCookie } from "@infi/sdk";
-import { NextRequest, NextResponse } from "next/server";
+import { Callback } from "@beinfi/nextjs";
 
-const infi = new Infi({
+// The whole callback: exchange the hosted-flow `?code=…` → set the session cookie → redirect.
+export const GET = Callback({
   secretKey: process.env.INFI_SECRET_KEY!,
   baseUrl: process.env.INFI_API_URL,
+  successUrl: "/",
 });
-
-export async function GET(req: NextRequest) {
-  // The hosted flow lands here with a single-use ?code=… — exchange it for a session.
-  const result = await infi.exchangeCodeFromRequest({ url: req.url });
-
-  const res = NextResponse.json(result);
-  if (result.session) {
-    setSessionCookie(res, result.session);
-  }
-  return res;
-}

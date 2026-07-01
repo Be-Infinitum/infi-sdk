@@ -1,4 +1,4 @@
-# @infi/sdk
+# @beinfi/sdk
 
 Email-code auth + metering SDK for [Beinfi](https://beinfi.com) — a thin, typed
 TypeScript client over the Beinfi API OpenAPI contract.
@@ -10,7 +10,7 @@ single-use auth code, which your server exchanges for a session.
 ## Install
 
 ```bash
-npm install @infi/sdk
+npm install @beinfi/sdk
 ```
 
 ## Mode A — Embedded React
@@ -18,14 +18,14 @@ npm install @infi/sdk
 A drop-in two-step component (email → code) that redirects to the returned URL.
 
 ```tsx
-import { InfiLogin } from "@infi/sdk/react";
+import { InfiLogin } from "@beinfi/sdk/react";
 
 <InfiLogin slug="acme" redirectTo="https://app.example.com/callback" />
 ```
 
 ```ts
 // app/callback/route.ts — exchange the auth code for a session
-import { Infi, setSessionCookie } from "@infi/sdk";
+import { Infi, setSessionCookie } from "@beinfi/sdk";
 
 const infi = new Infi(process.env.INFI_SECRET_KEY!);
 
@@ -42,7 +42,7 @@ export async function GET(req: Request) {
 Redirect to the Beinfi-hosted login page; the callback exchanges the auth code.
 
 ```tsx
-import { startHostedLogin } from "@infi/sdk/react";
+import { startHostedLogin } from "@beinfi/sdk/react";
 
 <button onClick={() => startHostedLogin({ slug: "acme", redirectTo: "/callback" })}>
   Sign in

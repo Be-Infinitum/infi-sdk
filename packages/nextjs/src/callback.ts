@@ -1,0 +1,49 @@
+import { extractCodeFromUrl, Infi, InfiError, setSessionCookie } from "@beinfi/sdk";
+import { type NextRequest, NextResponse } from "next/server";
+import type { CallbackOptions } from "./types.js";
+
+/**
+ * App Router `GET` handler for the hosted-login callback. Exchanges the
+ * single-use `?code=…` for a session, sets the session cookie, and redirects
+ * to `successUrl`. Collapses the hand-written callback boilerplate into one line.
+ *
+ * ```ts
+ * // app/api/auth/callback/route.ts
+ * export const GET = Callback({ secretKey: process.env.INFI_SECRET_KEY!, successUrl: "/dashboard" })
+ * ```
+ */
+export function Callback(options: CallbackOptions) {
+  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+
+  return async function GET(req: NextRequest): Promise<NextResponse> {
+    try {
+      const code = extractCodeFromUrl(req.url);
+      if (!code) {
+        throw new InfiError("Missing auth code in callback request", 400, "missing_code");
+      }
+
+      const result = await infi.exchangeCode(
+        code,
+        options.sessionMode ? { sessionMode: options.sessionMode } : {},
+      );
+
+      const override = await options.onAuth?.(result, req);
+      if (override) {
+        return override;
+      }
+
+      const res = NextResponse.redirect(new URL(options.successUrl, req.url));
+      if (result.session) {
+        setSessionCookie(res, result.session, options.cookie);
+      }
+      return res;
+    } catch (error) {
+      if (options.onError) {
+        return options.onError(error, req);
+      }
+      const status = error instanceof InfiError ? error.status : 500;
+      const message = error instanceof Error ? error.message : "Authentication failed";
+      return NextResponse.json({ error: { message } }, { status });
+    }
+  };
+}

@@ -581,7 +581,11 @@ export interface paths {
         /** List all invoices for the tenant */
         get: operations["listTenantInvoices"];
         put?: never;
-        post?: never;
+        /**
+         * Create an ad-hoc invoice (manual line items) for a customer
+         * @description Opens and finalizes a manual invoice bound to a tenant-level customer (the payer), with free-form line items and no subscription. The returned invoice is `open` and payable via the public checkout / charge endpoint. Set `send: true` to emit an `invoice.sent` event (email delivery).
+         */
+        post: operations["createInvoice"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1053,6 +1057,28 @@ export interface paths {
         patch: operations["patchWebhook"];
         trace?: never;
     };
+    "/account/webhooks/{endpointID}/rotate-secret": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                endpointID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rotate a webhook endpoint's signing secret
+         * @description Generates a fresh HMAC signing secret and returns it ONCE. Rotation is an immediate cutover — new deliveries are signed with the new secret and the previous secret stops verifying, so update your receiver promptly.
+         */
+        post: operations["rotateWebhookSecret"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/notification-subscriptions": {
         parameters: {
             query?: never;
@@ -1119,6 +1145,26 @@ export interface paths {
         put?: never;
         /** Exchange a hosted-mode auth code for a session */
         post: operations["exchangeCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/identity/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve a session token to its identity and customer
+         * @description Introspect an opaque session token (from the infi_session cookie) and return the current identity + customer. Secret-key authenticated; scoped to the key's tenant.
+         */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1611,8 +1657,16 @@ export interface components {
         Invoice: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            customerId?: string;
+            /**
+             * Format: uuid
+             * @description Product enrollment (subscription invoices).
+             */
+            customerId?: string | null;
+            /**
+             * Format: uuid
+             * @description Tenant-level customer (ad-hoc invoices).
+             */
+            payerId?: string | null;
             /** Format: uuid */
             subscriptionId?: string | null;
             invoiceNumber?: string | null;
@@ -1637,11 +1691,32 @@ export interface components {
             createdAt?: string;
             lineItems?: components["schemas"]["InvoiceLineItem"][];
         };
+        CreateInvoiceRequest: {
+            /**
+             * Format: uuid
+             * @description Tenant customer (payer) id, from POST /metering/customers.
+             */
+            payerId: string;
+            /** @description ISO 4217; defaults to BRL. */
+            currency?: string;
+            /** Format: date-time */
+            dueDate?: string | null;
+            /** @description Emit invoice.sent (email the payer) after finalize. */
+            send?: boolean;
+            lineItems: {
+                description: string;
+                /** @description Defaults to 1. */
+                quantity?: string;
+                unitPrice?: string;
+                /** @description Line total (decimal). */
+                amount: string;
+            }[];
+        };
         InvoiceLineItem: {
             /** Format: uuid */
             id?: string;
             /** @enum {string} */
-            type?: "usage" | "recurring" | "proration" | "credit" | "adjustment" | "commitment";
+            type?: "usage" | "recurring" | "proration" | "credit" | "adjustment" | "commitment" | "manual";
             /** Format: uuid */
             meterId?: string | null;
             /** Format: uuid */
@@ -1769,6 +1844,7 @@ export interface components {
             id?: string;
             /** Format: uri */
             url?: string;
+            /** @description Subscribed event types. Supported: customer.created; invoice.finalized, invoice.sent, invoice.paid, invoice.voided, invoice.uncollectible; payment.confirmed, payment.failed, payment.refunded, payment.chargeback. */
             events?: string[];
             isActive?: boolean;
             /** Format: date-time */
@@ -1846,6 +1922,21 @@ export interface components {
                 /** Format: date-time */
                 expiresAt?: string;
             } | null;
+        };
+        SessionIntrospection: {
+            identity?: components["schemas"]["AppIdentity"];
+            customer?: {
+                /** Format: uuid */
+                id?: string;
+                /** Format: uuid */
+                customerId?: string | null;
+                externalId?: string;
+                /** Format: uuid */
+                identityId?: string | null;
+                email?: string | null;
+            } | null;
+            /** Format: date-time */
+            expiresAt?: string;
         };
         App: {
             /** Format: uuid */
@@ -3116,6 +3207,33 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    createInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created invoice (open) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     listTenantPayments: {
         parameters: {
             query?: {
@@ -4056,6 +4174,42 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    rotateWebhookSecret: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                endpointID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description New signing secret (returned only once) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedWebhookEndpoint"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description Secret store unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listNotificationSubscriptions: {
         parameters: {
             query?: never;
@@ -4226,6 +4380,31 @@ export interface operations {
                     "application/json": components["schemas"]["AuthResult"];
                 };
             };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description The opaque session token to resolve. */
+                "X-Infi-Session": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The resolved session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionIntrospection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
         };
     };
