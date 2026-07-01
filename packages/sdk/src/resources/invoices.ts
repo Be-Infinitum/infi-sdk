@@ -1,5 +1,11 @@
 import type { Transport } from "../http.js";
-import type { CreateInvoiceRequest, Invoice, Payment, PaymentMethod } from "../types.js";
+import type {
+  CreateInvoiceRequest,
+  CreateProductInvoiceRequest,
+  Invoice,
+  Payment,
+  PaymentMethod,
+} from "../types.js";
 
 const enc = encodeURIComponent;
 
@@ -14,8 +20,24 @@ export class InvoicesResource {
     });
   }
 
-  list(): Promise<Invoice[]> {
-    return this.t.request("GET", "/billing/invoices", { requireSecret: true });
+  /** Purchase a product: enroll the customer + open a finalized, product-linked invoice. */
+  createForProduct(
+    productId: string,
+    input: CreateProductInvoiceRequest,
+    idempotencyKey?: string,
+  ): Promise<Invoice> {
+    return this.t.request("POST", `/billing/products/${enc(productId)}/invoices`, {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+
+  async list(): Promise<Invoice[]> {
+    const res = await this.t.request<{ invoices?: Invoice[] }>("GET", "/billing/invoices", {
+      requireSecret: true,
+    });
+    return res.invoices ?? [];
   }
 
   get(invoiceId: string): Promise<Invoice> {

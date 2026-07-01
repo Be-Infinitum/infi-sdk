@@ -1,4 +1,4 @@
-export { Infi } from "./client.js";
+export { Infi, type CheckoutOptions } from "./client.js";
 export { InfiError, parseErrorResponse } from "./errors.js";
 export {
   buildHostedLoginUrl,
@@ -8,12 +8,33 @@ export {
 } from "./hosted.js";
 export { clearSessionCookie, setSessionCookie } from "./session.js";
 export {
+  defineBilling,
+  syncBilling,
+  type BillingConfig,
+  type BillingMeter,
+  type BillingPrice,
+  type BillingProduct,
+  type SyncAction,
+  type SyncOptions,
+  type SyncResult,
+} from "./billing-as-code.js";
+export {
   verifyWebhook,
+  type CustomerCreatedData,
+  type InvoiceAmountData,
+  type InvoiceRefData,
+  type PaymentConfirmedData,
+  type PaymentFailedData,
   type WebhookEvent,
+  type WebhookEventMap,
   type WebhookEventType,
   type WebhookInput,
 } from "./webhooks.js";
 export type { UsageQuery } from "./resources/usage.js";
+export type {
+  CreateSubscriptionInput,
+  SubscriptionWithPeriod,
+} from "./resources/subscriptions.js";
 export type {
   AppIdentity,
   AuthResult,
@@ -21,10 +42,15 @@ export type {
   CreateCustomerRequest,
   CreateInvoiceRequest,
   CreateMeterRequest,
+  CreateProductInvoiceRequest,
   CreateProductRequest,
   CreditSummary,
   Customer,
   CustomerSummary,
+  Deliverable,
+  PresignDeliverableRequest,
+  PresignDeliverableResponse,
+  PutDeliverableRequest,
   EmailCodeRequest,
   ExchangeCodeOptions,
   ExchangeRequest,
@@ -41,12 +67,15 @@ export type {
   Price,
   PriceInput,
   Product,
+  ProductCustomer,
   RateCard,
   SendEmailCodeOptions,
   SessionIntrospection,
   SessionMode,
   SessionPayload,
   StartHostedLoginOptions,
+  Subscription,
+  SubscriptionPeriod,
   UsageEvent,
   UsageReport,
   Version,

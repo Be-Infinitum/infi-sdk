@@ -26,10 +26,18 @@ export type CreditSummary = components["schemas"]["CreditSummary"];
 export type UsageReport = components["schemas"]["UsageReport"];
 export type Invoice = components["schemas"]["Invoice"];
 export type CreateInvoiceRequest = components["schemas"]["CreateInvoiceRequest"];
+export type CreateProductInvoiceRequest = components["schemas"]["CreateProductInvoiceRequest"];
 export type CheckoutSession = components["schemas"]["CheckoutSession"];
 export type Payment = components["schemas"]["Payment"];
 export type Customer = components["schemas"]["Customer"];
 export type CreateCustomerRequest = components["schemas"]["CreateCustomerRequest"];
+export type ProductCustomer = components["schemas"]["ProductCustomer"];
+export type Subscription = components["schemas"]["Subscription"];
+export type SubscriptionPeriod = components["schemas"]["SubscriptionPeriod"];
+export type Deliverable = components["schemas"]["Deliverable"];
+export type PresignDeliverableRequest = components["schemas"]["PresignDeliverableRequest"];
+export type PresignDeliverableResponse = components["schemas"]["PresignDeliverableResponse"];
+export type PutDeliverableRequest = components["schemas"]["PutDeliverableRequest"];
 
 // Inline request bodies (no named schema in the OpenAPI spec).
 export interface VersionInput {

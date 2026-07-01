@@ -5,7 +5,14 @@ import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
+import { SubscriptionsResource } from "./resources/subscriptions.js";
 import { verifyWebhook, type WebhookEvent, type WebhookInput } from "./webhooks.js";
+import {
+  syncBilling,
+  type BillingConfig,
+  type SyncOptions,
+  type SyncResult,
+} from "./billing-as-code.js";
 import type {
   AuthResult,
   CreateInvoiceRequest,
@@ -30,6 +37,33 @@ function isSecretKey(key: string): boolean {
   return key.startsWith("sk_");
 }
 
+type CheckoutCommon = {
+  /** Merchant slug for the hosted /pay page. */
+  slug: string;
+  currency?: string;
+  dueDate?: string;
+  /** Finalize + email the invoice on creation. */
+  send?: boolean;
+  /** Where the hosted checkout returns the buyer after paying / cancelling. */
+  successUrl?: string;
+  cancelUrl?: string;
+};
+
+export type CheckoutOptions =
+  | (CheckoutCommon & {
+      /** Ad-hoc: bill an existing tenant customer with explicit line items. */
+      payerId: string;
+      lineItems: CreateInvoiceRequest["lineItems"];
+    })
+  | (CheckoutCommon & {
+      /** Purchase: enroll the customer in this product and open a product-linked invoice. */
+      productId: string;
+      customer: { externalId: string; email?: string; name?: string };
+      /** Override the auto-derived product price. */
+      amount?: string;
+      description?: string;
+    });
+
 export class Infi {
   readonly #secretKey?: string;
   readonly #baseUrl: string;
@@ -44,6 +78,8 @@ export class Infi {
   readonly usage: UsageResource;
   /** Invoices: create, send, void, charge, generate-from-subscription. */
   readonly invoices: InvoicesResource;
+  /** Subscriptions: create (with anchor), get, list per enrollment. */
+  readonly subscriptions: SubscriptionsResource;
 
   constructor(config: InfiConfig | string) {
     if (typeof config === "string") {
@@ -69,6 +105,7 @@ export class Infi {
     this.customers = new CustomersResource(transport);
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
+    this.subscriptions = new SubscriptionsResource(transport);
   }
 
   get baseUrl(): string {
@@ -227,26 +264,40 @@ export class Infi {
 
   /**
    * Create an invoice and return the hosted checkout URL a buyer opens to pay
-   * (pix / boleto / card). One call to sell a credit pack, an ebook, anything.
+   * (pix / boleto / card). Two shapes:
+   *  - ad-hoc: `{ payerId, lineItems }` — bill an existing customer.
+   *  - purchase: `{ productId, customer }` — enroll + product-linked invoice, so
+   *    deliverable fulfillment (email + download) fires on payment. Amount is
+   *    auto-derived from the product's published price unless `amount` is given.
    */
-  async checkout(opts: {
-    /** Merchant slug for the hosted /pay page. */
-    slug: string;
-    /** Payer (tenant customer) id. */
-    payerId: string;
-    lineItems: CreateInvoiceRequest["lineItems"];
-    currency?: string;
-    dueDate?: string;
-    /** Finalize + email the invoice on creation. */
-    send?: boolean;
-  }): Promise<{ invoice: Invoice; url: string }> {
-    const invoice = await this.invoices.create({
-      payerId: opts.payerId,
-      currency: opts.currency,
-      dueDate: opts.dueDate,
-      send: opts.send,
-      lineItems: opts.lineItems,
-    });
+  async checkout(opts: CheckoutOptions): Promise<{ invoice: Invoice; url: string }> {
+    let invoice: Invoice;
+    if ("productId" in opts) {
+      invoice = await this.invoices.createForProduct(opts.productId, {
+        customer: {
+          externalId: opts.customer.externalId,
+          email: opts.customer.email,
+          name: opts.customer.name,
+        },
+        amount: opts.amount,
+        description: opts.description,
+        currency: opts.currency,
+        dueDate: opts.dueDate,
+        send: opts.send,
+        successUrl: opts.successUrl,
+        cancelUrl: opts.cancelUrl,
+      });
+    } else {
+      invoice = await this.invoices.create({
+        payerId: opts.payerId,
+        currency: opts.currency,
+        dueDate: opts.dueDate,
+        send: opts.send,
+        lineItems: opts.lineItems,
+        successUrl: opts.successUrl,
+        cancelUrl: opts.cancelUrl,
+      });
+    }
     const url = `${this.#payBaseUrl}/pay/${encodeURIComponent(opts.slug)}/invoices/${invoice.id}`;
     return { invoice, url };
   }
@@ -259,6 +310,13 @@ export class Infi {
    */
   verifyWebhook(input: WebhookInput, secret: string, toleranceSeconds?: number): WebhookEvent {
     return verifyWebhook(input, secret, toleranceSeconds);
+  }
+
+  // ── Billing as code: apply a declarative config idempotently ──────────────
+
+  /** Apply a `defineBilling(...)` config idempotently (pass `{ plan: true }` to dry-run). */
+  sync(config: BillingConfig, opts?: SyncOptions): Promise<SyncResult> {
+    return syncBilling(this, config, opts);
   }
 
   #appUrl(slug: string, action: string): string {

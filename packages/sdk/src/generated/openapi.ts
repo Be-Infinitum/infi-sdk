@@ -330,6 +330,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metering/products/{productID}/deliverable/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presign an R2 upload URL for a file deliverable */
+        post: operations["presignDeliverable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/products/{productID}/deliverable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        /** Get a product's deliverable metadata */
+        get: operations["getDeliverable"];
+        /** Save (create/replace) a product deliverable (file or link) */
+        put: operations["saveDeliverable"];
+        post?: never;
+        /** Delete a product's deliverable */
+        delete: operations["deleteDeliverable"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metering/customers": {
         parameters: {
             query?: never;
@@ -432,6 +472,32 @@ export interface paths {
         put?: never;
         /** Grant credit to a customer */
         post: operations["grantCredit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/customers/{customerID}/credit/consume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Consume (deduct) credit from a customer
+         * @description Deducts credit via a negative `consumption` ledger entry. Rejects the request (409) if it would overdraw the balance.
+         */
+        post: operations["consumeCredit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -586,6 +652,28 @@ export interface paths {
          * @description Opens and finalizes a manual invoice bound to a tenant-level customer (the payer), with free-form line items and no subscription. The returned invoice is `open` and payable via the public checkout / charge endpoint. Set `send: true` to emit an `invoice.sent` event (email delivery).
          */
         post: operations["createInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/products/{productID}/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Purchase a product — enroll the customer and open a finalized invoice
+         * @description Enrolls the customer in the product (idempotent, creates the customer if new) and opens a finalized invoice bound to that enrollment, so deliverable fulfillment (email + download grant) fires when the payment confirms. The amount is auto-derived from the product's published base price unless `amount` is provided. Returned invoice is `open` and payable.
+         */
+        post: operations["createProductInvoice"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1383,6 +1471,8 @@ export interface components {
         Product: {
             /** Format: uuid */
             id?: string;
+            /** @description Stable per-tenant natural key (billing-as-code). */
+            key?: string | null;
             name?: string;
             /** @enum {string} */
             type?: "agent" | "item";
@@ -1399,6 +1489,8 @@ export interface components {
             updatedAt?: string;
         };
         CreateProductRequest: {
+            /** @description Stable per-tenant natural key for idempotent upsert. */
+            key?: string | null;
             name: string;
             /** @enum {string} */
             type?: "agent" | "item";
@@ -1450,6 +1542,45 @@ export interface components {
             /** @enum {string} */
             aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
             valueProperty?: string | null;
+        };
+        Deliverable: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            productId?: string;
+            /** @enum {string} */
+            kind?: "file" | "link";
+            fileName?: string | null;
+            contentType?: string | null;
+            /** Format: int64 */
+            sizeBytes?: number | null;
+            url?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        PresignDeliverableRequest: {
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number;
+        };
+        PresignDeliverableResponse: {
+            uploadUrl?: string;
+            objectKey?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+        };
+        PutDeliverableRequest: {
+            /** @enum {string} */
+            kind: "file" | "link";
+            objectKey?: string | null;
+            fileName?: string | null;
+            contentType?: string | null;
+            /** Format: int64 */
+            sizeBytes?: number | null;
+            url?: string | null;
         };
         PriceInput: {
             /**
@@ -1687,6 +1818,9 @@ export interface components {
             finalizedAt?: string | null;
             /** Format: date-time */
             paidAt?: string | null;
+            /** @description Where the hosted checkout returns after payment. */
+            successUrl?: string | null;
+            cancelUrl?: string | null;
             /** Format: date-time */
             createdAt?: string;
             lineItems?: components["schemas"]["InvoiceLineItem"][];
@@ -1703,6 +1837,9 @@ export interface components {
             dueDate?: string | null;
             /** @description Emit invoice.sent (email the payer) after finalize. */
             send?: boolean;
+            /** @description Hosted checkout returns here after payment. */
+            successUrl?: string | null;
+            cancelUrl?: string | null;
             lineItems: {
                 description: string;
                 /** @description Defaults to 1. */
@@ -1711,6 +1848,25 @@ export interface components {
                 /** @description Line total (decimal). */
                 amount: string;
             }[];
+        };
+        CreateProductInvoiceRequest: {
+            customer: {
+                /** @description Stable customer id (e.g. email); enroll is idempotent on it. */
+                externalId: string;
+                email?: string | null;
+                name?: string | null;
+                taxId?: string | null;
+            };
+            /** @description Override; defaults to the product's published base price. */
+            amount?: string | null;
+            /** @description Line description; defaults to the product name. */
+            description?: string | null;
+            currency?: string;
+            /** Format: date-time */
+            dueDate?: string | null;
+            send?: boolean;
+            successUrl?: string | null;
+            cancelUrl?: string | null;
         };
         InvoiceLineItem: {
             /** Format: uuid */
@@ -2710,6 +2866,109 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
         };
     };
+    presignDeliverable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresignDeliverableRequest"];
+            };
+        };
+        responses: {
+            /** @description Presigned upload target */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresignDeliverableResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getDeliverable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deliverable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deliverable"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    saveDeliverable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutDeliverableRequest"];
+            };
+        };
+        responses: {
+            /** @description Deliverable saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deliverable"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    deleteDeliverable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     listTenantCustomers: {
         parameters: {
             query?: {
@@ -2945,6 +3204,47 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    consumeCredit: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Decimal string amount to consume. */
+                    amount: string;
+                    reference?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Credit consumed; updated summary */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreditSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -3217,6 +3517,35 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created invoice (open) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createProductInvoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProductInvoiceRequest"];
             };
         };
         responses: {

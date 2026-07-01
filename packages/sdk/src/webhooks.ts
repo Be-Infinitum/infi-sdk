@@ -1,17 +1,54 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { InfiError } from "./errors.js";
 
+/** Events the backend actually emits (type travels in the X-Webhook-Event-Type header). */
 export type WebhookEventType =
   | "customer.created"
   | "invoice.finalized"
   | "invoice.sent"
-  | "invoice.paid"
   | "invoice.voided"
   | "invoice.uncollectible"
   | "payment.confirmed"
-  | "payment.failed"
-  | "payment.refunded"
-  | "payment.chargeback";
+  | "payment.failed";
+
+// Payload bodies (flat JSON, decimals/uuids as strings; optional fields omitted).
+export interface CustomerCreatedData {
+  customerId: string;
+  externalId: string;
+  createdAt: string;
+  name?: string;
+  email?: string;
+  taxId?: string;
+}
+export interface InvoiceAmountData {
+  invoiceId: string;
+  total: string;
+  currency: string;
+}
+export interface InvoiceRefData {
+  invoiceId: string;
+}
+export interface PaymentConfirmedData {
+  paymentId: string;
+  invoiceId: string;
+  amount: string;
+  currency: string;
+}
+export interface PaymentFailedData {
+  paymentId: string;
+  invoiceId: string;
+}
+
+/** Maps each event type to its payload shape (for `verifyWebhook<...>` narrowing). */
+export interface WebhookEventMap {
+  "customer.created": CustomerCreatedData;
+  "invoice.finalized": InvoiceAmountData;
+  "invoice.sent": InvoiceAmountData;
+  "invoice.voided": InvoiceRefData;
+  "invoice.uncollectible": InvoiceRefData;
+  "payment.confirmed": PaymentConfirmedData;
+  "payment.failed": PaymentFailedData;
+}
 
 export interface WebhookEvent<T = unknown> {
   id: string;
@@ -28,6 +65,8 @@ export interface WebhookInput {
   timestamp: string | number;
   /** X-Webhook-Signature (e.g. "v1=abc...") */
   signature: string;
+  /** X-Webhook-Event-Type — the type lives in the header, not the body. */
+  eventType: string;
   /** Raw request body (exact bytes/string). */
   body: string;
 }
@@ -40,7 +79,6 @@ function computeHex(secret: string, id: string, ts: number, body: string): strin
 }
 
 function parseSignatures(header: string): string[] {
-  // Header may carry multiple space/comma-separated schemes: "v1=aaa,v1=bbb".
   return header
     .split(/[\s,]+/)
     .map((part) => (part.includes("=") ? part.slice(part.indexOf("=") + 1) : part))
@@ -50,7 +88,9 @@ function parseSignatures(header: string): string[] {
 /**
  * Verify an inbound Infi webhook and return the parsed event. Throws InfiError on a
  * bad signature or a timestamp outside the tolerance window (replay protection).
- * Mirrors the backend signer byte-for-byte so it can be trusted server-side.
+ * The event type comes from the `X-Webhook-Event-Type` header (`input.eventType`),
+ * not the body. Pass a type param to narrow `data`, e.g.
+ * `verifyWebhook<PaymentConfirmedData>(...)`.
  */
 export function verifyWebhook<T = unknown>(
   input: WebhookInput,
@@ -83,7 +123,5 @@ export function verifyWebhook<T = unknown>(
     throw new InfiError("Invalid webhook body", 400, "invalid_webhook");
   }
 
-  const type =
-    (data as { type?: string } | null)?.type ?? "unknown";
-  return { id: input.id, type, timestamp: ts, data };
+  return { id: input.id, type: input.eventType, timestamp: ts, data };
 }

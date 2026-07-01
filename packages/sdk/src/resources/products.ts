@@ -1,11 +1,22 @@
 import type { Transport } from "../http.js";
+import {
+  SubscriptionsResource,
+  type CreateSubscriptionInput,
+  type SubscriptionWithPeriod,
+} from "./subscriptions.js";
 import type {
+  CreateCustomerRequest,
   CreateMeterRequest,
   CreateProductRequest,
+  Deliverable,
   Meter,
+  PresignDeliverableRequest,
+  PresignDeliverableResponse,
   Price,
   PriceInput,
   Product,
+  ProductCustomer,
+  PutDeliverableRequest,
   Version,
   VersionInput,
 } from "../types.js";
@@ -23,10 +34,13 @@ class VersionsResource {
     });
   }
 
-  list(productId: string): Promise<Version[]> {
-    return this.t.request("GET", `/metering/products/${enc(productId)}/versions`, {
-      requireSecret: true,
-    });
+  async list(productId: string): Promise<Version[]> {
+    const res = await this.t.request<{ versions?: Version[] }>(
+      "GET",
+      `/metering/products/${enc(productId)}/versions`,
+      { requireSecret: true },
+    );
+    return res.versions ?? [];
   }
 
   publish(productId: string, versionId: string): Promise<Version> {
@@ -49,12 +63,13 @@ class PricesResource {
     );
   }
 
-  list(productId: string, versionId: string): Promise<Price[]> {
-    return this.t.request(
+  async list(productId: string, versionId: string): Promise<Price[]> {
+    const res = await this.t.request<{ prices?: Price[] }>(
       "GET",
       `/metering/products/${enc(productId)}/versions/${enc(versionId)}/prices`,
       { requireSecret: true },
     );
+    return res.prices ?? [];
   }
 }
 
@@ -69,8 +84,43 @@ class MetersResource {
     });
   }
 
-  list(productId: string): Promise<Meter[]> {
-    return this.t.request("GET", `/metering/products/${enc(productId)}/meters`, {
+  async list(productId: string): Promise<Meter[]> {
+    const res = await this.t.request<{ meters?: Meter[] }>(
+      "GET",
+      `/metering/products/${enc(productId)}/meters`,
+      { requireSecret: true },
+    );
+    return res.meters ?? [];
+  }
+}
+
+class DeliverableResource {
+  constructor(private readonly t: Transport) {}
+
+  /** Presign an R2 upload URL for a file deliverable (upload the bytes to it, then `save`). */
+  presign(productId: string, input: PresignDeliverableRequest): Promise<PresignDeliverableResponse> {
+    return this.t.request("POST", `/metering/products/${enc(productId)}/deliverable/presign`, {
+      body: input,
+      requireSecret: true,
+    });
+  }
+
+  /** Save (create/replace) the deliverable — kind `file` (with objectKey) or `link` (with url). */
+  save(productId: string, input: PutDeliverableRequest): Promise<Deliverable> {
+    return this.t.request("PUT", `/metering/products/${enc(productId)}/deliverable`, {
+      body: input,
+      requireSecret: true,
+    });
+  }
+
+  get(productId: string): Promise<Deliverable> {
+    return this.t.request("GET", `/metering/products/${enc(productId)}/deliverable`, {
+      requireSecret: true,
+    });
+  }
+
+  delete(productId: string): Promise<void> {
+    return this.t.request("DELETE", `/metering/products/${enc(productId)}/deliverable`, {
       requireSecret: true,
     });
   }
@@ -80,11 +130,15 @@ export class ProductsResource {
   readonly versions: VersionsResource;
   readonly prices: PricesResource;
   readonly meters: MetersResource;
+  readonly deliverable: DeliverableResource;
+  #subscriptions: SubscriptionsResource;
 
   constructor(private readonly t: Transport) {
     this.versions = new VersionsResource(t);
     this.prices = new PricesResource(t);
     this.meters = new MetersResource(t);
+    this.deliverable = new DeliverableResource(t);
+    this.#subscriptions = new SubscriptionsResource(t);
   }
 
   create(input: CreateProductRequest, idempotencyKey?: string): Promise<Product> {
@@ -95,8 +149,11 @@ export class ProductsResource {
     });
   }
 
-  list(): Promise<Product[]> {
-    return this.t.request("GET", "/metering/products", { requireSecret: true });
+  async list(): Promise<Product[]> {
+    const res = await this.t.request<{ products?: Product[] }>("GET", "/metering/products", {
+      requireSecret: true,
+    });
+    return res.products ?? [];
   }
 
   get(productId: string): Promise<Product> {
@@ -108,5 +165,25 @@ export class ProductsResource {
       body: patch,
       requireSecret: true,
     });
+  }
+
+  /** Enroll a customer in this product (idempotent). Returns the enrollment —
+   *  the id used by credits/subscriptions/usage. Creates the customer if new. */
+  enroll(productId: string, input: CreateCustomerRequest, idempotencyKey?: string): Promise<ProductCustomer> {
+    return this.t.request("POST", `/metering/products/${enc(productId)}/customers`, {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+
+  /** Subscribe an enrollment to this product (opens its first billing period).
+   *  Ergonomic alias for `infi.subscriptions.create`. */
+  subscribe(
+    productId: string,
+    input: CreateSubscriptionInput,
+    idempotencyKey?: string,
+  ): Promise<SubscriptionWithPeriod> {
+    return this.#subscriptions.create(productId, input, idempotencyKey);
   }
 }

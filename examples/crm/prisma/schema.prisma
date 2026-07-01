@@ -1,6 +1,8 @@
 // CRM example — SQLite. Status/stage are strings (SQLite has no native enum).
 generator client {
   provider = "prisma-client-js"
+  // Own output dir — avoids clobbering other examples' shared @prisma/client.
+  output   = "../src/generated/prisma"
 }
 
 datasource db {

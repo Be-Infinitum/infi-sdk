@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@beinfi/nextjs";
 import { prisma } from "./db";
-import type { CrmUser } from "@prisma/client";
+import type { CrmUser } from "@/generated/prisma";
 
 /**
  * Resolve the signed-in operator from the infi_session cookie.

@@ -22,10 +22,13 @@ class RateCardsResource {
     });
   }
 
-  list(customerId: string): Promise<RateCard[]> {
-    return this.t.request("GET", `/metering/customers/${enc(customerId)}/rate-cards`, {
-      requireSecret: true,
-    });
+  async list(customerId: string): Promise<RateCard[]> {
+    const res = await this.t.request<{ rateCards?: RateCard[] }>(
+      "GET",
+      `/metering/customers/${enc(customerId)}/rate-cards`,
+      { requireSecret: true },
+    );
+    return res.rateCards ?? [];
   }
 
   delete(customerId: string, rateCardId: string): Promise<void> {
@@ -50,6 +53,15 @@ class CreditsResource {
   /** Grant credit (e.g. after a credit-pack payment is confirmed). */
   grant(customerId: string, input: GrantCreditInput, idempotencyKey?: string): Promise<CreditSummary> {
     return this.t.request("POST", `/metering/customers/${enc(customerId)}/credit`, {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+
+  /** Consume (deduct) credit; rejects (409) if it would overdraw the balance. */
+  consume(customerId: string, input: GrantCreditInput, idempotencyKey?: string): Promise<CreditSummary> {
+    return this.t.request("POST", `/metering/customers/${enc(customerId)}/credit/consume`, {
       body: input,
       requireSecret: true,
       idempotencyKey,
