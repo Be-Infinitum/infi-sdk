@@ -1,4 +1,4 @@
-import type { AuthResult, SessionMode } from "@beinfi/sdk";
+import type { AuthResult, InsufficientCreditError, SessionMode } from "@beinfi/sdk";
 import type { NextRequest, NextResponse } from "next/server";
 
 /** Forwarded to `setSessionCookie` from `@beinfi/sdk`. */
@@ -52,4 +52,27 @@ export interface UsageOptions {
   baseUrl?: string;
   /** Resolve the authed customer's id and stamp it onto every event in the request. */
   resolveCustomerId?: (req: NextRequest) => string | undefined | Promise<string | undefined>;
+}
+
+export interface MeterRouteOptions {
+  /** Secret key (`sk_...`) used to gate credit + record usage server-side. */
+  secretKey: string;
+  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
+  baseUrl?: string;
+  /** Meter the usage records against (e.g. "tokens"). */
+  meter: string;
+  /** Resolve the authed customer's id from the request (required — who is charged). */
+  resolveCustomerId: (req: NextRequest) => string | undefined | Promise<string | undefined>;
+  /** Explicit usage value; skips token auto-detection from the handler result. */
+  value?: number | string;
+  /** Custom usage extractor from the handler result (overrides built-in detection). */
+  extract?: (result: unknown) => number | string;
+  /** Record usage without the pre-flight credit gate (default false). */
+  skipGuard?: boolean;
+  /** Extra metadata stamped onto the usage event. */
+  metadata?: Record<string, unknown>;
+  /** Response when `resolveCustomerId` yields nothing. Default: 400 JSON. */
+  onMissingCustomer?: (req: NextRequest) => NextResponse;
+  /** Response when the customer is out of credit. Default: 402 JSON. */
+  onInsufficientCredit?: (error: InsufficientCreditError, req: NextRequest) => NextResponse;
 }
