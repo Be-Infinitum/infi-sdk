@@ -1,5 +1,6 @@
 export { Infi, type CheckoutOptions } from "./client.js";
-export { InfiError, parseErrorResponse } from "./errors.js";
+export { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
+export { extractTokens, resolveUsageValue, type MeterOptions } from "./meter.js";
 export {
   buildHostedLoginUrl,
   extractCodeFromUrl,
@@ -46,6 +47,7 @@ export type {
   CreateProductRequest,
   CreditSummary,
   Customer,
+  CustomerState,
   CustomerSummary,
   Deliverable,
   PresignDeliverableRequest,

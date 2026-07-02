@@ -3,6 +3,7 @@ import type {
   CreateCustomerRequest,
   CreditSummary,
   Customer,
+  CustomerState,
   GrantCreditInput,
   PriceInput,
   RateCard,
@@ -88,5 +89,16 @@ export class CustomersResource {
 
   get(customerId: string): Promise<Customer> {
     return this.t.request("GET", `/metering/customers/${enc(customerId)}`, { requireSecret: true });
+  }
+
+  /**
+   * One-read customer view: enrollment, credit balance, live subscriptions, and
+   * current-period usage. Powers dashboards/panels; the credit gate uses the
+   * lighter `credits.balance` instead.
+   */
+  state(customerId: string): Promise<CustomerState> {
+    return this.t.request("GET", `/metering/customers/${enc(customerId)}/state`, {
+      requireSecret: true,
+    });
   }
 }

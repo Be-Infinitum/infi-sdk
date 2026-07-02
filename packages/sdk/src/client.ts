@@ -1,6 +1,7 @@
-import { InfiError, parseErrorResponse } from "./errors.js";
+import { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
 import { extractCodeFromUrl } from "./hosted.js";
 import { Transport } from "./http.js";
+import { resolveUsageValue, type MeterOptions } from "./meter.js";
 import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
 import { UsageResource } from "./resources/usage.js";
@@ -258,6 +259,49 @@ export class Infi {
       throw await parseErrorResponse(res);
     }
     return (await res.json()) as IngestResult;
+  }
+
+  /**
+   * Meter a credit-consuming call: check the customer has credit, run `fn`,
+   * then record its usage — the drop-in wrapper for LLM/token work.
+   *
+   * The pre-flight gate reads the wallet balance and throws
+   * `InsufficientCreditError` (402) before `fn` runs when it is exhausted, so
+   * you never do the work for free (ADR 0010: enforcement at the request edge;
+   * settlement of prepaid drawdown is async, so the balance may lag by seconds).
+   * On success the usage is recorded (token count auto-detected from common
+   * OpenAI/Anthropic shapes, or set `value`/`extract`). If `fn` throws, nothing
+   * is recorded. The wrapped result is returned unchanged.
+   *
+   * ```ts
+   * const res = await infi.meter({ customerId, meter: "tokens" }, () =>
+   *   openai.chat.completions.create({ ... }),
+   * );
+   * ```
+   */
+  async meter<T>(options: MeterOptions, fn: () => Promise<T>): Promise<T> {
+    this.#requireSecretKey("meter");
+    if (!options.skipGuard) {
+      await this.#assertCredit(options.customerId);
+    }
+    const result = await fn();
+    const value = resolveUsageValue(options, result);
+    await this.track({
+      customerId: options.customerId,
+      meter: options.meter,
+      value,
+      ...(options.metadata ? { metadata: options.metadata } : {}),
+    });
+    return result;
+  }
+
+  /** Throws InsufficientCreditError when the customer's balance is <= 0. */
+  async #assertCredit(customerId: string): Promise<void> {
+    const summary = await this.customers.credits.balance(customerId);
+    const balance = Number(summary.balance ?? "0");
+    if (!(balance > 0)) {
+      throw new InsufficientCreditError(customerId, summary.balance ?? "0");
+    }
   }
 
   // ── Checkout: create an invoice and hand back the hosted pay URL ──────────
