@@ -1518,6 +1518,7 @@ export interface components {
             publishedAt?: string | null;
             commitmentAmount?: string | null;
             commitmentResets?: boolean;
+            creditsPerCycle?: string | null;
         };
         Meter: {
             /** Format: uuid */
@@ -1751,6 +1752,10 @@ export interface components {
             status?: "trialing" | "active" | "past_due" | "paused" | "canceled";
             /** @enum {string} */
             billingCycle?: "weekly" | "monthly" | "annual";
+            /** @enum {string} */
+            collectionMethod?: "charge_automatically" | "send_invoice";
+            /** @enum {string} */
+            billingMode?: "arrears" | "advance";
             /** Format: date-time */
             anchor?: string;
             /** Format: date-time */
@@ -2654,6 +2659,8 @@ export interface operations {
                     billingCycle?: "weekly" | "monthly" | "annual" | null;
                     /** @description Decimal string. */
                     basePrice?: string | null;
+                    /** @description Prepaid credit allowance granted each period (decimal string). Only meaningful for prepaid products; NULL grants nothing. */
+                    creditsPerCycle?: string | null;
                 };
             };
         };

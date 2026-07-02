@@ -29,6 +29,8 @@ export interface BillingProduct {
   currency?: string;
   billingCycle?: "weekly" | "monthly" | "annual" | null;
   basePrice?: string | null;
+  /** Prepaid credit allowance granted each cycle (decimal string). Prepaid only. */
+  creditsPerCycle?: string | null;
   meters?: BillingMeter[];
   prices?: BillingPrice[];
   /** Link deliverables only (file uploads use products.deliverable.presign/save). */
@@ -132,6 +134,7 @@ export async function syncBilling(
         const version = await infi.products.versions.create(productId, {
           billingCycle: p.billingCycle ?? null,
           basePrice: p.basePrice ?? null,
+          creditsPerCycle: p.creditsPerCycle ?? null,
         });
         for (const pr of p.prices ?? []) {
           const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
