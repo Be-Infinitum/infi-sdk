@@ -25,7 +25,10 @@ async function main() {
         key: PRODUCT_KEY,
         name: "Integration",
         type: "agent",
-        pricingModel: "usage",
+        // A recurring usage cycle = pricingModel "subscription" with meters (no
+        // flat base). "usage" is for cycle-less ad-hoc billing and cannot carry a
+        // billingCycle, so it can't be subscribed — subscription is the cycle.
+        pricingModel: "subscription",
         currency: CURRENCY,
         billingCycle: "monthly",
         meters: METERS.map((m) => ({

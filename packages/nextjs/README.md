@@ -67,6 +67,32 @@ export const POST = Usage({
 });
 ```
 
+## Metered LLM routes
+
+Gate a credit-consuming route: `withMeter` checks the customer's credit, runs your handler,
+records its usage, and returns the handler's data as JSON. Out of credit → `402` **before** the
+handler runs (never do the work for free); unresolved customer → `400`. Server-side only.
+
+Your handler returns the JSON-serializable result (e.g. the model response); `withMeter`
+auto-detects the token usage from it (OpenAI/Anthropic shapes, or set `value`/`extract`).
+
+```ts
+// app/api/chat/route.ts
+import { withMeter } from "@beinfi/nextjs";
+
+export const POST = withMeter(
+  {
+    secretKey: process.env.INFI_SECRET_KEY!,
+    meter: "tokens",
+    resolveCustomerId: async (req) => (await getSessionCustomer(req)).id,
+  },
+  async (req) => {
+    const { messages } = await req.json();
+    return openai.chat.completions.create({ model: "gpt-4o", messages });
+  },
+);
+```
+
 ## Options
 
 `Login` — `slug`, `redirectTo` (relative resolved against the request origin), `authBaseUrl?`,
@@ -76,3 +102,7 @@ export const POST = Usage({
 (`{ maxAgeSeconds, secure, path }`), `onAuth?` (return a `NextResponse` to take over), `onError?`.
 
 `Usage` — `secretKey`, `baseUrl?`, `resolveCustomerId?`.
+
+`withMeter` — `secretKey`, `meter`, `resolveCustomerId`, `value?`, `extract?`, `skipGuard?`,
+`metadata?`, `baseUrl?`, `onMissingCustomer?` (default `400`), `onInsufficientCredit?` (default
+`402`).

@@ -58,6 +58,48 @@ await infi.trackBatch([
 ]);
 ```
 
+## Metered LLM (server-side — secret key)
+
+Wrap a credit-consuming call: `meter` checks the customer has credit, runs it, then records
+the usage. If the balance is exhausted it throws `InsufficientCreditError` (402) **before** the
+call runs, so you never do the work for free. Token usage is auto-detected from common OpenAI
+(`usage.total_tokens`) and Anthropic (`usage.input_tokens + output_tokens`) shapes.
+
+```ts
+import { InsufficientCreditError } from "@beinfi/sdk";
+
+try {
+  const res = await infi.meter({ customerId: "cus_123", meter: "tokens" }, () =>
+    openai.chat.completions.create({ model: "gpt-4o", messages }),
+  );
+  // res is the call's result, unchanged; usage was recorded on success
+} catch (err) {
+  if (err instanceof InsufficientCreditError) {
+    // out of credit — return a 402 / upsell (err.balance is the current balance)
+  }
+}
+```
+
+The credit check reads the wallet balance; prepaid drawdown settles asynchronously, so the
+balance can lag by a few seconds.
+
+| Option | Default | Notes |
+| --- | --- | --- |
+| `customerId` | — | Who is charged. |
+| `meter` | — | Meter the usage records against (e.g. `"tokens"`). |
+| `value` | auto | Explicit usage value; skips token auto-detection. |
+| `extract` | auto | `(result) => number` — custom usage extractor, overrides detection. |
+| `skipGuard` | `false` | Record usage without the pre-flight credit check. |
+| `metadata` | — | Extra fields stamped onto the usage event. |
+
+Read a customer's full state (enrollment + credit balance + subscriptions + current-period
+usage) in one call — for dashboards/panels:
+
+```ts
+const state = await infi.customers.state("cus_123");
+// { customer, credit: { balance, total }, subscriptions, usage }
+```
+
 ## React
 
 ```tsx
@@ -66,9 +108,20 @@ import { InfiLogin } from "@beinfi/sdk/react";
 <InfiLogin slug="your-app" redirectTo="/callback" />;
 ```
 
+`UsagePanel` renders a customer's credit balance, current-period usage, and subscriptions.
+It is presentational — fetch the state server-side (it needs the secret key; never fetch it
+from the browser) and pass it in:
+
+```tsx
+import { UsagePanel } from "@beinfi/sdk/react";
+
+const state = await infi.customers.state("cus_123"); // server component / loader
+<UsagePanel state={state} creditLabel="credits" />;
+```
+
 ## Next.js
 
-For App Router route handlers (`Login`, `Callback`, `Usage`), use
+For App Router route handlers (`Login`, `Callback`, `Usage`, `withMeter`), use
 [`@beinfi/nextjs`](https://www.npmjs.com/package/@beinfi/nextjs).
 
 ## Config

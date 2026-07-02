@@ -24,6 +24,18 @@ export type CreateMeterRequest = components["schemas"]["CreateMeterRequest"];
 export type RateCard = components["schemas"]["RateCard"];
 export type CreditSummary = components["schemas"]["CreditSummary"];
 export type UsageReport = components["schemas"]["UsageReport"];
+
+/**
+ * Aggregated single-read customer view (`GET /customers/{id}/state`): the
+ * enrollment, its credit wallet, live subscriptions, and current-period usage.
+ * Not yet in the OpenAPI schema — composed here from the shared aliases.
+ */
+export interface CustomerState {
+  customer: ProductCustomer;
+  credit: CreditSummary;
+  subscriptions: Subscription[];
+  usage: UsageReport;
+}
 export type Invoice = components["schemas"]["Invoice"];
 export type CreateInvoiceRequest = components["schemas"]["CreateInvoiceRequest"];
 export type CreateProductInvoiceRequest = components["schemas"]["CreateProductInvoiceRequest"];
@@ -43,6 +55,8 @@ export type PutDeliverableRequest = components["schemas"]["PutDeliverableRequest
 export interface VersionInput {
   billingCycle?: "weekly" | "monthly" | "annual" | null;
   basePrice?: string | null;
+  /** Prepaid credit allowance granted each cycle (decimal string). Prepaid only. */
+  creditsPerCycle?: string | null;
 }
 export interface GrantCreditInput {
   /** Decimal string amount to grant. */
