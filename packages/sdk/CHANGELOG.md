@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0
+
+Metered-LLM surface: a credit gate + usage recording in one call, plus a one-read customer view.
+
+### Added
+- `infi.meter(options, fn)` — gate credit, run `fn`, record its usage. Token usage auto-detected
+  from OpenAI (`usage.total_tokens`) / Anthropic (`input_tokens + output_tokens`) shapes; override
+  with `value`/`extract`; `skipGuard` opts out of the gate. Records only on success; returns `fn`'s
+  result unchanged.
+- `InsufficientCreditError` (status `402`, code `insufficient_credit`, fields `customerId`,
+  `balance`) — thrown by `meter` before `fn` runs when the balance is exhausted.
+- `infi.customers.state(id)` → `CustomerState` → `GET /metering/customers/{id}/state` (enrollment,
+  credit, subscriptions, current-period usage).
+- `UsagePanel` React component (`@beinfi/sdk/react`) — presentational credit/usage/subscriptions
+  panel over a `CustomerState`.
+- Companion `withMeter(options, handler)` App Router route gate in `@beinfi/nextjs`.
+
 ## 0.2.0
 
 **Breaking.** Realigned the SDK to the real backend identity flow (email codes)

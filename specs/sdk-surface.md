@@ -1,6 +1,8 @@
 # Spec — @beinfi/sdk surface expansion
 
-**Status:** P1 + P2 + P3 **implemented** in `@beinfi/sdk@0.3.0`. P1/P2: `checkout`,
+**Status:** P1 + P2 + P3 **implemented** in `@beinfi/sdk@0.3.0`. Metered-LLM surface
+(`infi.meter`, `customers.state`, `credits.consume`, `InsufficientCreditError`, `UsagePanel`,
+`@beinfi/nextjs withMeter`) added in `@0.9.0`. P1/P2: `checkout`,
 `verifyWebhook`, `usage`, `customers.credits`/`rateCards`/`create`/`get`, `products` catalog,
 `invoices`. P3: `products.deliverable.*` (openapi + wrappers), backend product natural-key
 (`key` column, migration 000031 + threaded through create), and billing-as-code
@@ -48,10 +50,18 @@ spec defines the full SDK surface and a phased build order.
 | `rateCards.list/delete` | `GET/DELETE .../rate-cards[/{id}]` | `RateCard` |
 | `credits.balance(customerId)` | `GET /metering/customers/{id}/credit` | `CreditSummary` |
 | `credits.grant(customerId, {amount, reference})` | `POST .../credit` | `CreditSummary` |
+| `credits.consume(customerId, {amount, reference})` | `POST .../credit/consume` | `CreditSummary` — rejects `409` on overdraw |
+| `state(customerId)` | `GET .../customers/{id}/state` | `CustomerState` — enrollment + credit + subscriptions + usage, one read (`@0.9.0`) |
 | `create/get` | — | **backend gap**: customers exist only via login exchange today; needed by ebook's no-login buy. Follow-up. |
 
 ### Usage — `infi.usage`
 - `get({ customerId, from, to })` → `GET /metering/usage` → `UsageReport`. Dashboards + cost projection.
+
+### Metered LLM — `infi.meter` (`@0.9.0`)
+- `meter({ customerId, meter, value?, extract?, skipGuard?, metadata? }, fn)` → gate credit
+  (throws `InsufficientCreditError` 402 before `fn`), run `fn`, then `track` its usage (token
+  auto-detection from OpenAI/Anthropic result shapes). Returns `fn`'s result unchanged.
+  Companion `withMeter` App Router gate ships in `@beinfi/nextjs`; `UsagePanel` in `@beinfi/sdk/react`.
 
 ### Invoices — `infi.invoices`
 - `create(CreateInvoiceRequest)`, `list`, `get`, `send` (finalize+email), `void`,
