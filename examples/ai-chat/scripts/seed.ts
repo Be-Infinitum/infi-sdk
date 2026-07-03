@@ -17,6 +17,7 @@ const config = defineBilling({
       name: "AI Chat",
       type: "agent",
       pricingModel: "prepaid",
+      billingCycle: "monthly", // prepaid credits are granted per cycle
       currency: "BRL",
       // Pack price for checkout (auto-derived), grants PACK_CREDITS on payment.
       basePrice: "19.90",
