@@ -50,9 +50,9 @@ export function App() {
             redirectTo={`${window.location.origin}/callback`}
             sendLabel="Enviar código"
             verifyLabel="Entrar"
-            className="mt-6 flex flex-col gap-3"
-            inputClassName="rounded-xl border border-white/10 bg-zinc-900 px-4 py-2.5 text-center outline-none focus:border-white/30"
-            buttonClassName="rounded-xl bg-white px-5 py-2.5 font-medium text-black hover:bg-zinc-200 disabled:opacity-60"
+            className="mt-6 flex w-full flex-col gap-2.5"
+            inputClassName="w-full rounded-xl border border-white/10 bg-zinc-900 px-4 py-3 text-center text-[15px] placeholder:text-zinc-500 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/10"
+            buttonClassName="w-full rounded-xl bg-white px-5 py-3 text-[15px] font-medium text-black transition hover:bg-zinc-200 disabled:opacity-50"
             onError={(e) => console.error("login:", e.message)}
           />
         </div>
