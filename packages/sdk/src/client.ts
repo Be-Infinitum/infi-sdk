@@ -4,6 +4,7 @@ import { Transport } from "./http.js";
 import { resolveUsageValue, type MeterOptions } from "./meter.js";
 import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
+import { AppsResource } from "./resources/apps.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
@@ -75,6 +76,8 @@ export class Infi {
   readonly products: ProductsResource;
   /** Customers: rate-cards (per-org pricing) and credits. */
   readonly customers: CustomersResource;
+  /** Apps: register + configure identity apps (slug, origins, redirect URIs). */
+  readonly apps: AppsResource;
   /** Usage totals per meter for a customer window. */
   readonly usage: UsageResource;
   /** Invoices: create, send, void, charge, generate-from-subscription. */
@@ -104,6 +107,7 @@ export class Infi {
     const transport = new Transport(this.#baseUrl, this.#secretKey);
     this.products = new ProductsResource(transport);
     this.customers = new CustomersResource(transport);
+    this.apps = new AppsResource(transport);
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
     this.subscriptions = new SubscriptionsResource(transport);

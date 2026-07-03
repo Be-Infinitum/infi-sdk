@@ -18,17 +18,23 @@ cd ../.. && bun install && bun run build
 cd examples/crm
 cp .env.example .env      # fill INFI_SECRET_KEY + NEXT_PUBLIC_INFI_APP_SLUG
 bunx prisma db push       # creates dev.db + generates the client
+bun run setup             # provisions the identity app (slug + origins + redirect) via infi.apps
 bun run dev               # http://localhost:3010
 ```
+
+`bun run setup` registers the app in code with `infi.apps.create` — the local origin
+(`http://localhost:3010`) and callback (`/callback`) allowlisted — so hosted login resolves.
+It is idempotent (re-runs update the app), so run it again after changing the slug or origins.
 
 ## Prerequisites (real auth)
 
 - The Infi backend reachable at `INFI_API_URL` (default `http://localhost:8088`).
+- The Infi **frontend** running at `NEXT_PUBLIC_INFI_AUTH_BASE_URL` (default `http://localhost:3000`)
+  — it serves the hosted login page (`/identity/{slug}/login`). The login button links straight
+  there; there is no backend redirect hop.
 - A **claimed sandbox** giving you `sk_test_...` (`INFI_SECRET_KEY`) and an app slug
-  (`NEXT_PUBLIC_INFI_APP_SLUG`).
-- Your app origin allowlisted on the app: `allowed_origins` includes
-  `http://localhost:3010`, `redirect_uris` includes `http://localhost:3010/callback`
-  (set on claim onboarding or via MCP `beinfi_configure_app`).
+  (`NEXT_PUBLIC_INFI_APP_SLUG`). `bun run setup` handles the origin/redirect allowlist for you
+  (`allowed_origins` ⊇ `http://localhost:3010`, `redirect_uris` ⊇ `http://localhost:3010/callback`).
 
 ## How auth works here
 

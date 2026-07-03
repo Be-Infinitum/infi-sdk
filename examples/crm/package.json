@@ -8,6 +8,7 @@
     "start": "next start -p 3010",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "setup": "tsx scripts/setup.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "@types/react-dom": "^19.1.6",
     "prisma": "^6.1.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "tw-animate-css": "^1.2.5",
     "typescript": "^5.8.3"
   }

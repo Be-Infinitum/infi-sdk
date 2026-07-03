@@ -37,9 +37,11 @@ export type {
   SubscriptionWithPeriod,
 } from "./resources/subscriptions.js";
 export type {
+  App,
   AppIdentity,
   AuthResult,
   CheckoutSession,
+  CreateAppRequest,
   CreateCustomerRequest,
   CreateInvoiceRequest,
   CreateMeterRequest,
@@ -78,6 +80,7 @@ export type {
   StartHostedLoginOptions,
   Subscription,
   SubscriptionPeriod,
+  UpdateAppRequest,
   UsageEvent,
   UsageReport,
   Version,
