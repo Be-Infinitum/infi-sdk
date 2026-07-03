@@ -8,6 +8,7 @@ import { AppsResource } from "./resources/apps.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
+import { SandboxResource } from "./resources/sandbox.js";
 import { verifyWebhook, type WebhookEvent, type WebhookInput } from "./webhooks.js";
 import {
   syncBilling,
@@ -85,6 +86,8 @@ export class Infi {
   readonly invoices: InvoicesResource;
   /** Subscriptions: create (with anchor), get, list per enrollment. */
   readonly subscriptions: SubscriptionsResource;
+  /** Sandbox: provision claimable test tenants (public, no secret key). */
+  readonly sandbox: SandboxResource;
 
   constructor(config: InfiConfig | string) {
     if (typeof config === "string") {
@@ -112,6 +115,7 @@ export class Infi {
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
     this.subscriptions = new SubscriptionsResource(transport);
+    this.sandbox = new SandboxResource(transport, this.#baseUrl);
   }
 
   get baseUrl(): string {

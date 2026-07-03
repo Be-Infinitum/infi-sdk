@@ -1,7 +1,6 @@
 # Spec — create-beinfi-app (capstone; roadmap)
 
-**Status:** Parked (roadmap). Build AFTER: the marketplace example lands, the SDK is published,
-and the examples are normalized into copyable templates. Do not start until those gate.
+**Status:** Implemented (v0.1). SDK sandbox methods + default template + CLI with template picker.
 
 ## Vision
 

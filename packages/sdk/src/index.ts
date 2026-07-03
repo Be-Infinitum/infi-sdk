@@ -33,6 +33,12 @@ export {
 } from "./webhooks.js";
 export type { UsageQuery } from "./resources/usage.js";
 export type {
+  ClaimableSandboxCreateResponse,
+  ClaimableSandboxPublicView,
+  CreateSandboxOptions,
+  SandboxRef,
+} from "./resources/sandbox.js";
+export type {
   CreateSubscriptionInput,
   SubscriptionWithPeriod,
 } from "./resources/subscriptions.js";

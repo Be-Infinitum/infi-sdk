@@ -66,6 +66,7 @@
         "@types/react-dom": "^19.1.6",
         "prisma": "^6.1.0",
         "tailwindcss": "^4",
+        "tsx": "^4.19.2",
         "tw-animate-css": "^1.2.5",
         "typescript": "^5.8.3",
       },
@@ -148,12 +149,31 @@
         "@types/react": "^19.1.8",
         "@types/react-dom": "^19.1.6",
         "tailwindcss": "^4",
+        "tsx": "^4.19.2",
+        "typescript": "^5.8.3",
+      },
+    },
+    "packages/create-beinfi-app": {
+      "name": "create-beinfi-app",
+      "version": "0.1.0",
+      "bin": {
+        "create-beinfi-app": "./dist/index.js",
+      },
+      "dependencies": {
+        "@beinfi/sdk": "workspace:*",
+        "@clack/prompts": "^0.10.1",
+        "picocolors": "^1.1.1",
+      },
+      "devDependencies": {
+        "@types/node": "^22.15.30",
+        "tsup": "^8.5.0",
+        "tsx": "^4.19.2",
         "typescript": "^5.8.3",
       },
     },
     "packages/nextjs": {
       "name": "@beinfi/nextjs",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "devDependencies": {
         "@beinfi/sdk": "workspace:*",
         "next": "15.5.4",
@@ -164,13 +184,13 @@
         "vitest": "^3.2.4",
       },
       "peerDependencies": {
-        "@beinfi/sdk": "^0.8.0",
+        "@beinfi/sdk": "^0.8.1",
         "next": ">=14",
       },
     },
     "packages/sdk": {
       "name": "@beinfi/sdk",
-      "version": "0.8.0",
+      "version": "0.8.1",
       "devDependencies": {
         "@types/node": "^22",
         "@types/react": "^19.1.8",
@@ -245,6 +265,10 @@
     "@beinfi/nextjs": ["@beinfi/nextjs@workspace:packages/nextjs"],
 
     "@beinfi/sdk": ["@beinfi/sdk@workspace:packages/sdk"],
+
+    "@clack/core": ["@clack/core@0.4.2", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-NYQfcEy8MWIxrT5Fj8nIVchfRFA26yYKJcvBS7WlUIlw2OmQOY9DhGGXMovyI5J5PpxrCPGkgUi207EBrjpBvg=="],
+
+    "@clack/prompts": ["@clack/prompts@0.10.1", "", { "dependencies": { "@clack/core": "0.4.2", "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-Q0T02vx8ZM9XSv9/Yde0jTmmBQufZhPJfYAg2XrrrxWWaZgq1rr8nU8Hv710BQ1dhoP8rtY7YUdpGej2Qza/cw=="],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.11.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-vgj7R3y3Wgx24IQaGPA/R6YFXLHVMOZ0uVEyIQPaWs+rd1AzfEMXlAC22FYwO1XkKR6NPsq7mUandH8oIRdZFw=="],
 
@@ -710,6 +734,8 @@
 
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
+    "create-beinfi-app": ["create-beinfi-app@workspace:packages/create-beinfi-app"],
+
     "crm": ["crm@workspace:examples/crm"],
 
     "csstype": ["csstype@3.2.3", "", {}, "sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ=="],
@@ -920,6 +946,8 @@
 
     "siginfo": ["siginfo@2.0.0", "", {}, "sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g=="],
 
+    "sisteransi": ["sisteransi@1.0.5", "", {}, "sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg=="],
+
     "sonner": ["sonner@1.7.4", "", { "peerDependencies": { "react": "^18.0.0 || ^19.0.0 || ^19.0.0-rc", "react-dom": "^18.0.0 || ^19.0.0 || ^19.0.0-rc" } }, "sha512-DIS8z4PfJRbIyfVFDVnK9rO3eYDtse4Omcm6bt0oEr5/jtLgysmjuBl1frJ9E/EQZrFmKx2A8m/s5s9CRXIzhw=="],
 
     "source-map": ["source-map@0.7.6", "", {}, "sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ=="],
@@ -1047,8 +1075,6 @@
     "chalk/supports-color": ["supports-color@7.2.0", "", { "dependencies": { "has-flag": "^4.0.0" } }, "sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw=="],
 
     "jsondiffpatch/chalk": ["chalk@5.6.2", "", {}, "sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA=="],
-
-    "next-email-code/tailwindcss": ["tailwindcss@4.3.1", "", {}, "sha512-hk+TB1m+K8CYNrP6rjQaq/Y+4Zylwpa87mLYBKCunwnnQ9p+fHb7kmSfGqyEJoxF/O6CDyABWVFEafNSYKll+Q=="],
 
     "nypm/citty": ["citty@0.2.2", "", {}, "sha512-+6vJA3L98yv+IdfKGZHBNiGW5KHn22e/JwID0Strsz8h4S/csAu/OuICwxrg44k5MRiZHWIo8XXuJgQTriRP4w=="],
 

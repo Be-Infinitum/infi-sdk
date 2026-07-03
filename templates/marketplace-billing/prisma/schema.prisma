@@ -1,0 +1,28 @@
+// Marketplace-billing example — SQLite. Infi holds the billing truth (enrollment,
+// rate-cards, subscription, usage, invoices). Prisma just remembers the id trio per
+// org so the dashboard + scripts can reference them without re-querying by hand.
+generator client {
+  provider = "prisma-client-js"
+  // Own output dir — avoids clobbering other examples' shared @prisma/client.
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// One billed organization: an Infi enrollment + subscription + backdated period.
+model Org {
+  externalId     String   @id // the id used by track()/trackBatch
+  name           String
+  tier           String // "standard" | "premium" — drives the rate-card
+  email          String?
+  productId      String // Infi product id (the `integration` product)
+  enrollmentId   String // ProductCustomer.id — used by rate-cards/usage/subscription/invoicing
+  subscriptionId String
+  periodStart    DateTime // the backdated period window (for usage.get + display)
+  periodEnd      DateTime
+  lastInvoiceId  String?
+  createdAt      DateTime @default(now())
+}

@@ -1,0 +1,11 @@
+FROM oven/bun:1 AS base
+WORKDIR /app
+
+COPY package.json bun.lock* package-lock.json* ./
+RUN bun install || npm install
+
+COPY . .
+RUN bunx prisma generate || npx prisma generate
+
+EXPOSE __PORT__
+CMD ["bun", "run", "dev"]
