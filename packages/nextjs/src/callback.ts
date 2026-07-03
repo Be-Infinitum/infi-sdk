@@ -41,8 +41,17 @@ export function Callback(options: CallbackOptions) {
       if (options.onError) {
         return options.onError(error, req);
       }
-      const status = error instanceof InfiError ? error.status : 500;
+      const code = error instanceof InfiError ? error.code ?? "exchange_failed" : "exchange_failed";
       const message = error instanceof Error ? error.message : "Authentication failed";
+      // Bounce back to the login page with the failure in the query so it can be
+      // shown, instead of dumping a JSON error the user lands on.
+      if (options.errorUrl) {
+        const dest = new URL(options.errorUrl, req.url);
+        dest.searchParams.set("error", code);
+        dest.searchParams.set("message", message);
+        return NextResponse.redirect(dest);
+      }
+      const status = error instanceof InfiError ? error.status : 500;
       return NextResponse.json({ error: { message } }, { status });
     }
   };

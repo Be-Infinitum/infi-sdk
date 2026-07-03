@@ -48,4 +48,18 @@ describe("Callback", () => {
     expect(onError).toHaveBeenCalledOnce();
     expect(res.status).toBe(418);
   });
+
+  it("redirects a failed exchange to errorUrl with error + message", async () => {
+    stubFetch({ message: "bad code", code: "invalid_code" }, 422);
+
+    const GET = Callback({ secretKey: "sk_test_x", successUrl: "/", errorUrl: "/login" });
+    const res = await GET(new NextRequest("https://app.example.com/callback?code=bad"));
+
+    expect([307, 308]).toContain(res.status);
+    const loc = new URL(res.headers.get("location") ?? "");
+    expect(loc.pathname).toBe("/login");
+    expect(loc.searchParams.get("error")).toBe("invalid_code");
+    expect(loc.searchParams.get("message")).toMatch(/bad code/i);
+    expect(res.headers.get("set-cookie")).toBeNull(); // no session on failure
+  });
 });

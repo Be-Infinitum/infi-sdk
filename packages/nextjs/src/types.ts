@@ -41,7 +41,14 @@ export interface CallbackOptions {
     result: AuthResult,
     req: NextRequest,
   ) => void | NextResponse | Promise<void | NextResponse>;
-  /** Handle a failed exchange. Defaults to a JSON error response. */
+  /**
+   * Where to send the browser after a FAILED exchange (e.g. your login page).
+   * Relative paths resolve against the request origin. The failure is appended as
+   * `?error=<code>&message=<msg>` so the page can show it. Ignored when `onError`
+   * is set. Without either, a failed exchange returns a JSON error.
+   */
+  errorUrl?: string;
+  /** Handle a failed exchange. Defaults to `errorUrl` redirect, else a JSON error response. */
   onError?: (error: unknown, req: NextRequest) => NextResponse;
 }
 
