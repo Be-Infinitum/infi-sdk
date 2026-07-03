@@ -57,8 +57,10 @@ app.get("/callback", async (c) => {
         maxAge: 60 * 60 * 24 * 7,
       });
     }
-  } catch {
-    // fall through to redirect; the SPA will show the login screen
+  } catch (e) {
+    // Surface the reason (bad code, missing key, tenant mismatch) instead of a
+    // silent bounce to /login.
+    console.error("callback exchange failed:", e instanceof Error ? e.message : e);
   }
   return c.redirect(APP_URL);
 });
