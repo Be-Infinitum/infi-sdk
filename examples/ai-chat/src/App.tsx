@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
+import type { CustomerState } from "@beinfi/sdk";
+import { UsagePanel } from "@beinfi/sdk/react";
 
 export function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [state, setState] = useState<CustomerState | null>(null);
 
   const refreshCredits = useCallback(async () => {
-    const res = await fetch("/api/credits");
+    const res = await fetch("/api/state");
     if (res.status === 401) {
       setAuthed(false);
       return;
     }
     setAuthed(true);
-    const data = (await res.json()) as { balance: string };
-    setBalance(Math.max(0, Math.floor(Number(data.balance))));
+    setState((await res.json()) as CustomerState);
   }, []);
 
   useEffect(() => {
@@ -23,7 +24,12 @@ export function App() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: "/api/chat",
     onFinish: () => void refreshCredits(),
+    // meter throws InsufficientCreditError → the server returns 402; refresh so the
+    // balance (and the out-of-credit banner) reflects the empty wallet.
+    onError: () => void refreshCredits(),
   });
+
+  const balance = state ? Math.max(0, Math.floor(Number(state.credit.balance ?? 0))) : null;
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
@@ -50,11 +56,16 @@ export function App() {
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col px-4">
-      <header className="flex items-center justify-between border-b border-white/10 py-4">
-        <span className="font-semibold">AI Chat</span>
-        <span className="rounded-full border border-white/15 px-3 py-1 text-sm text-zinc-300">
-          {balance ?? "—"} créditos
-        </span>
+      <header className="border-b border-white/10 py-4">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">AI Chat</span>
+          <span className="text-sm text-zinc-400">{balance ?? "—"} créditos</span>
+        </div>
+        {state && (
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+            <UsagePanel state={state} creditLabel="créditos" hideSubscriptions />
+          </div>
+        )}
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto py-6">

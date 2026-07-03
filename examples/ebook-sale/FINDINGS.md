@@ -53,3 +53,31 @@ generate` wins). Fixed by giving this example its own `generator output = src/ge
 Worth standardizing across examples.
 
 Net: the SDK expansion did its job — this example is ~90% app glue, ~10% Infi calls.
+
+## Metered-LLM surface adoption (DevEx)
+
+The metered-LLM surface (`infi.meter`, `withMeter`, `InsufficientCreditError`) is **N/A**
+for this example. Ebook sale is a single one-time purchase: form → hosted checkout →
+receive the file. There is no metered, credit-consuming call to gate — nothing runs
+per-request that draws down a balance, and there are no prepaid credits. `meter`/`withMeter`
+exist to check credit before a billable call (e.g. an LLM completion) and record its usage;
+a one-time digital-product sale has neither the recurring call nor the credit wallet those
+require. Wrapping the deliverable fetch in `withMeter` would be meaningless (the buyer already
+paid once, in full, at checkout).
+
+`customers.state` / `UsagePanel` also have **no real value** here. `CustomerState` is
+`{ customer, credit, subscriptions, usage }` — it has no field for invoices, purchases, or
+deliverable/entitlement grants. For a one-time buyer the customer is enrolled but has zero
+credit balance, no subscriptions, and no metered usage, so `state()` returns empty/zero across
+the board and `UsagePanel` would render an empty credit-and-usage widget. It's built for a
+metered/prepaid dashboard, not a purchase confirmation. This example already shows the right
+thing on `/thanks` from its own `Order` row (status + download link), sourced from
+`invoices.get` / the webhook.
+
+What a one-time-purchase app would actually want from the SDK is a **purchase/receipt view**:
+a `customers.purchases(id)` (or `invoices.list({ customer })` filtered to a buyer) returning
+paid invoices + their linked deliverables, and a presentational `ReceiptPanel` / `PurchasePanel`
+counterpart to `UsagePanel` (order date, amount paid, download/re-download link, invoice PDF).
+Today the example hand-rolls this from its local `Order` table because the entitlement/download
+grant isn't exposed as a first-class buyer-facing read (see finding #3: in-app **file**-kind
+download still needs an authenticated `GET /billing/invoices/{id}/deliverable`).

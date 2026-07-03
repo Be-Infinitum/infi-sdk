@@ -1,33 +1,47 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { meterAction } from "@beinfi/nextjs";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { infi } from "@/lib/infi";
 
+/**
+ * Ingest a lead. CRM charges per lead ingested (usage/postpaid), so this is
+ * wrapped with `meterAction` in `mode: "postpaid"`: it runs the create and
+ * records one `leads_ingested` unit, but never gates — billing stays off the
+ * critical path, so a lead is never lost to an empty wallet. The wrapper returns
+ * the created contact unchanged, so the client gets it back for optimistic UI.
+ */
 export async function createContact(formData: FormData) {
   const user = await requireUser();
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) return;
+  if (!name) return null;
 
-  await prisma.contact.create({
-    data: {
-      ownerId: user.id,
-      name,
-      email: (formData.get("email") as string)?.trim() || null,
-      company: (formData.get("company") as string)?.trim() || null,
-      status: (formData.get("status") as string) || "LEAD",
-      source: (formData.get("source") as string)?.trim() || null,
+  const ingest = meterAction(
+    {
+      secretKey: process.env.INFI_SECRET_KEY!,
+      baseUrl: process.env.INFI_API_URL,
+      meter: "leads_ingested",
+      customerId: user.id,
+      mode: "postpaid",
+      value: 1,
     },
-  });
+    () =>
+      prisma.contact.create({
+        data: {
+          ownerId: user.id,
+          name,
+          email: (formData.get("email") as string)?.trim() || null,
+          company: (formData.get("company") as string)?.trim() || null,
+          status: (formData.get("status") as string) || "LEAD",
+          source: (formData.get("source") as string)?.trim() || null,
+        },
+      }),
+  );
 
-  // Metering: bill by leads ingested. Fire-and-forget — never block the write on
-  // billing (metering off the critical path). See FINDINGS.md.
-  infi
-    .track({ customerId: user.id, meter: "leads_ingested", value: "1" })
-    .catch((e) => console.error("[infi] track failed:", e));
-
+  const contact = await ingest();
   revalidatePath("/contacts");
+  return contact;
 }
 
 export async function updateContactStatus(id: string, status: string) {

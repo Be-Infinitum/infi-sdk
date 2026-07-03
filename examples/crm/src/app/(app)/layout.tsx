@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, KanbanSquare, LogOut } from "lucide-react";
+import { Users, KanbanSquare, Gauge, LogOut } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +22,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
           >
             <KanbanSquare className="size-4" /> Pipeline
+          </Link>
+          <Link
+            href="/usage"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-accent hover:text-foreground"
+          >
+            <Gauge className="size-4" /> Uso
           </Link>
         </nav>
         <div className="mt-auto border-t pt-3">
