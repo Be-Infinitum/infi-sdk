@@ -12,7 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ClosePeriodButton } from "./close-period-button";
-import type { Invoice, RateCard, UsageReport } from "@beinfi/sdk";
+import { UsagePanel } from "@beinfi/sdk/react";
+import type { CustomerState, Invoice, RateCard, UsageReport } from "@beinfi/sdk";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
   // Per org: usage totals (server-rated), the rate-card, and the last invoice (if any).
   const data = await Promise.all(
     orgs.map(async (org) => {
-      const [usage, rateCards, invoice] = await Promise.all([
+      const [usage, rateCards, invoice, state] = await Promise.all([
         infi.usage.get({
           customerId: org.enrollmentId,
           from: org.periodStart.toISOString(),
@@ -40,10 +41,18 @@ export default async function DashboardPage() {
         org.lastInvoiceId
           ? (infi.invoices.get(org.lastInvoiceId) as Promise<Invoice>)
           : Promise.resolve(null),
+        // One-read customer view (enrollment + credit + subscriptions + usage) that
+        // backs the drop-in <UsagePanel/>. Keyed on the ENROLLMENT id, like usage.get.
+        // This demo's usage lives in a backdated period, so pass that window (state
+        // defaults to the live period, which would read zero here).
+        infi.customers.state(org.enrollmentId, {
+          from: org.periodStart.toISOString(),
+          to: org.periodEnd.toISOString(),
+        }) as Promise<CustomerState>,
       ]);
       const rateByMeter = new Map(rateCards.map((r) => [r.meterId ?? "", r.unitAmount]));
       const projected = usage.meters.reduce((sum, m) => sum + Number(m.totalAmount ?? 0), 0);
-      return { org, usage, rateByMeter, projected, invoice };
+      return { org, usage, rateByMeter, projected, invoice, state };
     }),
   );
 
@@ -65,7 +74,7 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {data.map(({ org, usage, rateByMeter, projected, invoice }) => (
+      {data.map(({ org, usage, rateByMeter, projected, invoice, state }) => (
         <Card key={org.externalId}>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
@@ -134,6 +143,17 @@ export default async function DashboardPage() {
                 </div>
               </div>
             )}
+
+            {/* Drop-in SDK panel over the same customer state, fetched for the demo's
+                backdated period so per-meter usage + rated cost show real numbers.
+                These orgs are postpaid rate-card, not prepaid, so `hideCredit` drops
+                the (empty) wallet row cleanly. See FINDINGS. */}
+            <div className="rounded-md border p-3">
+              <div className="mb-2 text-xs font-medium text-muted-foreground">
+                UsagePanel (@beinfi/sdk/react)
+              </div>
+              <UsagePanel state={state} hideCredit />
+            </div>
           </CardContent>
         </Card>
       ))}

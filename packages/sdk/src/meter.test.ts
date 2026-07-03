@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Infi } from "./client.js";
 import { InsufficientCreditError } from "./errors.js";
-import { extractTokens, resolveUsageValue } from "./meter.js";
+import { extractTokens, resolveUsageValue, resolveCustomerId } from "./meter.js";
 
 const BASE = "http://localhost:8088";
 
@@ -19,6 +19,14 @@ describe("extractTokens", () => {
 
   it("sums Anthropic input + output tokens", () => {
     expect(extractTokens({ usage: { input_tokens: 10, output_tokens: 7 } })).toBe(17);
+  });
+
+  it("reads AI SDK usage.totalTokens (camelCase)", () => {
+    expect(extractTokens({ usage: { totalTokens: 55 } })).toBe(55);
+  });
+
+  it("sums AI SDK promptTokens + completionTokens", () => {
+    expect(extractTokens({ usage: { promptTokens: 12, completionTokens: 8 } })).toBe(20);
   });
 
   it("returns undefined for unrecognized shapes", () => {
@@ -45,6 +53,20 @@ describe("resolveUsageValue", () => {
 
   it("throws when usage cannot be determined", () => {
     expect(() => resolveUsageValue(base, {})).toThrow(/could not determine usage/);
+  });
+});
+
+describe("resolveCustomerId", () => {
+  it("uses customerId when set", () => {
+    expect(resolveCustomerId({ customerId: "c1", meter: "tokens" })).toBe("c1");
+  });
+
+  it("prefers enrollmentId over customerId", () => {
+    expect(resolveCustomerId({ customerId: "c1", enrollmentId: "enr1", meter: "tokens" })).toBe("enr1");
+  });
+
+  it("throws when neither is set", () => {
+    expect(() => resolveCustomerId({ meter: "tokens" })).toThrow(/enrollmentId .*customerId.* is required/);
   });
 });
 
@@ -81,6 +103,26 @@ describe("infi.meter", () => {
     });
   });
 
+  it("gates and records against the same enrollmentId (one id, both paths)", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" })) // credit gate
+      .mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track
+    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+
+    await infi.meter({ enrollmentId: "enr1", meter: "tokens" }, async () => ({
+      usage: { total_tokens: 7 },
+    }));
+
+    const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr1/credit`);
+    const [, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
+    expect(JSON.parse(trackInit.body as string)).toEqual({
+      customerId: "enr1",
+      meter: "tokens",
+      value: "7",
+    });
+  });
+
   it("throws InsufficientCreditError before running fn when balance is 0", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "0", total: "10" }));
     const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
@@ -93,7 +135,7 @@ describe("infi.meter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1); // no track
   });
 
-  it("skipGuard records without a credit check", async () => {
+  it("skipGuard records without a credit check (deprecated alias of postpaid)", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track only
     const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
 
@@ -102,6 +144,48 @@ describe("infi.meter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toBe(`${BASE}/metering/events`);
+  });
+
+  it('mode "postpaid" records without gating', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track only
+    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+
+    await infi.meter(
+      { customerId: "c1", meter: "inventory_update", value: 3, mode: "postpaid" },
+      async () => ({}),
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(1); // no gate
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toBe(`${BASE}/metering/events`);
+    expect(JSON.parse(init.body as string)).toEqual({ customerId: "c1", meter: "inventory_update", value: "3" });
+  });
+
+  it('mode "streaming" gates but does not record', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" })); // gate only
+    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+
+    const stream = { toDataStreamResponse: () => "stream" };
+    const out = await infi.meter(
+      { customerId: "c1", meter: "tokens", mode: "streaming" },
+      async () => stream,
+    );
+
+    expect(out).toBe(stream); // returned unchanged, no usage-extraction throw
+    expect(fetchMock).toHaveBeenCalledTimes(1); // gate ran, no track
+    const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/credit`);
+  });
+
+  it('mode "streaming" still throws when out of credit', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "0", total: "0" }));
+    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+
+    const fn = vi.fn(async () => ({}));
+    await expect(
+      infi.meter({ customerId: "c1", meter: "tokens", mode: "streaming" }, fn),
+    ).rejects.toBeInstanceOf(InsufficientCreditError);
+    expect(fn).not.toHaveBeenCalled();
   });
 
   it("does not record when fn throws", async () => {

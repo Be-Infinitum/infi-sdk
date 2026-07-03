@@ -32,7 +32,13 @@ export function NewContactDialog() {
 
   function onSubmit(formData: FormData) {
     startTransition(async () => {
-      await createContact(formData);
+      // `createContact` is a Server Action: it creates the lead and records one
+      // `leads_ingested` unit (postpaid), then returns the created contact.
+      const contact = await createContact(formData);
+      if (!contact) {
+        toast.error("Falha ao criar lead.");
+        return;
+      }
       setOpen(false);
       toast.success("Lead criado e medido no Infi.");
     });

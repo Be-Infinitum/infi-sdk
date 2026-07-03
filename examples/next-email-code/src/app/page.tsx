@@ -40,8 +40,18 @@ export default function HomePage() {
   async function sendHeadless() {
     setError(null);
     try {
-      const infi = new Infi({ baseUrl: apiUrl });
-      await infi.sendEmailCode({ slug, email, redirectTo });
+      // Route the send through the metered server route (see /api/send-code)
+      // instead of calling the SDK directly, so the send is credit-gated and
+      // recorded. The secret key never touches the browser.
+      const res = await fetch("/api/send-code", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ slug, email, redirectTo }),
+      });
+      if (!res.ok) {
+        if (res.status === 402) throw new Error("Send quota exhausted for this app.");
+        throw new Error(`Send failed (${res.status})`);
+      }
       setHeadlessStep("code");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

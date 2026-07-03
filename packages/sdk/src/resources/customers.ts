@@ -93,11 +93,15 @@ export class CustomersResource {
 
   /**
    * One-read customer view: enrollment, credit balance, live subscriptions, and
-   * current-period usage. Powers dashboards/panels; the credit gate uses the
-   * lighter `credits.balance` instead.
+   * usage. Powers dashboards/panels; the credit gate uses the lighter
+   * `credits.balance` instead.
+   *
+   * `period` scopes the usage window (RFC3339 `from`/`to`); omit it for the
+   * current calendar month (the default).
    */
-  state(customerId: string): Promise<CustomerState> {
+  state(customerId: string, period?: { from?: string; to?: string }): Promise<CustomerState> {
     return this.t.request("GET", `/metering/customers/${enc(customerId)}/state`, {
+      query: period ? { from: period.from, to: period.to } : undefined,
       requireSecret: true,
     });
   }
