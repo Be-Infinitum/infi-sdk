@@ -14,7 +14,7 @@ cd ../.. && bun install && bun run build   # build the packages once
 cd examples/ai-chat
 cp .env.example .env      # fill ANTHROPIC_API_KEY, INFI_SECRET_KEY, INFI_SLUG, INFI_WEBHOOK_SECRET
 bunx prisma db push
-bun run seed              # sync the ai-chat product (prepaid + tokens meter) via infi.sync
+bun run seed              # sync the ai-chat product (prepaid + tokens meter) + provision the app (infi.sync + infi.apps)
 bun run dev               # web on :5173, API on :3012
 ```
 

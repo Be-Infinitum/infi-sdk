@@ -1,9 +1,12 @@
 import type { StartHostedLoginOptions } from "./types.js";
-import { DEFAULT_AUTH_BASE } from "./types.js";
+import { DEFAULT_HOSTED_LOGIN_BASE } from "./types.js";
 
 export function buildHostedLoginUrl(options: StartHostedLoginOptions): string {
-  const base = (options.authBaseUrl ?? DEFAULT_AUTH_BASE).replace(/\/$/, "");
-  const url = new URL(`${base}/identity/apps/${encodeURIComponent(options.slug)}/login`);
+  // Link straight to the frontend-hosted login page (`/identity/{slug}/login`).
+  // No `/apps/` — that path is the backend's legacy 302-bouncer; the frontend page
+  // validates the app + redirect_uri itself and runs the email-code flow.
+  const base = (options.authBaseUrl ?? DEFAULT_HOSTED_LOGIN_BASE).replace(/\/$/, "");
+  const url = new URL(`${base}/identity/${encodeURIComponent(options.slug)}/login`);
   url.searchParams.set("redirect_uri", options.redirectTo);
   if (options.state) {
     url.searchParams.set("state", options.state);

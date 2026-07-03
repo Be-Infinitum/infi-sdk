@@ -94,6 +94,9 @@ export async function syncBilling(
           type: p.type,
           pricingModel: p.pricingModel,
           currency: p.currency,
+          // Prepaid products require a billing cycle at creation; pass it through
+          // (the backend rejects prepaid without one).
+          billingCycle: p.billingCycle ?? undefined,
         });
         productId = created.id;
       }

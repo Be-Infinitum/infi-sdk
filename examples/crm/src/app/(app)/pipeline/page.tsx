@@ -58,6 +58,7 @@ export default async function PipelinePage() {
                       value={brl.format(d.valueCents / 100)}
                       stage={d.stage}
                       stages={STAGES as unknown as string[]}
+                      payUrl={d.payUrl}
                     />
                   ))
                 )}

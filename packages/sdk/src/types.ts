@@ -9,6 +9,9 @@ export type HostedAppConfig = components["schemas"]["HostedAppConfig"];
 export type ExchangeRequest = components["schemas"]["ExchangeRequest"];
 export type AuthResult = components["schemas"]["AuthResult"];
 export type AppIdentity = components["schemas"]["AppIdentity"];
+export type App = components["schemas"]["App"];
+export type CreateAppRequest = components["schemas"]["CreateAppRequest"];
+export type UpdateAppRequest = components["schemas"]["UpdateAppRequest"];
 export type UsageEvent = components["schemas"]["UsageEvent"];
 export type IngestResult = components["schemas"]["IngestResult"];
 export type SessionIntrospection = components["schemas"]["SessionIntrospection"];
@@ -127,13 +130,22 @@ export interface StartHostedLoginOptions {
   slug: string;
   redirectTo: string;
   state?: string;
+  /**
+   * Host that serves the hosted-login page (`/identity/{slug}/login`) — the
+   * frontend app, NOT the API host. Defaults to {@link DEFAULT_HOSTED_LOGIN_BASE}.
+   * Point it at your local frontend in dev (e.g. `http://localhost:3000`).
+   */
   authBaseUrl?: string;
 }
 
 export const DEFAULT_API_BASE = "https://api.beinfi.com";
-// Hosted login is served off the API host (`/identity/apps/{slug}/login`, which
-// 302s to the frontend login page). There is no auth.* subdomain.
+// Legacy auth base (the API host). The hosted-login PAGE is served by the frontend
+// app — see DEFAULT_HOSTED_LOGIN_BASE — not the API host.
 export const DEFAULT_AUTH_BASE = "https://api.beinfi.com";
+// The frontend app renders the hosted-login page (`/identity/{slug}/login`) and
+// hosted checkout (`/pay/...`). `buildHostedLoginUrl` links the browser straight
+// here — no backend redirect hop.
+export const DEFAULT_HOSTED_LOGIN_BASE = "https://app.beinfi.com";
 // Hosted checkout pages (`/pay/{slug}/invoices/{id}`) are rendered by the frontend
 // app, not a pay.* subdomain.
 export const DEFAULT_PAY_BASE = "https://app.beinfi.com";

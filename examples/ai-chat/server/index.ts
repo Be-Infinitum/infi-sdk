@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
 import { streamText, convertToCoreMessages } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { buildHostedLoginUrl } from "@beinfi/sdk";
+import { buildHostedLoginUrl, InsufficientCreditError } from "@beinfi/sdk";
 import { infi, SLUG, APP_URL, STARTER_CREDITS, PACK_CREDITS, aiChatProductId } from "./infi.js";
 import { prisma } from "./db.js";
 
@@ -57,42 +57,60 @@ app.get("/callback", async (c) => {
         maxAge: 60 * 60 * 24 * 7,
       });
     }
-  } catch {
-    // fall through to redirect; the SPA will show the login screen
+  } catch (e) {
+    // Surface the reason (bad code, missing key, tenant mismatch) instead of a
+    // silent bounce to /login.
+    console.error("callback exchange failed:", e instanceof Error ? e.message : e);
   }
   return c.redirect(APP_URL);
 });
 
-// ── Credits ─────────────────────────────────────────────────────────────────
-app.get("/api/credits", async (c) => {
+// ── Customer state (feeds the UsagePanel) ───────────────────────────────────
+// UsagePanel is presentational and needs the secret key, so we fetch the full
+// CustomerState here and hand it to the browser to render.
+app.get("/api/state", async (c) => {
   const w = await currentEnrollment(getCookie(c, SESSION_COOKIE));
   if (!w) return c.json({ error: "unauthorized" }, 401);
-  const summary = await infi.customers.credits.balance(w.enrollmentId);
-  return c.json({ balance: summary.balance });
+  const state = await infi.customers.state(w.enrollmentId);
+  return c.json(state);
 });
 
-// ── Chat (stream) + consume ───────────────────────────────────────────────
+// ── Chat (stream) + meter gate + consume ────────────────────────────────────
 app.post("/api/chat", async (c) => {
   const w = await currentEnrollment(getCookie(c, SESSION_COOKIE));
   if (!w) return c.json({ error: "unauthorized" }, 401);
 
-  const summary = await infi.customers.credits.balance(w.enrollmentId);
-  if (Number(summary.balance) <= 0) return c.json({ error: "out_of_credits" }, 402);
-
   const { messages } = (await c.req.json()) as { messages: Parameters<typeof convertToCoreMessages>[0] };
 
-  const result = streamText({
-    model: anthropic("claude-3-5-haiku-latest"),
-    messages: convertToCoreMessages(messages),
-    onFinish: async ({ usage }) => {
-      const tokens = String(usage.totalTokens ?? 0);
-      // Meter (analytics) + deduct credits. Fire-and-forget; never block the reply.
-      infi.track({ customerId: w.enrollmentId, meter: "tokens", value: tokens }).catch(() => {});
-      infi.customers.credits.consume(w.enrollmentId, { amount: tokens, reference: "chat" }).catch(() => {});
-    },
-  });
+  try {
+    // `mode: "streaming"` runs the pre-flight credit gate (throws
+    // InsufficientCreditError when the wallet is empty) but records NOTHING — the
+    // gate-now, record-later pattern for streaming. `streamText` returns a stream
+    // handle whose token `usage` is an unresolved Promise, so there is nothing for
+    // meter to record at wrap time anyway; the real per-turn deduction happens in
+    // `onFinish` below once the stream completes. No bogus placeholder value, no
+    // double-write to the tokens meter.
+    const result = await infi.meter(
+      { customerId: w.enrollmentId, meter: "tokens", mode: "streaming" },
+      async () =>
+        streamText({
+          model: anthropic("claude-3-5-haiku-latest"),
+          messages: convertToCoreMessages(messages),
+          onFinish: async ({ usage }) => {
+            const tokens = String(usage.totalTokens ?? 0);
+            // Real per-turn deduction. Fire-and-forget; never block the reply.
+            infi.customers.credits.consume(w.enrollmentId, { amount: tokens, reference: "chat" }).catch(() => {});
+          },
+        }),
+    );
 
-  return result.toDataStreamResponse();
+    return result.toDataStreamResponse();
+  } catch (err) {
+    if (err instanceof InsufficientCreditError) {
+      return c.json({ error: "out_of_credits", balance: err.balance }, 402);
+    }
+    throw err;
+  }
 });
 
 // ── Buy a credit pack ───────────────────────────────────────────────────────

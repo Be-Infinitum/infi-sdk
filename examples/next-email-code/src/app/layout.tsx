@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import UsageSection from "./UsageSection";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,7 +16,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} min-h-screen bg-muted/30 font-sans`}>{children}</body>
+      <body className={`${inter.variable} min-h-screen bg-muted/30 font-sans`}>
+        {children}
+        {/* App-level send-budget usage (see UsageSection for why it's app-scoped). */}
+        <UsageSection />
+      </body>
     </html>
   );
 }

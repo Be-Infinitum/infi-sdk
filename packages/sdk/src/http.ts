@@ -1,5 +1,12 @@
 import { InfiError, parseErrorResponse } from "./errors.js";
 
+/** Best-effort unique id for the Idempotency-Key header (crypto.randomUUID with a fallback). */
+function newIdempotencyKey(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return `idem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+}
+
 export interface RequestOptions {
   query?: Record<string, string | number | undefined>;
   body?: unknown;
@@ -30,7 +37,11 @@ export class Transport {
 
     const headers: Record<string, string> = { Accept: "application/json" };
     if (this.secretKey) headers.Authorization = `Bearer ${this.secretKey}`;
-    if (opts.idempotencyKey) headers["Idempotency-Key"] = opts.idempotencyKey;
+    // Mutations need an Idempotency-Key; auto-generate one per call when the caller
+    // didn't supply a stable key, so every write is safe without extra boilerplate.
+    const isMutation = method !== "GET" && method !== "HEAD";
+    const idempotencyKey = opts.idempotencyKey ?? (isMutation ? newIdempotencyKey() : undefined);
+    if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
     if (opts.body !== undefined) headers["Content-Type"] = "application/json";
 
     const res = await fetch(url, {

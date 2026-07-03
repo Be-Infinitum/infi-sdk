@@ -110,20 +110,18 @@ export function InfiLogin({
   if (step === "code") {
     return (
       <form className={className} onSubmit={verifyCode}>
-        <label>
-          <span className="sr-only">Verification code</span>
-          <input
-            className={inputClassName}
-            type="text"
-            name="code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            required
-            placeholder="123456"
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-          />
-        </label>
+        <input
+          className={inputClassName}
+          type="text"
+          name="code"
+          aria-label="Verification code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          required
+          placeholder="123456"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+        />
         <button className={buttonClassName} type="submit" disabled={loading}>
           {loading ? "Verifying…" : verifyLabel}
         </button>
@@ -133,19 +131,17 @@ export function InfiLogin({
 
   return (
     <form className={className} onSubmit={sendCode}>
-      <label>
-        <span className="sr-only">Email</span>
-        <input
-          className={inputClassName}
-          type="email"
-          name="email"
-          autoComplete="email"
-          required
-          placeholder="you@company.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </label>
+      <input
+        className={inputClassName}
+        type="email"
+        name="email"
+        aria-label="Email"
+        autoComplete="email"
+        required
+        placeholder="you@company.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
       <button className={buttonClassName} type="submit" disabled={loading}>
         {loading ? "Sending…" : sendLabel}
       </button>

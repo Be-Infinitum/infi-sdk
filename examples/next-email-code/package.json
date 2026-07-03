@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3009",
     "build": "next build",
-    "start": "next start -p 3009"
+    "start": "next start -p 3009",
+    "setup": "tsx scripts/setup.ts"
   },
   "dependencies": {
     "@beinfi/nextjs": "workspace:*",
@@ -20,6 +21,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "tailwindcss": "^4",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3"
   }
 }

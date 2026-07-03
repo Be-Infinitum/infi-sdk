@@ -1,6 +1,6 @@
 export { Infi, type CheckoutOptions } from "./client.js";
 export { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
-export { extractTokens, resolveUsageValue, type MeterOptions } from "./meter.js";
+export { extractTokens, resolveUsageValue, type MeterOptions, type MeterMode } from "./meter.js";
 export {
   buildHostedLoginUrl,
   extractCodeFromUrl,
@@ -37,9 +37,11 @@ export type {
   SubscriptionWithPeriod,
 } from "./resources/subscriptions.js";
 export type {
+  App,
   AppIdentity,
   AuthResult,
   CheckoutSession,
+  CreateAppRequest,
   CreateCustomerRequest,
   CreateInvoiceRequest,
   CreateMeterRequest,
@@ -78,6 +80,7 @@ export type {
   StartHostedLoginOptions,
   Subscription,
   SubscriptionPeriod,
+  UpdateAppRequest,
   UsageEvent,
   UsageReport,
   Version,

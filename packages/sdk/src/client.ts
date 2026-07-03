@@ -1,9 +1,10 @@
 import { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
 import { extractCodeFromUrl } from "./hosted.js";
 import { Transport } from "./http.js";
-import { resolveUsageValue, type MeterOptions } from "./meter.js";
+import { resolveUsageValue, resolveMeterMode, resolveCustomerId, type MeterOptions } from "./meter.js";
 import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
+import { AppsResource } from "./resources/apps.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
@@ -17,6 +18,7 @@ import {
 import type {
   AuthResult,
   CreateInvoiceRequest,
+  CreditSummary,
   ExchangeCodeOptions,
   HostedAppConfig,
   InfiConfig,
@@ -75,6 +77,8 @@ export class Infi {
   readonly products: ProductsResource;
   /** Customers: rate-cards (per-org pricing) and credits. */
   readonly customers: CustomersResource;
+  /** Apps: register + configure identity apps (slug, origins, redirect URIs). */
+  readonly apps: AppsResource;
   /** Usage totals per meter for a customer window. */
   readonly usage: UsageResource;
   /** Invoices: create, send, void, charge, generate-from-subscription. */
@@ -104,6 +108,7 @@ export class Infi {
     const transport = new Transport(this.#baseUrl, this.#secretKey);
     this.products = new ProductsResource(transport);
     this.customers = new CustomersResource(transport);
+    this.apps = new AppsResource(transport);
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
     this.subscriptions = new SubscriptionsResource(transport);
@@ -265,13 +270,19 @@ export class Infi {
    * Meter a credit-consuming call: check the customer has credit, run `fn`,
    * then record its usage — the drop-in wrapper for LLM/token work.
    *
-   * The pre-flight gate reads the wallet balance and throws
-   * `InsufficientCreditError` (402) before `fn` runs when it is exhausted, so
-   * you never do the work for free (ADR 0010: enforcement at the request edge;
-   * settlement of prepaid drawdown is async, so the balance may lag by seconds).
-   * On success the usage is recorded (token count auto-detected from common
-   * OpenAI/Anthropic shapes, or set `value`/`extract`). If `fn` throws, nothing
-   * is recorded. The wrapped result is returned unchanged.
+   * Behavior is governed by `options.mode` (see {@link MeterMode}), default
+   * `"prepaid"`:
+   * - `"prepaid"` — gate then record. The pre-flight gate reads the wallet
+   *   balance and throws `InsufficientCreditError` (402) before `fn` runs when it
+   *   is exhausted, so you never do the work for free (ADR 0010: enforcement at
+   *   the request edge; prepaid drawdown settles async, so balance may lag).
+   * - `"postpaid"` — record only, never gate (metered API / rate-card).
+   * - `"streaming"` — gate only; does NOT record. Record the true value
+   *   yourself with `infi.track(...)` once it settles (streaming LLM calls).
+   *
+   * On record, the usage value is auto-detected from common OpenAI/Anthropic/AI-SDK
+   * shapes, or set `value`/`extract`. If `fn` throws, nothing is recorded. The
+   * wrapped result is returned unchanged.
    *
    * ```ts
    * const res = await infi.meter({ customerId, meter: "tokens" }, () =>
@@ -281,23 +292,41 @@ export class Infi {
    */
   async meter<T>(options: MeterOptions, fn: () => Promise<T>): Promise<T> {
     this.#requireSecretKey("meter");
-    if (!options.skipGuard) {
-      await this.#assertCredit(options.customerId);
+    // One id gates and records against the same customer (enrollment id).
+    const customerId = resolveCustomerId(options);
+    const mode = resolveMeterMode(options);
+    if (mode !== "postpaid") {
+      await this.assertCredit(customerId);
     }
     const result = await fn();
-    const value = resolveUsageValue(options, result);
-    await this.track({
-      customerId: options.customerId,
-      meter: options.meter,
-      value,
-      ...(options.metadata ? { metadata: options.metadata } : {}),
-    });
+    if (mode !== "streaming") {
+      const value = resolveUsageValue(options, result);
+      await this.track({
+        customerId,
+        meter: options.meter,
+        value,
+        ...(options.metadata ? { metadata: options.metadata } : {}),
+      });
+    }
     return result;
   }
 
-  /** Throws InsufficientCreditError when the customer's balance is <= 0. */
-  async #assertCredit(customerId: string): Promise<void> {
-    const summary = await this.customers.credits.balance(customerId);
+  /**
+   * Read a customer's credit summary — the gate `meter` uses. Public so callers
+   * can gate outside a `meter` call (e.g. at the top of a Server Action).
+   */
+  async checkCredit(customerId: string): Promise<CreditSummary> {
+    this.#requireSecretKey("checkCredit");
+    return this.customers.credits.balance(customerId);
+  }
+
+  /**
+   * Throw `InsufficientCreditError` when the customer's balance is `<= 0`. The
+   * pre-flight gate `meter` runs in `"prepaid"`/`"streaming"` mode, exposed
+   * so a Server Action or non-route handler can gate without wrapping in `meter`.
+   */
+  async assertCredit(customerId: string): Promise<void> {
+    const summary = await this.checkCredit(customerId);
     const balance = Number(summary.balance ?? "0");
     if (!(balance > 0)) {
       throw new InsufficientCreditError(customerId, summary.balance ?? "0");

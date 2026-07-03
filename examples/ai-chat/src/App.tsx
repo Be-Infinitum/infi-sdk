@@ -1,19 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
+import type { CustomerState } from "@beinfi/sdk";
+import { InfiLogin, UsagePanel } from "@beinfi/sdk/react";
 
 export function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [state, setState] = useState<CustomerState | null>(null);
 
   const refreshCredits = useCallback(async () => {
-    const res = await fetch("/api/credits");
+    const res = await fetch("/api/state");
     if (res.status === 401) {
       setAuthed(false);
       return;
     }
     setAuthed(true);
-    const data = (await res.json()) as { balance: string };
-    setBalance(Math.max(0, Math.floor(Number(data.balance))));
+    setState((await res.json()) as CustomerState);
   }, []);
 
   useEffect(() => {
@@ -23,26 +24,56 @@ export function App() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: "/api/chat",
     onFinish: () => void refreshCredits(),
+    // meter throws InsufficientCreditError → the server returns 402; refresh so the
+    // balance (and the out-of-credit banner) reflects the empty wallet.
+    onError: () => void refreshCredits(),
   });
+
+  const balance = state ? Math.max(0, Math.floor(Number(state.credit.balance ?? 0))) : null;
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), [messages]);
 
   if (authed === null) return <Centered>Carregando…</Centered>;
   if (!authed) {
+    // shadcn-style login card (recreated in Tailwind — no shadcn deps). The email-code
+    // form is the embedded <InfiLogin>: email → code, in-app, no redirect to the hosted
+    // page; on verify it navigates to /callback which the Hono server exchanges.
     return (
-      <Centered>
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold">AI Chat</h1>
-          <p className="mt-2 text-zinc-400">Cada mensagem consome créditos pré-pagos do Infi.</p>
-          <a
-            href="/api/auth/login"
-            className="mt-6 inline-block rounded-xl bg-white px-5 py-2.5 font-medium text-black hover:bg-zinc-200"
-          >
-            Entrar com Infi
-          </a>
+      <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-black p-6">
+        <div className="flex w-full max-w-sm flex-col gap-6">
+          <div className="flex items-center gap-2 self-center font-medium text-zinc-100">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-white text-black">
+              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" />
+              </svg>
+            </span>
+            AI Chat
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-zinc-950 p-6 shadow-2xl shadow-black/50">
+            <div className="text-center">
+              <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Bem-vindo de volta</h1>
+              <p className="mt-1.5 text-sm text-zinc-400">Entre com seu email, enviamos um código de acesso.</p>
+            </div>
+            <InfiLogin
+              slug={import.meta.env.VITE_INFI_SLUG}
+              baseUrl={import.meta.env.VITE_INFI_API_URL}
+              redirectTo={`${window.location.origin}/callback`}
+              sendLabel="Enviar código"
+              verifyLabel="Entrar"
+              className="mt-6 flex flex-col gap-3"
+              inputClassName="h-11 w-full rounded-lg border border-white/10 bg-zinc-900 px-3.5 text-center text-[15px] text-zinc-50 placeholder:text-zinc-500 outline-none transition focus:border-white/25 focus:ring-2 focus:ring-white/10"
+              buttonClassName="h-11 w-full rounded-lg bg-white px-5 text-[15px] font-medium text-black transition hover:bg-zinc-200 disabled:opacity-50"
+              onError={(e) => console.error("login:", e.message)}
+            />
+          </div>
+
+          <p className="px-6 text-center text-xs leading-relaxed text-zinc-500">
+            Cada mensagem consome créditos pré-pagos do Infi. Ao continuar, você concorda com os Termos e a Privacidade.
+          </p>
         </div>
-      </Centered>
+      </div>
     );
   }
 
@@ -50,11 +81,16 @@ export function App() {
 
   return (
     <div className="mx-auto flex h-screen max-w-2xl flex-col px-4">
-      <header className="flex items-center justify-between border-b border-white/10 py-4">
-        <span className="font-semibold">AI Chat</span>
-        <span className="rounded-full border border-white/15 px-3 py-1 text-sm text-zinc-300">
-          {balance ?? "—"} créditos
-        </span>
+      <header className="border-b border-white/10 py-4">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold">AI Chat</span>
+          <span className="text-sm text-zinc-400">{balance ?? "—"} créditos</span>
+        </div>
+        {state && (
+          <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
+            <UsagePanel state={state} creditLabel="créditos" hideSubscriptions />
+          </div>
+        )}
       </header>
 
       <div className="flex-1 space-y-4 overflow-y-auto py-6">
