@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { CustomerState } from "@beinfi/sdk";
-import { UsagePanel } from "@beinfi/sdk/react";
+import { InfiLogin, UsagePanel } from "@beinfi/sdk/react";
 
 export function App() {
   const [authed, setAuthed] = useState<boolean | null>(null);
@@ -38,15 +38,23 @@ export function App() {
   if (!authed) {
     return (
       <Centered>
-        <div className="text-center">
+        <div className="w-full max-w-xs text-center">
           <h1 className="text-2xl font-semibold">AI Chat</h1>
           <p className="mt-2 text-zinc-400">Cada mensagem consome créditos pré-pagos do Infi.</p>
-          <a
-            href="/api/auth/login"
-            className="mt-6 inline-block rounded-xl bg-white px-5 py-2.5 font-medium text-black hover:bg-zinc-200"
-          >
-            Entrar com Infi
-          </a>
+          {/* Embedded login: the email-code form renders in-app (no redirect to the
+              hosted page). On verify it navigates to /callback, which the Hono server
+              exchanges for a session — same backend, different UX from the hosted flow. */}
+          <InfiLogin
+            slug={import.meta.env.VITE_INFI_SLUG}
+            baseUrl={import.meta.env.VITE_INFI_API_URL}
+            redirectTo={`${window.location.origin}/callback`}
+            sendLabel="Enviar código"
+            verifyLabel="Entrar"
+            className="mt-6 flex flex-col gap-3"
+            inputClassName="rounded-xl border border-white/10 bg-zinc-900 px-4 py-2.5 text-center outline-none focus:border-white/30"
+            buttonClassName="rounded-xl bg-white px-5 py-2.5 font-medium text-black hover:bg-zinc-200 disabled:opacity-60"
+            onError={(e) => console.error("login:", e.message)}
+          />
         </div>
       </Centered>
     );
