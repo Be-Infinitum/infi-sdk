@@ -13,7 +13,7 @@ describe("Login", () => {
 
     expect([307, 308]).toContain(res.status);
     const loc = new URL(res.headers.get("location") ?? "");
-    expect(loc.origin + loc.pathname).toBe("https://auth.example.com/identity/apps/acme/login");
+    expect(loc.origin + loc.pathname).toBe("https://auth.example.com/identity/acme/login");
     expect(loc.searchParams.get("redirect_uri")).toBe("https://app.example.com/api/auth/callback");
   });
 
