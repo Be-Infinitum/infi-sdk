@@ -52,6 +52,10 @@ export async function moveDeal(id: string, stage: string) {
             },
             amount: (deal.valueCents / 100).toFixed(2),
             description: deal.title,
+            // If the contact has an email, finalize + email the invoice to them
+            // (they can pay from the email). Either way we keep `url` for the
+            // "Pagar" link on the card. In dev the mailer just logs the email.
+            send: Boolean(c?.email),
           });
           await prisma.deal.update({
             where: { id: deal.id },
