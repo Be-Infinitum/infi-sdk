@@ -1,9 +1,14 @@
-// Idempotent tenant seed + org onboarding — `bun run seed` (tsx).
+// Idempotent tenant seed + org onboarding — `bun run setup` (alias `bun run seed`, tsx).
 //
 // 1. sync the `integration` product (3 meters + per-unit base prices), published.
-// 2. For each org: enroll -> set a full per-meter rate-card -> subscribe with a
+//    A product is also required for login: hosted login enrolls the identity as a
+//    customer of the tenant's product, so with zero products the login session comes
+//    back without a customer and the app bounces to /login.
+// 2. Register (or update) the identity app with the local origin + callback
+//    allowlisted, so hosted login resolves.
+// 3. For each org: enroll -> set a full per-meter rate-card -> subscribe with a
 //    backdated anchor so the first monthly period is already ended (invoiceable now).
-// 3. Persist the id trio (enrollment/subscription/period) in Prisma for the dashboard.
+// 4. Persist the id trio (enrollment/subscription/period) in Prisma for the dashboard.
 import { defineBilling } from "@beinfi/sdk";
 import { infi } from "../src/lib/infi.js";
 import {
@@ -16,6 +21,15 @@ import {
 import { PrismaClient } from "../src/generated/prisma/index.js";
 
 const prisma = new PrismaClient();
+
+const slug = process.env.NEXT_PUBLIC_INFI_APP_SLUG ?? "marketplace-demo";
+
+const appConfig = {
+  slug,
+  name: "Marketplace Billing Demo",
+  allowedOrigins: ["http://localhost:3013"],
+  redirectUris: ["http://localhost:3013/callback"],
+};
 
 async function main() {
   // 1. Declarative product/meters/prices — idempotent, publishes a version.
@@ -48,6 +62,22 @@ async function main() {
   });
   const syncResult = await infi.sync(config);
   console.log("sync:", JSON.stringify(syncResult.actions));
+
+  // 1b. Register (or update) the identity app so hosted login resolves — the
+  //     browser is redirected to the Infi frontend's /identity/{slug}/login and
+  //     back to this app's /callback, both of which must be allowlisted here.
+  const existingApp = (await infi.apps.list()).find((a) => a.slug === slug);
+  if (existingApp?.id) {
+    const app = await infi.apps.update(existingApp.id, {
+      name: appConfig.name,
+      allowedOrigins: appConfig.allowedOrigins,
+      redirectUris: appConfig.redirectUris,
+    });
+    console.log(`updated app "${app.slug}" (${app.id})`);
+  } else {
+    const app = await infi.apps.create(appConfig);
+    console.log(`created app "${app.slug}" (${app.id})`);
+  }
 
   // Resolve the product + meter ids.
   const product = (await infi.products.list()).find((p) => p.key === PRODUCT_KEY);

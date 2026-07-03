@@ -8,6 +8,7 @@
     "start": "next start -p 3013",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "setup": "tsx scripts/seed.ts",
     "seed": "tsx scripts/seed.ts",
     "ingest": "tsx scripts/ingest.ts",
     "postinstall": "prisma generate"
