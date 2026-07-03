@@ -25,12 +25,14 @@ export function DealCard({
   value,
   stage,
   stages,
+  payUrl,
 }: {
   id: string;
   title: string;
   value: string;
   stage: string;
   stages: string[];
+  payUrl?: string | null;
 }) {
   const [pending, startTransition] = useTransition();
 
@@ -60,6 +62,16 @@ export function DealCard({
           ))}
         </SelectContent>
       </Select>
+      {payUrl ? (
+        <a
+          href={payUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-2 block rounded-md bg-foreground px-2 py-1.5 text-center text-xs font-medium text-background transition hover:opacity-90"
+        >
+          Pagar
+        </a>
+      ) : null}
     </div>
   );
 }
