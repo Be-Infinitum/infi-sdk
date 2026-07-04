@@ -1,11 +1,13 @@
-# create-beinfi-app
+# create-infi-app
 
 Scaffold a billable Next.js app with Infi auth, hosted checkout, and usage billing in one command.
 
 ## Usage
 
 ```bash
-npx create-beinfi-app my-app
+npm create infi-app my-app
+# or
+npx create-infi-app my-app
 ```
 
 ### Options
@@ -23,28 +25,21 @@ npx create-beinfi-app my-app
 
 - Next.js 15 + Tailwind 4 + shadcn/ui
 - PostgreSQL via Docker Compose + Prisma
-- Hosted auth (`@beinfi/nextjs`)
-- Prepaid credits + hosted checkout
-- Dashboard with `UsagePanel`
-- Landing page + claim banner for your Infi sandbox
+- **`infi.billing.ts`** — billing-as-code source of truth
+- Hosted auth, prepaid checkout, dashboard with `UsagePanel`
+- Landing + claim banner for your Infi sandbox
 
 ## Development (monorepo)
 
 ```bash
 bun install
-bun run templates:normalize   # copy examples → templates/
-bun run --filter create-beinfi-app build
-bun run --filter create-beinfi-app dev -- my-app -y --skip-provision
+bun run templates:normalize
+bun run --filter create-infi-app build
+bun run --filter create-infi-app dev -- my-app -y --skip-provision
 ```
 
 ## Publish
 
-From repo root after `bun run build`:
-
 ```bash
-npm publish --workspace @beinfi/sdk
-npm publish --workspace @beinfi/nextjs
-npm publish --workspace create-beinfi-app
+bun run publish:packages   # requires npm login / NPM_TOKEN
 ```
-
-Requires `NPM_TOKEN` with access to the `@beinfi` scope and `create-beinfi-app`.

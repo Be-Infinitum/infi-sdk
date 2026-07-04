@@ -1,22 +1,9 @@
-// Idempotent tenant + app setup — run any number of times. `bun run setup`.
-import { defineBilling } from "@beinfi/sdk";
-import { infi, SLUG, APP_NAME, APP_ORIGIN, PRODUCT_KEY } from "../src/lib/infi";
-
-const billing = defineBilling({
-  products: [
-    {
-      key: PRODUCT_KEY,
-      name: `${APP_NAME} Starter`,
-      type: "agent",
-      pricingModel: "prepaid",
-      billingCycle: "monthly",
-      currency: "BRL",
-      basePrice: "29.90",
-      meters: [{ key: "usage_events", displayName: "Usage events", unit: "event", aggregation: "sum" }],
-      prices: [{ meter: "usage_events", model: "prepaid_credits", unitAmount: "0.01" }],
-    },
-  ],
-});
+// Idempotent tenant + app setup — `bun run setup`
+//
+// 1. Syncs billing from infi.billing.ts (source of truth)
+// 2. Registers the identity app origins for hosted login
+import billing from "../infi.billing.js";
+import { infi, SLUG, APP_NAME, APP_ORIGIN } from "../src/lib/infi.js";
 
 const appConfig = {
   slug: SLUG,

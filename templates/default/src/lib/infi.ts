@@ -1,8 +1,9 @@
 import { Infi } from "@beinfi/sdk";
+import { PRODUCT_KEY } from "../../infi.billing.js";
 
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME ?? "__APP_NAME__";
 export const SLUG = process.env.NEXT_PUBLIC_INFI_APP_SLUG ?? "__APP_SLUG__";
-export const PRODUCT_KEY = "starter";
+export { PRODUCT_KEY };
 export const STARTER_CREDITS = "100";
 export const APP_PORT = "__PORT__";
 export const APP_ORIGIN = `http://localhost:${APP_PORT}`;

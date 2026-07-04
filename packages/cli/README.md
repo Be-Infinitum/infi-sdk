@@ -32,7 +32,7 @@ bunx @beinfi/cli sandbox create
 Use the separate scaffolder (not a subcommand):
 
 ```bash
-npm create beinfi-app my-app
+npm create infi-app my-app
 ```
 
 ## Config

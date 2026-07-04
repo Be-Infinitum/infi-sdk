@@ -33,7 +33,7 @@ export type CreateSandboxOptions = {
 
 /**
  * Public sandbox provisioning — no secret key required.
- * Used by create-beinfi-app and integrations to spin up a claimable tenant.
+ * Used by create-infi-app and integrations to spin up a claimable tenant.
  */
 export class SandboxResource {
   constructor(

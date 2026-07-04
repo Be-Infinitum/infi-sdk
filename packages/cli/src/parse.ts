@@ -24,7 +24,7 @@ ${pc.dim("Examples:")}
   infi login --token eyJ...
 
 ${pc.dim("Scaffold a new app:")}
-  npm create beinfi-app my-app
+  npm create infi-app my-app
 `);
 }
 

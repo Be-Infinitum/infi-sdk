@@ -1,11 +1,11 @@
 {
-  "name": "create-beinfi-app",
+  "name": "create-infi-app",
   "version": "0.1.0",
   "description": "Scaffold a billable Next.js app with Infi auth, checkout, and usage billing",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "create-beinfi-app": "./dist/index.js"
+    "create-infi-app": "./dist/index.js"
   },
   "files": ["dist", "templates"],
   "publishConfig": {

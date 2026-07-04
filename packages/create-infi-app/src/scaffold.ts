@@ -11,7 +11,7 @@ export function templatesDir(): string {
   if (fs.existsSync(bundled)) return bundled;
   const monorepo = path.join(pkgRoot, "..", "..", "templates");
   if (fs.existsSync(monorepo)) return monorepo;
-  throw new Error("Templates directory not found. Run `bun run build` in create-beinfi-app.");
+  throw new Error("Templates directory not found. Run `bun run build` in create-infi-app.");
 }
 
 export function templatePath(id: TemplateId): string {

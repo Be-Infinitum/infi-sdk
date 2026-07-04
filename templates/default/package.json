@@ -9,6 +9,7 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "setup": "tsx scripts/setup.ts",
+    "plan": "tsx scripts/plan-billing.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

@@ -4,4 +4,4 @@ dist
 .env
 .env.local
 *.log
-packages/create-beinfi-app/templates
+packages/create-infi-app/templates

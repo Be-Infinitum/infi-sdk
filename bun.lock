@@ -171,11 +171,11 @@
         "vitest": "^3.2.4",
       },
     },
-    "packages/create-beinfi-app": {
-      "name": "create-beinfi-app",
+    "packages/create-infi-app": {
+      "name": "create-infi-app",
       "version": "0.1.0",
       "bin": {
-        "create-beinfi-app": "./dist/index.js",
+        "create-infi-app": "./dist/index.js",
       },
       "dependencies": {
         "@beinfi/cli": "workspace:*",
@@ -755,7 +755,7 @@
 
     "convert-source-map": ["convert-source-map@2.0.0", "", {}, "sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg=="],
 
-    "create-beinfi-app": ["create-beinfi-app@workspace:packages/create-beinfi-app"],
+    "create-infi-app": ["create-infi-app@workspace:packages/create-infi-app"],
 
     "crm": ["crm@workspace:examples/crm"],
 

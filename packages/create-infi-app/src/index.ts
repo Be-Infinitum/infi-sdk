@@ -37,10 +37,10 @@ function parseArgs(argv: string[]): Partial<CliOptions> & { help?: boolean } {
 
 function printHelp() {
   console.log(`
-${pc.bold("create-beinfi-app")} — scaffold a billable Next.js app with Infi
+${pc.bold("create-infi-app")} — scaffold a billable Next.js app with Infi
 
 ${pc.dim("Usage:")}
-  npx create-beinfi-app [project-name] [options]
+  npm create infi-app [project-name] [options]
 
 ${pc.dim("Options:")}
   --template <id>     Template: default, crm, ebook-sale, ai-chat, marketplace-billing
@@ -61,7 +61,7 @@ async function resolveOptions(argv: string[]): Promise<CliOptions | null> {
     return null;
   }
 
-  p.intro(pc.bgCyan(pc.black(" create-beinfi-app ")));
+  p.intro(pc.bgCyan(pc.black(" create-infi-app ")));
 
   let projectName = parsed.projectName;
   if (!projectName && !parsed.yes) {
