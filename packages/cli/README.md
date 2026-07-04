@@ -19,6 +19,8 @@ bunx @beinfi/cli sandbox create
 | `infi sandbox create` | Provision claimable sandbox (`ref=cli`) |
 | `infi sandbox get <id>` | Poll public sandbox status |
 | `infi sync [file]` | Apply `infi.billing.ts` (`--plan` for dry-run) |
+| `infi deploy --url <url>` | Register webhook + write `INFI_WEBHOOK_SECRET` |
+| `infi deploy vercel [--prod]` | Vercel deploy + env sync + webhook |
 
 ## Global flags
 

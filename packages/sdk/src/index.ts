@@ -35,6 +35,11 @@ export type { UsageQuery } from "./resources/usage.js";
 export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
 export type { CreateApiKeyInput } from "./resources/api-keys.js";
 export type {
+  CreateWebhookInput,
+  CreatedWebhookEndpoint,
+  PatchWebhookInput,
+} from "./resources/webhooks-resource.js";
+export type {
   ClaimableSandboxCreateResponse,
   ClaimableSandboxPublicView,
   CreateSandboxOptions,
@@ -98,6 +103,8 @@ export type {
   VersionInput,
   VerifyCodeRequest,
   VerifyEmailCodeOptions,
+  WebhookDelivery,
+  WebhookEndpoint,
 } from "./types.js";
 export {
   DEFAULT_API_BASE,

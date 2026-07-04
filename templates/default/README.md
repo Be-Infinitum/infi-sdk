@@ -27,6 +27,17 @@ bun run dev
 
 Abra http://localhost:__PORT__
 
+## Deploy (Vercel)
+
+```bash
+# After linking: vercel link
+infi deploy --url https://my-app.vercel.app   # register webhook + write INFI_WEBHOOK_SECRET
+# or full flow:
+infi deploy vercel --prod                     # vercel deploy + env sync + webhook
+```
+
+Requires [Vercel CLI](https://vercel.com/docs/cli) for `deploy vercel`. Set `DATABASE_URL` in Vercel (Postgres addon or external).
+
 ## Claim do sandbox
 
 Se `INFI_SANDBOX_CLAIM_URL` estiver no `.env.local`, a landing exibe um banner até você finalizar o claim no dashboard Infi.

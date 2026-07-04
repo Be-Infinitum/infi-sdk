@@ -33,6 +33,15 @@ bun run publish:dry-run
 bun run publish:packages   # npm login required
 ```
 
+## Deploy
+
+```bash
+infi deploy --url https://my-app.vercel.app
+infi deploy vercel --prod   # requires Vercel CLI + vercel link
+```
+
+Registers `POST /api/webhooks/infi`, writes `INFI_WEBHOOK_SECRET` to `.env.local`, optionally syncs env to Vercel.
+
 ## Open
 
 - Backend must accept `ref: "cli"` on `POST /public/v1/sandbox`.

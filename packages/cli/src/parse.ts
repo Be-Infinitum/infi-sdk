@@ -9,6 +9,8 @@ ${pc.dim("Usage:")}
   infi keys list|create|revoke [--key sk_...] [--json]
   infi sandbox create|get <id> [--ref cli] [--local] [--json]
   infi sync [file] [--plan] [--key sk_...] [--local] [--json]
+  infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
+  infi deploy vercel [--prod]   # deploy + sync env + register webhook
 
 ${pc.dim("Global flags:")}
   --key <sk_...>       Secret key (or INFI_SECRET_KEY / saved profile)
@@ -21,6 +23,8 @@ ${pc.dim("Examples:")}
   infi sandbox create --json
   infi keys create --key sk_test_...
   infi sync infi.billing.ts --plan
+  infi deploy --url https://my-app.vercel.app
+  infi deploy vercel --prod
   infi login --token eyJ...
 
 ${pc.dim("Scaffold a new app:")}

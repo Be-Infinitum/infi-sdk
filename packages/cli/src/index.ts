@@ -79,6 +79,19 @@ export async function run(argv: string[]): Promise<void> {
       });
       break;
 
+    case "deploy":
+      await (
+        await import("./commands/deploy.js")
+      ).deployCommand({
+        ...gf,
+        url: typeof parsed.flags.url === "string" ? parsed.flags.url : undefined,
+        vercel: parsed.sub === "vercel" || parsed.flags.vercel === true,
+        prod: parsed.flags.prod === true,
+        skipWebhook: parsed.flags["skip-webhook"] === true,
+        skipEnv: parsed.flags["skip-env"] === true,
+      });
+      break;
+
     default:
       die(`Unknown command: ${parsed.command}. Run \`infi --help\`.`);
   }
