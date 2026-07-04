@@ -32,6 +32,8 @@ export {
   type WebhookInput,
 } from "./webhooks.js";
 export type { UsageQuery } from "./resources/usage.js";
+export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
+export type { CreateApiKeyInput } from "./resources/api-keys.js";
 export type {
   ClaimableSandboxCreateResponse,
   ClaimableSandboxPublicView,
@@ -45,14 +47,17 @@ export type {
 export type {
   App,
   AppIdentity,
+  ApiKey,
   AuthResult,
   CheckoutSession,
+  CLITokenResponse,
   CreateAppRequest,
   CreateCustomerRequest,
   CreateInvoiceRequest,
   CreateMeterRequest,
   CreateProductInvoiceRequest,
   CreateProductRequest,
+  CreatedApiKey,
   CreditSummary,
   Customer,
   CustomerState,

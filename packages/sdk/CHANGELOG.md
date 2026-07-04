@@ -5,6 +5,8 @@
 ### Added
 - `infi.sandbox.create({ ref })` — provision a claimable billing sandbox (public, no auth).
 - `infi.sandbox.get(id)` — poll public sandbox claim status.
+- `infi.apiKeys.list/create/revoke` — tenant API key management.
+- `exchangeCliToken()` — exchange dashboard session for CLI API key (`POST /auth/cli/token`).
 
 ## 0.9.0
 

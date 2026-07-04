@@ -29,8 +29,9 @@ npx create-beinfi-app my-app
    - **MCP `beinfi_connect`** (repo `beinfi-mcp`) already provisions tenant + product + `sk_test_`
      + claim URL headlessly (see docs/lovable.mdx). The CLI can call the same backend endpoint
      (`POST /public/v1/sandbox`, `ref="cli"`) directly.
-   - Or the existing **`beinfi-cli`** (`/Users/caiofelix/Infinitum/beinfi-cli`) if it exposes a
-     non-interactive `sandbox create`. **Open: verify headless provisioning exists / add it.**
+   - **`@beinfi/cli`** (`packages/cli`, bin `infi`) — TypeScript port of the Go `beinfi-cli`:
+     login, keys, sandbox, sync. `create-beinfi-app` reuses `@beinfi/cli/lib/provision`.
+   - Or call `POST /public/v1/sandbox` directly (same as `infi sandbox create`).
    - Write `INFI_SECRET_KEY` (+ slug, pay/auth bases) into `.env`; print the `new.beinfi.com/claim/{id}`
      URL so the founder claims ownership.
 4. **Package**: `packages/create-beinfi-app` in this monorepo, published as `create-beinfi-app`

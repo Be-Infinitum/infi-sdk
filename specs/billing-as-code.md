@@ -1,7 +1,7 @@
 # Spec — Billing as Code (idempotent tenant seed)
 
 **Status:** Spec (planned). Cross-cutting; unblocks all example specs.
-Target: `@beinfi/sdk` (a `sync` primitive) + optional `@beinfi/cli`.
+Target: `@beinfi/sdk` (a `sync` primitive) + `@beinfi/cli` (`infi sync`, `infi sync --plan`).
 
 ## Goal
 

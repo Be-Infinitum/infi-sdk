@@ -1,13 +1,17 @@
 {
-  "name": "create-beinfi-app",
+  "name": "@beinfi/cli",
   "version": "0.1.0",
-  "description": "Scaffold a billable Next.js app with Infi auth, checkout, and usage billing",
+  "description": "Infi CLI — login, API keys, sandbox provisioning, and billing sync",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "create-beinfi-app": "./dist/index.js"
+    "infi": "./dist/index.js"
   },
-  "files": ["dist", "templates"],
+  "exports": {
+    ".": "./dist/index.js",
+    "./lib/provision": "./dist/lib/provision.js"
+  },
+  "files": ["dist"],
   "publishConfig": {
     "access": "public"
   },
@@ -15,22 +19,20 @@
     "node": ">=18"
   },
   "scripts": {
-    "sync-templates": "node scripts/sync-templates.mjs",
-    "prebuild": "node scripts/sync-templates.mjs",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@beinfi/cli": "workspace:*",
     "@beinfi/sdk": "workspace:*",
-    "@clack/prompts": "^0.10.1",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
     "tsup": "^8.5.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

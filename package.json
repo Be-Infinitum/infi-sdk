@@ -4,17 +4,18 @@
   "workspaces": [
     "packages/sdk",
     "packages/nextjs",
+    "packages/cli",
     "packages/create-beinfi-app",
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/nextjs' build && bun run --filter 'create-beinfi-app' build",
+    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter 'create-beinfi-app' build",
     "test": "bun run --filter '@beinfi/*' test",
     "typecheck": "bun run --filter '@beinfi/*' typecheck && bun run --filter 'create-beinfi-app' typecheck",
     "codegen": "bash scripts/codegen.sh",
     "templates:normalize": "node scripts/normalize-templates.mjs",
     "templates:sync": "bun run --filter 'create-beinfi-app' sync-templates",
-    "publish:dry-run": "bun run build && npm publish --dry-run --workspace @beinfi/sdk && npm publish --dry-run --workspace @beinfi/nextjs && npm publish --dry-run --workspace create-beinfi-app"
+    "publish:dry-run": "bun run build && npm publish --dry-run --workspace @beinfi/sdk && npm publish --dry-run --workspace @beinfi/nextjs && npm publish --dry-run --workspace @beinfi/cli && npm publish --dry-run --workspace create-beinfi-app"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

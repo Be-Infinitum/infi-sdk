@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Infi } from "@beinfi/sdk";
+import { provisionSandbox as createSandbox } from "@beinfi/cli/lib/provision";
 import type { ClaimableSandboxCreateResponse } from "@beinfi/sdk";
 
 export type ProvisionOptions = {
@@ -22,9 +22,7 @@ const LOCAL = {
 };
 
 export async function provisionSandbox(local: boolean): Promise<ClaimableSandboxCreateResponse> {
-  const baseUrl = local ? LOCAL.api : PROD.api;
-  const infi = new Infi({ baseUrl });
-  return infi.sandbox.create({ ref: "cli", baseUrl });
+  return createSandbox({ local, ref: "cli" });
 }
 
 export function writeEnvFile(options: ProvisionOptions, sandbox: ClaimableSandboxCreateResponse): void {
