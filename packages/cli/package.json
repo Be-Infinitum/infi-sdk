@@ -1,0 +1,38 @@
+{
+  "name": "@beinfi/cli",
+  "version": "0.1.0",
+  "description": "Infi CLI — login, API keys, sandbox provisioning, and billing sync",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "infi": "./dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./lib/provision": "./dist/lib/provision.js"
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@beinfi/sdk": "workspace:*",
+    "picocolors": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

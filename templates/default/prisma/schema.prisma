@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Local mirror of the signed-in Infi customer + onboarding state.
+model UserProfile {
+  id                  String   @id
+  email               String?
+  enrollmentId        String?
+  onboardingComplete  Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  purchases           Purchase[]
+}
+
+/// Tracks checkout invoices for webhook credit grants.
+model Purchase {
+  id           String   @id @default(cuid())
+  invoiceId    String   @unique
+  enrollmentId String
+  customerId   String
+  createdAt    DateTime @default(now())
+  owner        UserProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}

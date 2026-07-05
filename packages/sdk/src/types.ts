@@ -53,6 +53,11 @@ export type Deliverable = components["schemas"]["Deliverable"];
 export type PresignDeliverableRequest = components["schemas"]["PresignDeliverableRequest"];
 export type PresignDeliverableResponse = components["schemas"]["PresignDeliverableResponse"];
 export type PutDeliverableRequest = components["schemas"]["PutDeliverableRequest"];
+export type ApiKey = components["schemas"]["ApiKey"];
+export type CreatedApiKey = components["schemas"]["CreatedApiKey"];
+export type CLITokenResponse = components["schemas"]["CLITokenResponse"];
+export type WebhookEndpoint = components["schemas"]["WebhookEndpoint"];
+export type WebhookDelivery = components["schemas"]["WebhookDelivery"];
 
 // Inline request bodies (no named schema in the OpenAPI spec).
 export interface VersionInput {

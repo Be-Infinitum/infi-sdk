@@ -1,0 +1,24 @@
+// Ebook sale — SQLite. One row per purchase attempt; delivery link filled on payment.
+generator client {
+  provider = "prisma-client-js"
+  // Own output dir — avoids clobbering other examples' shared @prisma/client.
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  email       String
+  name        String?
+  customerId  String // Infi tenant-customer id (payer)
+  invoiceId   String   @unique
+  productId   String
+  status      String   @default("pending") // pending | paid
+  checkoutUrl String?
+  downloadUrl String?
+  createdAt   DateTime @default(now())
+}

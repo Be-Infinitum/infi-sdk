@@ -2312,7 +2312,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    ref?: "lovable" | "mcp" | "cursor";
+                    ref?: "lovable" | "mcp" | "cursor" | "cli";
                 };
             };
         };

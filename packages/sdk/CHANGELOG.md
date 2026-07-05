@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.1
+
+### Added
+- `infi.sandbox.create({ ref })` — provision a claimable billing sandbox (public, no auth).
+- `infi.sandbox.get(id)` — poll public sandbox claim status.
+- `infi.apiKeys.list/create/revoke` — tenant API key management.
+- `exchangeCliToken()` — exchange dashboard session for CLI API key (`POST /auth/cli/token`).
+
 ## 0.9.0
 
 Metered-LLM surface: a credit gate + usage recording in one call, plus a one-read customer view.
