@@ -1,5 +1,14 @@
 import type { Infi } from "./client.js";
-import type { CreateProductRequest, Price, PriceInput, Product, Version } from "./types.js";
+import type {
+  App,
+  CreateProductRequest,
+  Price,
+  PriceInput,
+  Product,
+  UpdateAppRequest,
+  Version,
+  WebhookEndpoint,
+} from "./types.js";
 
 // ── Declarative billing config ("billing as code") ──────────────────────────
 
@@ -37,8 +46,28 @@ export interface BillingProduct {
   deliverable?: { kind: "link"; url: string };
 }
 
+export interface BillingApp {
+  /** Stable natural key — the slug end-users log into (unique per tenant). */
+  slug: string;
+  name: string;
+  allowedOrigins?: string[];
+  redirectUris?: string[];
+  sessionMode?: "infi" | "byo";
+}
+
+export interface BillingWebhook {
+  /** Stable natural key — the delivery URL. */
+  url: string;
+  events: string[];
+  isActive?: boolean;
+}
+
 export interface BillingConfig {
   products: BillingProduct[];
+  /** Identity apps (slug, origins, redirect URIs, session mode). */
+  apps?: BillingApp[];
+  /** Webhook endpoints (url + subscribed events). */
+  webhooks?: BillingWebhook[];
 }
 
 /** Identity helper for authoring a typed billing config. */
@@ -48,7 +77,7 @@ export function defineBilling(config: BillingConfig): BillingConfig {
 
 export interface SyncAction {
   action: "create" | "skip" | "update" | "bump" | "blocked";
-  resource: "product" | "meter" | "version" | "price" | "deliverable";
+  resource: "product" | "meter" | "version" | "price" | "deliverable" | "app" | "webhook";
   ref: string;
   /** Human-readable reason for an update/bump/blocked (e.g. changed fields, drift). */
   detail?: string;
@@ -243,6 +272,84 @@ async function publishVersion(
   await infi.products.versions.publish(productId, version.id!);
 }
 
+/** Order-insensitive string-array equality (origins / redirect URIs / events). */
+function arrEq(a?: string[], b?: string[]): boolean {
+  const x = [...(a ?? [])].sort();
+  const y = [...(b ?? [])].sort();
+  return x.length === y.length && x.every((v, i) => v === y[i]);
+}
+
+function appPatch(existing: App, a: BillingApp): UpdateAppRequest {
+  const patch: UpdateAppRequest = {};
+  if (existing.name !== a.name) patch.name = a.name;
+  if (a.allowedOrigins && !arrEq(existing.allowedOrigins, a.allowedOrigins)) patch.allowedOrigins = a.allowedOrigins;
+  if (a.redirectUris && !arrEq(existing.redirectUris, a.redirectUris)) patch.redirectUris = a.redirectUris;
+  if (a.sessionMode && existing.sessionMode !== a.sessionMode) patch.sessionMode = a.sessionMode;
+  return patch;
+}
+
+/** Reconcile identity apps by slug: create missing, update changed. Never deletes. */
+async function reconcileApps(
+  infi: Infi,
+  apps: BillingApp[],
+  plan: boolean,
+  actions: SyncAction[],
+): Promise<void> {
+  const existing = await infi.apps.list();
+  for (const a of apps) {
+    const match = existing.find((x) => x.slug === a.slug);
+    if (!match) {
+      actions.push({ action: "create", resource: "app", ref: a.slug });
+      if (!plan) {
+        await infi.apps.create({
+          slug: a.slug,
+          name: a.name,
+          allowedOrigins: a.allowedOrigins,
+          redirectUris: a.redirectUris,
+          sessionMode: a.sessionMode,
+        });
+      }
+      continue;
+    }
+    const patch = appPatch(match, a);
+    const changed = Object.keys(patch);
+    if (changed.length > 0) {
+      actions.push({ action: "update", resource: "app", ref: a.slug, detail: changed.join(", ") });
+      if (!plan && match.id) await infi.apps.update(match.id, patch);
+    } else {
+      actions.push({ action: "skip", resource: "app", ref: a.slug });
+    }
+  }
+}
+
+/** Reconcile webhook endpoints by url: create missing, patch changed events/active. Never deletes or rotates. */
+async function reconcileWebhooks(
+  infi: Infi,
+  webhooks: BillingWebhook[],
+  plan: boolean,
+  actions: SyncAction[],
+): Promise<void> {
+  const existing = await infi.webhooks.list();
+  for (const w of webhooks) {
+    const match = existing.find((x: WebhookEndpoint) => x.url === w.url);
+    if (!match) {
+      actions.push({ action: "create", resource: "webhook", ref: w.url });
+      if (!plan) await infi.webhooks.create({ url: w.url, events: w.events });
+      continue;
+    }
+    const patch: { events?: string[]; isActive?: boolean } = {};
+    if (!arrEq(match.events, w.events)) patch.events = w.events;
+    if (w.isActive !== undefined && match.isActive !== w.isActive) patch.isActive = w.isActive;
+    const changed = Object.keys(patch);
+    if (changed.length > 0) {
+      actions.push({ action: "update", resource: "webhook", ref: w.url, detail: changed.join(", ") });
+      if (!plan && match.id) await infi.webhooks.patch(match.id, patch);
+    } else {
+      actions.push({ action: "skip", resource: "webhook", ref: w.url });
+    }
+  }
+}
+
 /**
  * Apply a billing config as desired state (ADR 0002). Products are matched by
  * their unique per-tenant `key` (falling back to `name` for older tenants), then:
@@ -422,6 +529,10 @@ export async function syncBilling(
       lock.products[p.key] = { state: preState, versionId: current?.id, syncedAt: now };
     }
   }
+
+  // Platform config — apps + webhooks (create + update, never delete). Tenant-level.
+  if (config.apps?.length) await reconcileApps(infi, config.apps, plan, actions);
+  if (config.webhooks?.length) await reconcileWebhooks(infi, config.webhooks, plan, actions);
 
   return { planned: plan, actions, drift, lock: plan ? (prevLock ?? lock) : lock };
 }

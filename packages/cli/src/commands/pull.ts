@@ -71,7 +71,25 @@ async function pullConfig(infi: ReturnType<typeof infiClient>): Promise<BillingC
     );
   }
 
-  return { products: out };
+  const [apps, webhooks] = await Promise.all([infi.apps.list(), infi.webhooks.list()]);
+  const appCfg = apps.map((a) =>
+    compact({
+      slug: a.slug,
+      name: a.name,
+      allowedOrigins: a.allowedOrigins,
+      redirectUris: a.redirectUris,
+      sessionMode: a.sessionMode,
+    }),
+  ) as NonNullable<BillingConfig["apps"]>;
+  const webhookCfg = webhooks.map((w) =>
+    compact({ url: w.url, events: w.events, isActive: w.isActive }),
+  ) as NonNullable<BillingConfig["webhooks"]>;
+
+  return compact({
+    products: out,
+    apps: appCfg.length ? appCfg : undefined,
+    webhooks: webhookCfg.length ? webhookCfg : undefined,
+  }) as BillingConfig;
 }
 
 function renderConfig(config: BillingConfig): string {

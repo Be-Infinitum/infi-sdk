@@ -81,8 +81,11 @@ meter are reported as `skip` until the backend adds update.
   `--plan` output. Implemented in `billing-as-code.ts` (`SyncAction` gains
   `update`/`bump` + `detail`). This is what makes it "billing as code" rather than a
   seeder.
-- **P2 — platform config:** `apps` and `webhooks` sections in `defineBilling()` +
-  reconcile.
+- **P2 — platform config (DONE):** `apps` and `webhooks` sections in
+  `defineBilling()` + reconcile (create + update, never delete/rotate). Matched by
+  slug / url. `infi pull` emits them too. Note: the lock drift-guard currently
+  covers products only; apps/webhooks reconcile is last-write-wins (follow-up:
+  extend the lock to them).
 - **P3 — deferred:** default rate-cards (needs backend); meter update (needs backend).
 
 ## Alternatives considered

@@ -8,6 +8,11 @@
   changes (a new version is published; prior versions stay immutable), instead of
   seed-only. `SyncAction.action` gains `"update"` and `"bump"` plus a `detail` reason;
   `infi sync --plan` prints them.
+- Billing-as-code platform config (ADR 0002, P2): `defineBilling()` accepts `apps`
+  (matched by slug) and `webhooks` (matched by url); `infi.sync()` reconciles them
+  create + update, never deletes, never rotates a webhook secret. `infi pull` also
+  emits them. New types `BillingApp` / `BillingWebhook`; `SyncAction.resource` adds
+  `app` / `webhook`.
 - Drift guard + config versioning: `SyncOptions` accepts a previous `lock` and
   `force`; `SyncResult` returns `{ drift, lock }`. When a product changed in the
   dashboard since the last sync, an update/bump is **blocked** unless `--force`. The

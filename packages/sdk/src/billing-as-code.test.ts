@@ -7,11 +7,24 @@ type FakeState = {
   meters: Record<string, any[]>;
   versions: Record<string, any[]>;
   prices: Record<string, any[]>;
+  apps?: any[];
+  webhooks?: any[];
 };
 
 /** Minimal in-memory Infi.products fake — syncBilling only touches this surface. */
 function fakeInfi(state: FakeState) {
-  const calls = { create: 0, update: 0, versionCreate: 0, publish: 0, priceAdd: 0, meterCreate: 0 };
+  const calls = {
+    create: 0,
+    update: 0,
+    versionCreate: 0,
+    publish: 0,
+    priceAdd: 0,
+    meterCreate: 0,
+    appCreate: 0,
+    appUpdate: 0,
+    webhookCreate: 0,
+    webhookPatch: 0,
+  };
   let seq = 1;
   const infi = {
     products: {
@@ -67,6 +80,36 @@ function fakeInfi(state: FakeState) {
         }),
       },
       deliverable: { save: vi.fn(async () => ({})) },
+    },
+    apps: {
+      list: vi.fn(async () => state.apps ?? []),
+      create: vi.fn(async (input: any) => {
+        calls.appCreate++;
+        const app = { id: `app_${seq++}`, ...input };
+        (state.apps ??= []).push(app);
+        return app;
+      }),
+      update: vi.fn(async (id: string, patch: any) => {
+        calls.appUpdate++;
+        const app = (state.apps ?? []).find((a) => a.id === id);
+        Object.assign(app, patch);
+        return app;
+      }),
+    },
+    webhooks: {
+      list: vi.fn(async () => state.webhooks ?? []),
+      create: vi.fn(async (input: any) => {
+        calls.webhookCreate++;
+        const wh = { id: `wh_${seq++}`, isActive: true, ...input };
+        (state.webhooks ??= []).push(wh);
+        return wh;
+      }),
+      patch: vi.fn(async (id: string, patch: any) => {
+        calls.webhookPatch++;
+        const wh = (state.webhooks ?? []).find((w) => w.id === id);
+        Object.assign(wh, patch);
+        return wh;
+      }),
     },
   };
   return { infi: infi as unknown as Infi, calls };
@@ -209,5 +252,53 @@ describe("syncBilling", () => {
     expect(second.drift).toHaveLength(0);
     expect(second.actions.find((a) => a.resource === "version")?.action).toBe("skip");
     expect(second.lock.products["ai-chat"]!.syncedAt).toBe("t2");
+  });
+});
+
+const PLATFORM = defineBilling({
+  products: [],
+  apps: [
+    { slug: "crm", name: "CRM", allowedOrigins: ["http://localhost:3010"], redirectUris: ["http://localhost:3010/cb"] },
+  ],
+  webhooks: [{ url: "https://app.example.com/hooks", events: ["payment.confirmed"] }],
+});
+
+describe("syncBilling apps + webhooks", () => {
+  it("creates missing app and webhook", async () => {
+    const { infi, calls } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    const res = await syncBilling(infi, PLATFORM);
+
+    expect(res.actions.find((a) => a.resource === "app")?.action).toBe("create");
+    expect(res.actions.find((a) => a.resource === "webhook")?.action).toBe("create");
+    expect(calls.appCreate).toBe(1);
+    expect(calls.webhookCreate).toBe(1);
+  });
+
+  it("updates app when origins change, skips unchanged webhook", async () => {
+    const state: FakeState = {
+      products: [],
+      meters: {},
+      versions: {},
+      prices: {},
+      apps: [{ id: "app_1", slug: "crm", name: "CRM", allowedOrigins: ["http://old"], redirectUris: ["http://localhost:3010/cb"] }],
+      webhooks: [{ id: "wh_1", url: "https://app.example.com/hooks", events: ["payment.confirmed"], isActive: true }],
+    };
+    const { infi, calls } = fakeInfi(state);
+    const res = await syncBilling(infi, PLATFORM);
+
+    const app = res.actions.find((a) => a.resource === "app");
+    expect(app?.action).toBe("update");
+    expect(app?.detail).toContain("allowedOrigins");
+    expect(res.actions.find((a) => a.resource === "webhook")?.action).toBe("skip");
+    expect(calls.appUpdate).toBe(1);
+    expect(calls.webhookPatch).toBe(0);
+  });
+
+  it("plan mode writes no apps/webhooks", async () => {
+    const { infi, calls } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(infi, PLATFORM, { plan: true });
+
+    expect(calls.appCreate).toBe(0);
+    expect(calls.webhookCreate).toBe(0);
   });
 });
