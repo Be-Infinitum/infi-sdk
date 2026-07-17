@@ -24,6 +24,7 @@ export type Price = components["schemas"]["Price"];
 export type PriceInput = components["schemas"]["PriceInput"];
 export type Meter = components["schemas"]["Meter"];
 export type CreateMeterRequest = components["schemas"]["CreateMeterRequest"];
+export type UpdateMeterRequest = components["schemas"]["UpdateMeterRequest"];
 export type RateCard = components["schemas"]["RateCard"];
 export type CreditSummary = components["schemas"]["CreditSummary"];
 export type UsageReport = components["schemas"]["UsageReport"];

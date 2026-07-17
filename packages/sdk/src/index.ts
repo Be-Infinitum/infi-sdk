@@ -71,6 +71,7 @@ export type {
   CreateCustomerRequest,
   CreateInvoiceRequest,
   CreateMeterRequest,
+  UpdateMeterRequest,
   CreateProductInvoiceRequest,
   CreateProductRequest,
   CreatedApiKey,

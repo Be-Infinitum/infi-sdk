@@ -20,6 +20,7 @@ function fakeInfi(state: FakeState) {
     publish: 0,
     priceAdd: 0,
     meterCreate: 0,
+    meterUpdate: 0,
     appCreate: 0,
     appUpdate: 0,
     webhookCreate: 0,
@@ -49,6 +50,12 @@ function fakeInfi(state: FakeState) {
           calls.meterCreate++;
           const m = { id: `m_${seq++}`, name: input.name };
           (state.meters[id] ??= []).push(m);
+          return m;
+        }),
+        update: vi.fn(async (id: string, meterId: string, patch: any) => {
+          calls.meterUpdate++;
+          const m = (state.meters[id] ?? []).find((x) => x.id === meterId);
+          Object.assign(m, patch);
           return m;
         }),
       },
@@ -146,7 +153,7 @@ describe("syncBilling", () => {
   it("skips when the published version already matches", async () => {
     const state: FakeState = {
       products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
-      meters: { prod_1: [{ id: "m_1", name: "tokens" }] },
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens" }] },
       versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.0020", currency: "BRL" }] },
     };
@@ -162,7 +169,7 @@ describe("syncBilling", () => {
   it("bumps the version when a price changes", async () => {
     const state: FakeState = {
       products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
-      meters: { prod_1: [{ id: "m_1", name: "tokens" }] },
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens" }] },
       versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.001", currency: "BRL" }] },
     };
@@ -180,7 +187,7 @@ describe("syncBilling", () => {
   it("updates product metadata when the name drifts", async () => {
     const state: FakeState = {
       products: [{ id: "prod_1", key: "ai-chat", name: "Old Name", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
-      meters: { prod_1: [{ id: "m_1", name: "tokens" }] },
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens" }] },
       versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.002", currency: "BRL" }] },
     };
@@ -191,6 +198,31 @@ describe("syncBilling", () => {
     expect(update?.action).toBe("update");
     expect(update?.detail).toContain("name");
     expect(calls.update).toBe(1);
+  });
+
+  it("updates a meter when its display name drifts", async () => {
+    const state: FakeState = {
+      products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "Old Label", unit: "token", aggregation: "sum" }] },
+      versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
+      prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.002", currency: "BRL" }] },
+    };
+    const { infi, calls } = fakeInfi(state);
+    const res = await syncBilling(infi, {
+      products: [
+        {
+          key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL", billingCycle: "monthly",
+          meters: [{ key: "tokens", displayName: "Tokens", unit: "token", aggregation: "sum" }],
+          prices: [{ meter: "tokens", model: "per_unit", unitAmount: "0.002" }],
+        },
+      ],
+    });
+
+    const meter = res.actions.find((a) => a.resource === "meter");
+    expect(meter?.action).toBe("update");
+    expect(meter?.detail).toContain("displayName");
+    expect(calls.meterUpdate).toBe(1);
+    expect(calls.meterCreate).toBe(0);
   });
 
   it("plan mode writes nothing", async () => {
@@ -206,7 +238,7 @@ describe("syncBilling", () => {
   function matchedState(): FakeState {
     return {
       products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
-      meters: { prod_1: [{ id: "m_1", name: "tokens" }] },
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens" }] },
       versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.002", currency: "BRL" }] },
     };

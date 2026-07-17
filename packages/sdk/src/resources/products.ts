@@ -7,6 +7,7 @@ import {
 import type {
   CreateCustomerRequest,
   CreateMeterRequest,
+  UpdateMeterRequest,
   CreateProductRequest,
   Deliverable,
   Meter,
@@ -91,6 +92,14 @@ class MetersResource {
       { requireSecret: true },
     );
     return res.meters ?? [];
+  }
+
+  /** Update a meter's display name / unit / aggregation (the `name` slug is immutable). */
+  update(productId: string, meterId: string, patch: UpdateMeterRequest): Promise<Meter> {
+    return this.t.request("PATCH", `/metering/products/${enc(productId)}/meters/${enc(meterId)}`, {
+      body: patch,
+      requireSecret: true,
+    });
   }
 }
 

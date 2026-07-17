@@ -3,6 +3,10 @@
 ## Unreleased
 
 ### Added
+- `infi.products.meters.update(productId, meterId, patch)` — update a meter's
+  displayName / unit / aggregation (backend `PATCH …/meters/{id}`; `name` immutable).
+  `infi.sync()` now reconciles meter metadata (create + update). New type
+  `UpdateMeterRequest`.
 - Billing-as-code desired-state sync (ADR 0002, P1): `infi.sync()` now **updates**
   product metadata and **version-bumps** on price / base-price / credits / billing-cycle
   changes (a new version is published; prior versions stay immutable), instead of

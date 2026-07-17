@@ -480,6 +480,7 @@ export async function syncBilling(
     const idToKey = new Map(
       existingMeters.filter((m) => m.id && m.name).map((m) => [m.id!, m.name!] as const),
     );
+    const meterByKey = new Map(existingMeters.map((m) => [m.name ?? "", m] as const));
 
     // Drift: has the backend changed since the last sync recorded in the lock?
     const versions = await infi.products.versions.list(productId);
@@ -506,10 +507,22 @@ export async function syncBilling(
       }
     }
 
-    // Meters — create any missing, keyed by (product, name).
+    // Meters — create missing, update changed metadata (name/slug is immutable).
     for (const m of p.meters ?? []) {
-      if (meterIdByKey.has(m.key)) {
-        actions.push({ action: "skip", resource: "meter", ref: `${name}/${m.key}` });
+      const cur = meterByKey.get(m.key);
+      if (cur) {
+        const patch: { displayName?: string; unit?: typeof m.unit; aggregation?: typeof m.aggregation } = {};
+        const wantDisplay = m.displayName ?? m.key;
+        if ((cur.displayName ?? "") !== wantDisplay) patch.displayName = wantDisplay;
+        if (cur.unit !== m.unit) patch.unit = m.unit;
+        if (cur.aggregation !== m.aggregation) patch.aggregation = m.aggregation;
+        const changed = Object.keys(patch);
+        if (changed.length > 0 && cur.id) {
+          actions.push({ action: "update", resource: "meter", ref: `${name}/${m.key}`, detail: changed.join(", ") });
+          if (!plan) await infi.products.meters.update(productId, cur.id, patch);
+        } else {
+          actions.push({ action: "skip", resource: "meter", ref: `${name}/${m.key}` });
+        }
         continue;
       }
       actions.push({ action: "create", resource: "meter", ref: `${name}/${m.key}` });

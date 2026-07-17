@@ -367,6 +367,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metering/products/{productID}/meters/{meterID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+                meterID: components["parameters"]["MeterID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update a meter's display name / unit / aggregation */
+        patch: operations["updateMeter"];
+        trace?: never;
+    };
     "/metering/products/{productID}/deliverable/presign": {
         parameters: {
             query?: never;
@@ -1669,6 +1689,14 @@ export interface components {
             aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
             valueProperty?: string | null;
         };
+        /** @description Mutable meter fields; omitted fields are unchanged. `name` is immutable. */
+        UpdateMeterRequest: {
+            displayName?: string;
+            /** @enum {string} */
+            unit?: "token" | "request" | "unit";
+            /** @enum {string} */
+            aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
+        };
         Deliverable: {
             /** Format: uuid */
             id?: string;
@@ -2422,6 +2450,7 @@ export interface components {
         Offset: number;
         ProductID: string;
         VersionID: string;
+        MeterID: string;
         /** @description Tenant customer UUID (customers.id). */
         CustomerID: string;
         /** @description Product enrollment UUID (product_customers.id). */
@@ -3136,6 +3165,36 @@ export interface operations {
         responses: {
             /** @description Meter created */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Meter"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    updateMeter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+                meterID: components["parameters"]["MeterID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMeterRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated meter */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
