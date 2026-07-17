@@ -5,3 +5,4 @@ dist
 .env.local
 *.log
 packages/create-infi-app/templates
+packages/cli/templates

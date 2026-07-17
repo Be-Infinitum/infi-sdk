@@ -39,12 +39,14 @@ export type {
   CreatedWebhookEndpoint,
   PatchWebhookInput,
 } from "./resources/webhooks-resource.js";
+export { PayResource } from "./resources/pay.js";
 export type {
-  ClaimableSandboxCreateResponse,
-  ClaimableSandboxPublicView,
-  CreateSandboxOptions,
-  SandboxRef,
-} from "./resources/sandbox.js";
+  CardInput,
+  ChargeMethod,
+  ChargeArgs,
+  GetInvoiceArgs,
+  WaitForPaidArgs,
+} from "./resources/pay.js";
 export type {
   CreateSubscriptionInput,
   SubscriptionWithPeriod,
@@ -56,7 +58,9 @@ export type {
   AuthResult,
   CheckoutSession,
   CLITokenResponse,
+  Coupon,
   CreateAppRequest,
+  CreateCouponRequest,
   CreateCustomerRequest,
   CreateInvoiceRequest,
   CreateMeterRequest,

@@ -9,14 +9,14 @@ export const PACK_CREDITS = "500";
 export const APP_PORT = "__PORT__";
 export const APP_ORIGIN = `http://localhost:${APP_PORT}`;
 
+/** Browser-facing API base for the embedded login form (per-app CORS). */
+export const PUBLIC_API_URL = process.env.NEXT_PUBLIC_INFI_API_URL ?? "https://api.beinfi.com";
+
 export const infi = new Infi({
   secretKey: process.env.INFI_SECRET_KEY!,
   baseUrl: process.env.INFI_API_URL,
   payBaseUrl: process.env.INFI_PAY_BASE_URL,
 });
-
-/** Public client for sandbox status (no secret key). */
-export const publicInfi = new Infi({ baseUrl: process.env.INFI_API_URL });
 
 export async function productId(): Promise<string> {
   const products = await infi.products.list();

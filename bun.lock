@@ -161,6 +161,7 @@
       },
       "dependencies": {
         "@beinfi/sdk": "workspace:*",
+        "@clack/prompts": "^0.10.1",
         "picocolors": "^1.1.1",
       },
       "devDependencies": {
@@ -179,9 +180,6 @@
       },
       "dependencies": {
         "@beinfi/cli": "workspace:*",
-        "@beinfi/sdk": "workspace:*",
-        "@clack/prompts": "^0.10.1",
-        "picocolors": "^1.1.1",
       },
       "devDependencies": {
         "@types/node": "^22.15.30",

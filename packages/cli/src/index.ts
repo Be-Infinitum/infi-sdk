@@ -13,6 +13,14 @@ export async function run(argv: string[]): Promise<void> {
   const gf = globalFlags(parsed.flags);
 
   switch (parsed.command) {
+    case "init":
+    case "create":
+    case "new": {
+      const initArgs = argv.slice(argv.indexOf(parsed.command) + 1);
+      await (await import("./commands/init.js")).initCommand(initArgs);
+      break;
+    }
+
     case "login":
       await (
         await import("./commands/login.js")

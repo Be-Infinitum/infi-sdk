@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { TemplateId } from "./types.js";
+import type { TemplateId } from "./init-support.js";
 
-const pkgRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const pkgRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** Resolve bundled templates directory (works in monorepo + published package). */
 export function templatesDir(): string {
@@ -11,7 +11,7 @@ export function templatesDir(): string {
   if (fs.existsSync(bundled)) return bundled;
   const monorepo = path.join(pkgRoot, "..", "..", "templates");
   if (fs.existsSync(monorepo)) return monorepo;
-  throw new Error("Templates directory not found. Run `bun run build` in create-infi-app.");
+  throw new Error("Templates directory not found. Run `bun run build` in @beinfi/cli.");
 }
 
 export function templatePath(id: TemplateId): string {

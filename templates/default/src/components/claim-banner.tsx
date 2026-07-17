@@ -1,4 +1,3 @@
-import { publicInfi } from "@/lib/infi";
 import Link from "next/link";
 
 export async function ClaimBanner() {
@@ -9,8 +8,16 @@ export async function ClaimBanner() {
 
   let claimed = false;
   try {
-    const view = await publicInfi.sandbox.get(sandboxId);
-    claimed = view.status === "CLAIMED";
+    // Dev-only sandbox claim poll — a plain public GET, no SDK surface (ADR 0001).
+    const base = (process.env.INFI_API_URL ?? "https://api.beinfi.com").replace(/\/$/, "");
+    const res = await fetch(`${base}/public/v1/sandbox/${encodeURIComponent(sandboxId)}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const view = (await res.json()) as { status?: string };
+      claimed = view.status === "CLAIMED";
+    }
   } catch {
     // Banner stays visible if status check fails (offline dev).
   }

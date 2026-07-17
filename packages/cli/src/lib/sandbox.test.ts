@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Infi } from "../client.js";
+import { createSandbox, getSandbox } from "./sandbox.js";
 
 const BASE = "http://localhost:8088";
 
@@ -10,7 +10,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-describe("infi.sandbox", () => {
+describe("cli sandbox", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe("infi.sandbox", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("create POSTs /public/v1/sandbox without auth", async () => {
+  it("createSandbox POSTs /public/v1/sandbox without auth", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse(
         {
@@ -35,9 +35,8 @@ describe("infi.sandbox", () => {
         201,
       ),
     );
-    const infi = new Infi({ baseUrl: BASE });
 
-    const sandbox = await infi.sandbox.create({ ref: "cli" });
+    const sandbox = await createSandbox(BASE, "cli");
 
     expect(sandbox.apiKeySecret).toBe("sk_test_abc");
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -47,7 +46,7 @@ describe("infi.sandbox", () => {
     expect(JSON.parse(init.body as string)).toEqual({ ref: "cli" });
   });
 
-  it("get fetches public sandbox status", async () => {
+  it("getSandbox fetches public sandbox status", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         id: "sb_1",
@@ -58,9 +57,8 @@ describe("infi.sandbox", () => {
         expiresAt: "2026-08-01T00:00:00Z",
       }),
     );
-    const infi = new Infi({ baseUrl: BASE });
 
-    const view = await infi.sandbox.get("sb_1");
+    const view = await getSandbox(BASE, "sb_1");
 
     expect(view.status).toBe("UNCLAIMED");
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];

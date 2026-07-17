@@ -1,0 +1,93 @@
+# ADR 0002 — Billing as code: desired-state sync (catalog + platform config)
+
+**Status:** Accepted (2026-07)
+
+## Context
+
+`@beinfi/sdk` already ships a `defineBilling()` config + `infi.sync()` + `infi sync`
+CLI (see [billing-as-code.ts]). Today it is a **seeder**: it creates missing
+products, meters, versions, prices, and link-deliverables, matched idempotently by
+natural `key`. It never touches what already exists — a metadata change is a no-op,
+a price change is ignored (the first published version wins forever), and only the
+catalog is covered.
+
+We want to go further: declare **as much of a tenant's platform config as is safe**
+in one versioned file and `infi sync` it — the same way we already version products
+in software. The premise (git-versioned, reproducible tenant setup, CI-seedable,
+"Terraform for billing") is sound. The risk is that billing is money: a careless
+reconcile could reprice live customers or delete entities that historical invoices
+and subscriptions still reference.
+
+## Decision
+
+Evolve `sync` from **seed-only** to **desired-state reconcile** for the catalog and
+platform config, bounded by one rule:
+
+> **Declarative = catalog + platform config. Runtime = per-customer state and money
+> movement.**
+
+**In scope (declarative, reconciled):**
+- Products — create, **update metadata**, and **version-bump on price/pricing
+  change** (create a new draft version, add its prices, publish; the old version
+  stays immutable so existing subscriptions keep their pinned pricing).
+- Meters, prices, link-deliverables (as today).
+- **Identity apps** — slug (natural key), name, CORS origins, redirect URIs,
+  session mode. create + update.
+- **Webhook endpoints** — URL (natural key) + subscribed events. create + patch.
+  Secrets are never rotated by sync (create-only secret; drift in events → patch).
+
+**Out of scope (runtime only, never in config):** customers, credit grants,
+invoices, subscriptions — transactional, per-customer.
+
+**Safety invariants:**
+- **Never delete.** A product/price/app/webhook removed from the config is reported
+  as drift, not destroyed. Deprecation is explicit and manual (historical invoices
+  and subscriptions may reference it).
+- **Never mutate a published version.** Price changes always create a new version.
+- **Plan-gated.** `infi sync --plan` shows create / update / version-bump / drift
+  before apply; CI applies only after approval.
+
+## Consequences
+
+- `sync` gains a diff engine: compare config's desired prices/metadata against the
+  current published version and report `update` / `version-bump`, not just
+  `create` / `skip`. `SyncAction.action` grows `"update" | "bump"`.
+- The config schema grows `apps` and `webhooks` sections alongside `products`.
+- Reproducible, git-versioned tenant setup for our own examples and for integrators;
+  fits the existing immutable-version model like git history.
+- Deletion stays a human decision — safe default, at the cost of manual cleanup.
+
+## Backend gap (deferred)
+
+**Default rate-cards are not expressible.** Rate-cards exist only per-customer
+(`POST /metering/customers/{id}/rate-cards`); there is no tenant-level default/template
+rate-card. Declaring "default rate-cards" in config needs a backend concept first.
+Deferred to a later phase; real per-customer overrides stay runtime regardless.
+
+Minor: meters have no update endpoint (create only) — metadata changes on an existing
+meter are reported as `skip` until the backend adds update.
+
+## Phasing
+
+- **P1 — the core:** products `update` + `version-bump` diff engine; richer `--plan`
+  output. This is what makes it "billing as code" rather than a seeder.
+- **P2 — platform config:** `apps` and `webhooks` sections in `defineBilling()` +
+  reconcile.
+- **P3 — deferred:** default rate-cards (needs backend); meter update (needs backend).
+
+## Alternatives considered
+
+- **Stay seed-only.** Rejected: does not deliver the versioned-config vision; price
+  changes silently ignored.
+- **Full reconcile with deletion (Terraform-complete).** Rejected: deleting billing
+  entities with live history is dangerous; the value/risk ratio is bad. Deprecate,
+  never delete.
+- **YAML/JSON config.** Rejected: the value is a typed, autocompleted TS module
+  (`defineBilling`); portability doesn't outweigh losing types.
+
+## Non-goals
+
+Destroying drift, in-place version edits, per-customer runtime state in config,
+multi-currency FX, dunning/retry config.
+
+[billing-as-code.ts]: ../../packages/sdk/src/billing-as-code.ts

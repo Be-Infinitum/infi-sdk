@@ -5,6 +5,7 @@ export function printHelp(): void {
 ${pc.bold("infi")} — Infi operator CLI (TypeScript)
 
 ${pc.dim("Usage:")}
+  infi init [project-name] [--template <id>] [--port <n>] [--local] [-y]
   infi login [--token <session>] [--tenant <slug>] [--profile name]
   infi keys list|create|revoke [--key sk_...] [--json]
   infi sandbox create|get <id> [--ref cli] [--local] [--json]
@@ -20,6 +21,7 @@ ${pc.dim("Global flags:")}
   -h, --help           Show help
 
 ${pc.dim("Examples:")}
+  infi init my-app --template ai-chat
   infi sandbox create --json
   infi keys create --key sk_test_...
   infi sync infi.billing.ts --plan

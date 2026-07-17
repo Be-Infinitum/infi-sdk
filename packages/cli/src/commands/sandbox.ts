@@ -1,9 +1,10 @@
-import type { GlobalFlags } from "../lib/client.js";
-import { provisionSandbox, publicInfi } from "../lib/provision.js";
+import { apiBase, type GlobalFlags } from "../lib/client.js";
+import { provisionSandbox } from "../lib/provision.js";
+import { getSandbox, type SandboxRef } from "../lib/sandbox.js";
 import { die, ok, printJson } from "../lib/output.js";
 
 export async function sandboxCreate(
-  flags: GlobalFlags & { ref?: "cli" | "cursor" | "lovable" | "mcp" },
+  flags: GlobalFlags & { ref?: SandboxRef },
 ): Promise<void> {
   const sandbox = await provisionSandbox(flags);
   if (flags.json) {
@@ -20,8 +21,7 @@ export async function sandboxCreate(
 
 export async function sandboxGet(flags: GlobalFlags & { id?: string }): Promise<void> {
   if (!flags.id) die("Usage: infi sandbox get <sandbox-id>");
-  const infi = publicInfi(flags);
-  const view = await infi.sandbox.get(flags.id);
+  const view = await getSandbox(apiBase(flags), flags.id);
   if (flags.json) {
     printJson(view);
     return;

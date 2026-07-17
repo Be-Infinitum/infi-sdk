@@ -10,8 +10,7 @@ function detectPackageManager(cwd: string): "bun" | "npm" | "pnpm" {
 
 export function runInstall(cwd: string): void {
   const pm = detectPackageManager(cwd);
-  const args = pm === "npm" ? ["install"] : ["install"];
-  const result = spawnSync(pm, args, { cwd, stdio: "inherit", shell: false });
+  const result = spawnSync(pm, ["install"], { cwd, stdio: "inherit", shell: false });
   if (result.status !== 0) {
     throw new Error(`${pm} install failed`);
   }

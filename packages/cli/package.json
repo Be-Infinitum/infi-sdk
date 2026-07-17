@@ -1,7 +1,7 @@
 {
   "name": "@beinfi/cli",
   "version": "0.1.0",
-  "description": "Infi CLI — login, API keys, sandbox provisioning, and billing sync",
+  "description": "Infi CLI — init/scaffold, login, API keys, sandbox provisioning, and billing sync",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -9,9 +9,10 @@
   },
   "exports": {
     ".": "./dist/index.js",
-    "./lib/provision": "./dist/lib/provision.js"
+    "./lib/provision": "./dist/lib/provision.js",
+    "./commands/init": "./dist/commands/init.js"
   },
-  "files": ["dist"],
+  "files": ["dist", "templates"],
   "publishConfig": {
     "access": "public"
   },
@@ -19,6 +20,8 @@
     "node": ">=18"
   },
   "scripts": {
+    "sync-templates": "node scripts/sync-templates.mjs",
+    "prebuild": "node scripts/sync-templates.mjs",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -26,6 +29,7 @@
   },
   "dependencies": {
     "@beinfi/sdk": "workspace:*",
+    "@clack/prompts": "^0.10.1",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {
