@@ -10,9 +10,10 @@
   `infi sync --plan` prints them.
 - Billing-as-code platform config (ADR 0002, P2): `defineBilling()` accepts `apps`
   (matched by slug) and `webhooks` (matched by url); `infi.sync()` reconciles them
-  create + update, never deletes, never rotates a webhook secret. `infi pull` also
-  emits them. New types `BillingApp` / `BillingWebhook`; `SyncAction.resource` adds
-  `app` / `webhook`.
+  create + update, never deletes, never rotates a webhook secret. Drift-guarded like
+  products (a dashboard edit blocks an update unless `--force`); the lock tracks
+  `apps`/`webhooks`; `infi pull` emits them. New types `BillingApp` / `BillingWebhook`
+  / `EntityLock`; `SyncAction.resource` adds `app` / `webhook`.
 - Drift guard + config versioning: `SyncOptions` accepts a previous `lock` and
   `force`; `SyncResult` returns `{ drift, lock }`. When a product changed in the
   dashboard since the last sync, an update/bump is **blocked** unless `--force`. The

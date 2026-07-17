@@ -83,19 +83,26 @@ export interface SyncAction {
   detail?: string;
 }
 
-/** Per-product provenance recorded after a sync — the "config versioning" lockfile. */
-export interface ProductLock {
-  /** Canonical fingerprint of the backend state this product had after the sync. */
+/** Provenance recorded after a sync — a fingerprint of the applied backend state. */
+export interface EntityLock {
+  /** Canonical fingerprint of the backend state this entity had after the sync. */
   state: string;
-  /** Published version id at that time. */
-  versionId?: string;
   syncedAt: string;
 }
 
-/** `infi.billing.lock.json` — what the last sync applied, per product key. */
+/** Per-product provenance (adds the published version id). */
+export interface ProductLock extends EntityLock {
+  versionId?: string;
+}
+
+/** `infi.billing.lock.json` — what the last sync applied, keyed by natural key. */
 export interface SyncLock {
   version: 1;
   products: Record<string, ProductLock>;
+  /** Per-app provenance, keyed by slug. */
+  apps?: Record<string, EntityLock>;
+  /** Per-webhook provenance, keyed by url. */
+  webhooks?: Record<string, EntityLock>;
 }
 
 /** A product whose backend state changed outside the config since the last sync. */
@@ -288,20 +295,43 @@ function appPatch(existing: App, a: BillingApp): UpdateAppRequest {
   return patch;
 }
 
-/** Reconcile identity apps by slug: create missing, update changed. Never deletes. */
-async function reconcileApps(
-  infi: Infi,
-  apps: BillingApp[],
-  plan: boolean,
-  actions: SyncAction[],
-): Promise<void> {
+/** Canonical fingerprint of an app's managed backend state (for drift detection). */
+function appFingerprint(a: Pick<App, "name" | "allowedOrigins" | "redirectUris" | "sessionMode">): string {
+  return canon({
+    name: a.name ?? null,
+    allowedOrigins: [...(a.allowedOrigins ?? [])].sort(),
+    redirectUris: [...(a.redirectUris ?? [])].sort(),
+    sessionMode: a.sessionMode ?? null,
+  });
+}
+
+/** Canonical fingerprint of a webhook's managed backend state. */
+function webhookFingerprint(w: Pick<WebhookEndpoint, "events" | "isActive">): string {
+  return canon({ events: [...(w.events ?? [])].sort(), isActive: w.isActive ?? null });
+}
+
+/** Shared context threaded into the tenant-level reconcilers. */
+interface ReconcileCtx {
+  plan: boolean;
+  force: boolean;
+  now: string;
+  prevLock?: SyncLock;
+  lock: SyncLock;
+  actions: SyncAction[];
+  drift: DriftEntry[];
+}
+
+/** Reconcile identity apps by slug: create missing, update changed. Never deletes; drift-guarded. */
+async function reconcileApps(infi: Infi, apps: BillingApp[], ctx: ReconcileCtx): Promise<void> {
   const existing = await infi.apps.list();
+  ctx.lock.apps ??= {};
   for (const a of apps) {
     const match = existing.find((x) => x.slug === a.slug);
     if (!match) {
-      actions.push({ action: "create", resource: "app", ref: a.slug });
-      if (!plan) {
-        await infi.apps.create({
+      ctx.actions.push({ action: "create", resource: "app", ref: a.slug });
+      let created: App | undefined;
+      if (!ctx.plan) {
+        created = await infi.apps.create({
           slug: a.slug,
           name: a.name,
           allowedOrigins: a.allowedOrigins,
@@ -309,43 +339,67 @@ async function reconcileApps(
           sessionMode: a.sessionMode,
         });
       }
+      ctx.lock.apps[a.slug] = { state: appFingerprint(created ?? a), syncedAt: ctx.now };
       continue;
     }
+
+    const prev = ctx.prevLock?.apps?.[a.slug];
+    const preState = appFingerprint(match);
+    const drifted = Boolean(prev && prev.state !== preState);
     const patch = appPatch(match, a);
     const changed = Object.keys(patch);
-    if (changed.length > 0) {
-      actions.push({ action: "update", resource: "app", ref: a.slug, detail: changed.join(", ") });
-      if (!plan && match.id) await infi.apps.update(match.id, patch);
+
+    if (changed.length === 0) {
+      ctx.actions.push({ action: "skip", resource: "app", ref: a.slug });
+      ctx.lock.apps[a.slug] = { state: preState, syncedAt: ctx.now };
+    } else if (drifted && !ctx.force) {
+      ctx.actions.push({ action: "blocked", resource: "app", ref: a.slug, detail: "changed in dashboard since last sync" });
+      ctx.drift.push({ product: a.slug, detail: `app ${changed.join(", ")} would overwrite a dashboard edit` });
+      if (prev) ctx.lock.apps[a.slug] = prev; // keep flagged
     } else {
-      actions.push({ action: "skip", resource: "app", ref: a.slug });
+      ctx.actions.push({ action: "update", resource: "app", ref: a.slug, detail: changed.join(", ") });
+      const updated = !ctx.plan && match.id ? await infi.apps.update(match.id, patch) : { ...match, ...patch };
+      ctx.lock.apps[a.slug] = { state: appFingerprint(updated), syncedAt: ctx.now };
     }
   }
 }
 
-/** Reconcile webhook endpoints by url: create missing, patch changed events/active. Never deletes or rotates. */
-async function reconcileWebhooks(
-  infi: Infi,
-  webhooks: BillingWebhook[],
-  plan: boolean,
-  actions: SyncAction[],
-): Promise<void> {
+/** Reconcile webhooks by url: create missing, patch changed events/active. Never deletes/rotates; drift-guarded. */
+async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: ReconcileCtx): Promise<void> {
   const existing = await infi.webhooks.list();
+  ctx.lock.webhooks ??= {};
   for (const w of webhooks) {
     const match = existing.find((x: WebhookEndpoint) => x.url === w.url);
     if (!match) {
-      actions.push({ action: "create", resource: "webhook", ref: w.url });
-      if (!plan) await infi.webhooks.create({ url: w.url, events: w.events });
+      ctx.actions.push({ action: "create", resource: "webhook", ref: w.url });
+      let created: WebhookEndpoint | undefined;
+      if (!ctx.plan) created = await infi.webhooks.create({ url: w.url, events: w.events });
+      ctx.lock.webhooks[w.url] = {
+        state: webhookFingerprint(created ?? { events: w.events, isActive: w.isActive }),
+        syncedAt: ctx.now,
+      };
       continue;
     }
+
+    const prev = ctx.prevLock?.webhooks?.[w.url];
+    const preState = webhookFingerprint(match);
+    const drifted = Boolean(prev && prev.state !== preState);
     const patch: { events?: string[]; isActive?: boolean } = {};
     if (!arrEq(match.events, w.events)) patch.events = w.events;
     if (w.isActive !== undefined && match.isActive !== w.isActive) patch.isActive = w.isActive;
     const changed = Object.keys(patch);
-    if (changed.length > 0) {
-      actions.push({ action: "update", resource: "webhook", ref: w.url, detail: changed.join(", ") });
-      if (!plan && match.id) await infi.webhooks.patch(match.id, patch);
+
+    if (changed.length === 0) {
+      ctx.actions.push({ action: "skip", resource: "webhook", ref: w.url });
+      ctx.lock.webhooks[w.url] = { state: preState, syncedAt: ctx.now };
+    } else if (drifted && !ctx.force) {
+      ctx.actions.push({ action: "blocked", resource: "webhook", ref: w.url, detail: "changed in dashboard since last sync" });
+      ctx.drift.push({ product: w.url, detail: `webhook ${changed.join(", ")} would overwrite a dashboard edit` });
+      if (prev) ctx.lock.webhooks[w.url] = prev;
     } else {
-      actions.push({ action: "skip", resource: "webhook", ref: w.url });
+      ctx.actions.push({ action: "update", resource: "webhook", ref: w.url, detail: changed.join(", ") });
+      const updated = !ctx.plan && match.id ? await infi.webhooks.patch(match.id, patch) : { ...match, ...patch };
+      ctx.lock.webhooks[w.url] = { state: webhookFingerprint(updated), syncedAt: ctx.now };
     }
   }
 }
@@ -530,9 +584,11 @@ export async function syncBilling(
     }
   }
 
-  // Platform config — apps + webhooks (create + update, never delete). Tenant-level.
-  if (config.apps?.length) await reconcileApps(infi, config.apps, plan, actions);
-  if (config.webhooks?.length) await reconcileWebhooks(infi, config.webhooks, plan, actions);
+  // Platform config — apps + webhooks (create + update, never delete). Tenant-level,
+  // drift-guarded against the lock like products.
+  const ctx: ReconcileCtx = { plan, force, now, prevLock, lock, actions, drift };
+  if (config.apps?.length) await reconcileApps(infi, config.apps, ctx);
+  if (config.webhooks?.length) await reconcileWebhooks(infi, config.webhooks, ctx);
 
   return { planned: plan, actions, drift, lock: plan ? (prevLock ?? lock) : lock };
 }
@@ -555,6 +611,23 @@ export async function buildLock(
     const existing = products.find((x) => (x.key ? x.key === p.key : x.name === name));
     if (!existing?.id) continue;
     lock.products[p.key] = await snapshotProduct(infi, existing.id, existing, t);
+  }
+
+  if (config.apps?.length) {
+    const apps = await infi.apps.list();
+    lock.apps = {};
+    for (const a of config.apps) {
+      const m = apps.find((x) => x.slug === a.slug);
+      if (m) lock.apps[a.slug] = { state: appFingerprint(m), syncedAt: t };
+    }
+  }
+  if (config.webhooks?.length) {
+    const whs = await infi.webhooks.list();
+    lock.webhooks = {};
+    for (const w of config.webhooks) {
+      const m = whs.find((x: WebhookEndpoint) => x.url === w.url);
+      if (m) lock.webhooks[w.url] = { state: webhookFingerprint(m), syncedAt: t };
+    }
   }
   return lock;
 }

@@ -53,7 +53,7 @@ invoices, subscriptions — transactional, per-customer.
   `update`/`bump` is **blocked** (not silently overwritten) and reported as drift.
   `--force` overrides; `infi pull` regenerates the config + lock from the backend to
   adopt dashboard changes. This closes the two-sources-of-truth gap without any
-  backend change (client-side provenance).
+  backend change (client-side provenance). Covers products, apps, and webhooks.
 
 ## Consequences
 
@@ -83,9 +83,9 @@ meter are reported as `skip` until the backend adds update.
   seeder.
 - **P2 — platform config (DONE):** `apps` and `webhooks` sections in
   `defineBilling()` + reconcile (create + update, never delete/rotate). Matched by
-  slug / url. `infi pull` emits them too. Note: the lock drift-guard currently
-  covers products only; apps/webhooks reconcile is last-write-wins (follow-up:
-  extend the lock to them).
+  slug / url. Drift-guarded via the lock (`apps`/`webhooks` fingerprints) exactly
+  like products — a dashboard edit blocks an update unless `--force`. `infi pull`
+  emits them too.
 - **P3 — deferred:** default rate-cards (needs backend); meter update (needs backend).
 
 ## Alternatives considered

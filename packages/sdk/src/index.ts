@@ -19,6 +19,7 @@ export {
   type BillingProduct,
   type BillingWebhook,
   type DriftEntry,
+  type EntityLock,
   type ProductLock,
   type SyncAction,
   type SyncLock,

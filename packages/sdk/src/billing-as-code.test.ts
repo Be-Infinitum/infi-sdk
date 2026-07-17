@@ -301,4 +301,24 @@ describe("syncBilling apps + webhooks", () => {
     expect(calls.appCreate).toBe(0);
     expect(calls.webhookCreate).toBe(0);
   });
+
+  it("blocks an app update when it drifted in the dashboard, --force overrides", async () => {
+    const state: FakeState = { products: [], meters: {}, versions: {}, prices: {} };
+    const { infi, calls } = fakeInfi(state);
+
+    const first = await syncBilling(infi, PLATFORM, { now: "t1" });
+    expect(first.lock.apps?.crm?.state).toBeTruthy();
+
+    // Dashboard edit: someone changed the app's origins outside the config.
+    state.apps![0].allowedOrigins = ["http://hacked"];
+
+    const blocked = await syncBilling(infi, PLATFORM, { lock: first.lock, now: "t2" });
+    expect(blocked.actions.find((a) => a.resource === "app")?.action).toBe("blocked");
+    expect(blocked.drift.some((d) => d.product === "crm")).toBe(true);
+    expect(calls.appUpdate).toBe(0);
+
+    const forced = await syncBilling(infi, PLATFORM, { lock: first.lock, force: true, now: "t3" });
+    expect(forced.actions.find((a) => a.resource === "app")?.action).toBe("update");
+    expect(calls.appUpdate).toBe(1);
+  });
 });
