@@ -65,15 +65,16 @@ invoices, subscriptions — transactional, per-customer.
   fits the existing immutable-version model like git history.
 - Deletion stays a human decision — safe default, at the cost of manual cleanup.
 
-## Backend gap (deferred)
+## Default rate-cards — dropped (non-goal)
 
-**Default rate-cards are not expressible.** Rate-cards exist only per-customer
-(`POST /metering/customers/{id}/rate-cards`); there is no tenant-level default/template
-rate-card. Declaring "default rate-cards" in config needs a backend concept first.
-Deferred to a later phase; real per-customer overrides stay runtime regardless.
-
-Minor: meters have no update endpoint (create only) — metadata changes on an existing
-meter are reported as `skip` until the backend adds update.
+Considered and rejected. Rate resolution is `per-customer rate_card > published
+version price`, so the version price already IS the default for every customer. A
+tenant-level "default rate-card" is therefore either redundant with the version
+price, or means "a template copied into each customer at enrollment" — a rating +
+enrollment model change with no concrete demand. Rate-cards stay **runtime and
+per-customer** (`infi.customers.rateCards.set(...)`, as the marketplace already
+does). If a real "every new customer is priced differently from the catalog" case
+appears, revisit with its own ADR (the enrollment-template model).
 
 ## Phasing
 
@@ -89,12 +90,8 @@ meter are reported as `skip` until the backend adds update.
 - **P3 — meter update (DONE):** backend `PATCH /metering/products/{id}/meters/{meterId}`
   + `infi.products.meters.update` + sync now updates a meter's displayName/unit/
   aggregation when it drifts (the `name` slug stays immutable).
-- **P3 — default rate-cards (still open, needs design):** rate resolution today is
-  `per-customer rate_card > published version price`, so the version price already
-  IS the default for every customer. A tenant-level "default rate-card" is either
-  redundant with that or means "a template copied into each customer at enrollment"
-  — a rating/enrollment model change. Needs its own ADR before implementing; do not
-  guess at money-movement semantics.
+- **P3 — default rate-cards: dropped** (see "Default rate-cards — dropped" above).
+  Rate-cards stay runtime and per-customer.
 
 ## Alternatives considered
 
@@ -109,6 +106,7 @@ meter are reported as `skip` until the backend adds update.
 ## Non-goals
 
 Destroying drift, in-place version edits, per-customer runtime state in config,
+default/template rate-cards (dropped — rate-cards stay runtime and per-customer),
 multi-currency FX, dunning/retry config.
 
 [billing-as-code.ts]: ../../packages/sdk/src/billing-as-code.ts
