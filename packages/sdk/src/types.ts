@@ -31,14 +31,10 @@ export type UsageReport = components["schemas"]["UsageReport"];
 /**
  * Aggregated single-read customer view (`GET /customers/{id}/state`): the
  * enrollment, its credit wallet, live subscriptions, and current-period usage.
- * Not yet in the OpenAPI schema — composed here from the shared aliases.
  */
-export interface CustomerState {
-  customer: ProductCustomer;
-  credit: CreditSummary;
-  subscriptions: Subscription[];
-  usage: UsageReport;
-}
+export type CustomerState = components["schemas"]["CustomerState"];
+export type Coupon = components["schemas"]["Coupon"];
+export type CreateCouponRequest = components["schemas"]["CreateCouponRequest"];
 export type Invoice = components["schemas"]["Invoice"];
 export type CreateInvoiceRequest = components["schemas"]["CreateInvoiceRequest"];
 export type CreateProductInvoiceRequest = components["schemas"]["CreateProductInvoiceRequest"];

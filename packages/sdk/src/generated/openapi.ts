@@ -55,6 +55,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pay/{slug}/invoices/{invoiceID}/coupon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Apply a coupon to a public checkout invoice (unauthenticated) */
+        post: operations["applyCheckoutCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/download/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Redeem a tokenized digital-product download (unauthenticated)
+         * @description Resolves the capability token to its target and 302-redirects: a fresh short-TTL presigned R2 GET for a file deliverable, or the stored URL for a link deliverable.
+         */
+        get: operations["downloadDeliverable"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/public/v1/sandbox": {
         parameters: {
             query?: never;
@@ -446,6 +483,32 @@ export interface paths {
          *     (product_customers.id) for backward compatibility.
          */
         get: operations["getCustomer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/customers/{customerID}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Single-read customer state (enrollment, credit, subscriptions, usage)
+         * @description Assembles the enrollment, its credit wallet, live subscriptions (with items), and current-period usage into one response — what the drop-in panels render and what a request-edge gate reads to decide whether a customer still has credit (ADR 0010). `customerID` is the enrollment id.
+         */
+        get: operations["getCustomerState"];
         put?: never;
         post?: never;
         delete?: never;
@@ -985,6 +1048,68 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/billing/sandbox/charges/{paymentID}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+                action: "pay" | "fail" | "expire";
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Drive a sandbox charge to a terminal state (ADR 0008)
+         * @description Deterministic sandbox-only control: transitions a pending sandbox charge to paid (pay), failed (fail), or expired (expire) and emits the same webhook/ledger/status flow production uses. Requires a test key (sk_test); a live key gets 404. The charge must be a pending sandbox charge or the call is rejected.
+         */
+        post: operations["sandboxControlCharge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/coupons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the tenant's coupons */
+        get: operations["listCoupons"];
+        put?: never;
+        /** Create a coupon */
+        post: operations["createCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/coupons/{couponID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                couponID: string;
+            };
+            cookie?: never;
+        };
+        /** Get a coupon */
+        get: operations["getCoupon"];
+        put?: never;
+        post?: never;
+        /** Delete a coupon */
+        delete: operations["deleteCoupon"];
+        options?: never;
+        head?: never;
+        /** Update a coupon's status */
+        patch: operations["updateCouponStatus"];
         trace?: never;
     };
     "/psp/payments/webhook": {
@@ -1684,6 +1809,44 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /** @description Single-read customer view: the enrollment, its credit wallet, live subscriptions, and current-period usage. */
+        CustomerState: {
+            customer: components["schemas"]["ProductCustomer"];
+            credit: components["schemas"]["CreditSummary"];
+            subscriptions: components["schemas"]["Subscription"][];
+            usage: components["schemas"]["UsageReport"];
+        };
+        /** @description A merchant discount applied to subscription invoices for a Stripe-style duration. `percentOff` is a decimal string. */
+        Coupon: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            percentOff: string;
+            /** @enum {string} */
+            duration: "once" | "repeating" | "forever";
+            durationInCycles?: number | null;
+            maxRedemptions?: number | null;
+            timesRedeemed: number;
+            /** Format: date-time */
+            redeemBy?: string | null;
+            /** @enum {string} */
+            status: "active" | "archived";
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        /** @description Create a coupon. Code matches `^[A-Z0-9_-]{3,32}$`; `percentOff` is a decimal string in (0, 100]. `durationInCycles` is required (>=1) for `repeating` and must be omitted otherwise. */
+        CreateCouponRequest: {
+            code: string;
+            percentOff: string;
+            /** @enum {string} */
+            duration: "once" | "repeating" | "forever";
+            durationInCycles?: number | null;
+            maxRedemptions?: number | null;
+            /** Format: date-time */
+            redeemBy?: string | null;
+        };
         /** @description Ledger-derived credit balance plus recent entries. */
         CreditSummary: {
             /** @description SUM(amount). */
@@ -1762,6 +1925,21 @@ export interface components {
             nextBillingDate?: string | null;
             /** Format: date-time */
             startedAt?: string;
+            /** Format: date-time */
+            canceledAt?: string | null;
+            items?: components["schemas"]["SubscriptionItem"][];
+        };
+        SubscriptionItem: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "recurring_fee" | "credit_grant" | "metered_usage" | "prepaid_usage";
+            /** @enum {string|null} */
+            timing?: "advance" | "arrears" | null;
+            /** Format: uuid */
+            productVersionId?: string;
+            /** Format: date-time */
+            createdAt?: string;
             /** Format: date-time */
             canceledAt?: string | null;
         };
@@ -1902,8 +2080,38 @@ export interface components {
             currency?: string;
             /** @enum {string} */
             status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
+            /**
+             * @description The mode the charge runs under (ADR 0008). Selected by the API key: a test key (sk_test) charges in sandbox, a live key (sk_live) in live.
+             * @enum {string}
+             */
+            mode?: "sandbox" | "live";
             /** Format: date-time */
             createdAt?: string;
+            /** @description PSP hosted payment page. Transient — present only on the create-charge response, not on later reads. */
+            invoiceUrl?: string;
+            /** @description Pix copy-paste (EMV/brcode) string, set for pix charges. Render the QR client-side from this. Persisted, so a refresh/poll re-reads it. */
+            pixPayload?: string;
+            /**
+             * Format: date-time
+             * @description When the pix code expires (pix charges only).
+             */
+            pixExpiresAt?: string | null;
+        };
+        /** @description Raw card + holder fields for an embedded card charge (method=card). Sent over TLS to the checkout endpoint, which tokenizes them at the PSP and never persists the PAN/CVV. All fields are required by the PSP tokenizer. */
+        CheckoutCardInput: {
+            number: string;
+            holderName: string;
+            /** @example 12 */
+            expiryMonth: string;
+            /** @example 2030 */
+            expiryYear: string;
+            ccv: string;
+            /** Format: email */
+            holderEmail: string;
+            holderCpfCnpj: string;
+            holderPostalCode: string;
+            holderAddressNumber: string;
+            holderPhone?: string;
         };
         Tenant: {
             /** Format: uuid */
@@ -1935,6 +2143,7 @@ export interface components {
             revokedAt?: string | null;
             /** Format: date-time */
             createdAt?: string;
+            value?: string;
         };
         CreatedApiKey: components["schemas"]["ApiKey"] & {
             /** @description The raw secret, returned only once at creation. */
@@ -2196,6 +2405,15 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description A required dependency (e.g. object storage) is not configured */
+        ServiceUnavailable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
+            };
+        };
     };
     parameters: {
         /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
@@ -2284,6 +2502,7 @@ export interface operations {
                 "application/json": {
                     /** @enum {string} */
                     method: "pix" | "boleto" | "card";
+                    card?: components["schemas"]["CheckoutCardInput"];
                 };
             };
         };
@@ -2301,6 +2520,62 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    applyCheckoutCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Discounted invoice */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    downloadDeliverable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the presigned file URL or external link */
+            302: {
+                headers: {
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     createClaimableSandbox: {
         parameters: {
             query?: never;
@@ -2312,7 +2587,7 @@ export interface operations {
             content: {
                 "application/json": {
                     /** @enum {string} */
-                    ref?: "lovable" | "mcp" | "cursor" | "cli";
+                    ref?: "lovable" | "mcp" | "cursor";
                 };
             };
         };
@@ -3143,6 +3418,34 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getCustomerState: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Customer state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerState"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     getCredit: {
         parameters: {
             query?: {
@@ -3621,6 +3924,16 @@ export interface operations {
                     productVersionId?: string | null;
                     /** Format: date-time */
                     anchor?: string | null;
+                    /** @description Explicit item set for the subscription. Omit to use the default derived from the product's pricing model (prepaid → fee(advance)+credit_grant; else → fee(arrears)+metered_usage). */
+                    items?: {
+                        /** @enum {string} */
+                        kind: "recurring_fee" | "credit_grant" | "metered_usage";
+                        /**
+                         * @description Required for recurring_fee (defaults to "advance" when omitted); must be absent for credit_grant and metered_usage.
+                         * @enum {string|null}
+                         */
+                        timing?: "advance" | "arrears" | null;
+                    }[];
                 };
             };
         };
@@ -4134,6 +4447,159 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    sandboxControlCharge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+                action: "pay" | "fail" | "expire";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated sandbox payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listCoupons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Coupons */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        coupons?: components["schemas"]["Coupon"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCouponRequest"];
+            };
+        };
+        responses: {
+            /** @description Created coupon */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Coupon"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                couponID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Coupon */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Coupon"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                couponID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCouponStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                couponID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status: "active" | "archived";
+                };
+            };
+        };
+        responses: {
+            /** @description Updated coupon */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Coupon"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     pspWebhook: {

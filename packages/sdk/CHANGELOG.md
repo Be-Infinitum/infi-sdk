@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `infi.coupons.list/create/get/delete/updateStatus` — tenant-wide merchant
+  discounts for subscription invoices (`/billing/coupons`).
+- `pay.applyCoupon({ slug, invoiceId, code })` — apply a coupon at public checkout,
+  returns the discounted invoice.
+- `pay.downloadUrl(slug, token)` — build the public deliverable download URL.
+- `Coupon` / `CreateCouponRequest` types.
+
+### Changed
+- Regenerated OpenAPI types from the backend contract (coupons, customer state,
+  deliverable download, ServiceUnavailable). `CustomerState` now aliases the
+  generated schema instead of a hand-written interface (drift removed).
+
+### Removed
+- `infi.sandbox.create/get` and the `SandboxRef` / `ClaimableSandbox*` /
+  `CreateSandboxOptions` types. Sandbox provisioning is a dev-time concern and now
+  lives in `@beinfi/cli` (`createSandbox`/`getSandbox`), re-exported from
+  `@beinfi/cli/lib/provision`. See ADR 0001. No app runtime called this.
+
 ## 0.8.1
 
 ### Added
