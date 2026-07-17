@@ -3,7 +3,7 @@ import pc from "picocolors";
 import { loadConfig, saveConfig, upsertProfile } from "../lib/config.js";
 import { apiBase } from "../lib/client.js";
 import type { GlobalFlags } from "../lib/client.js";
-import { die, ok, printJson } from "../lib/output.js";
+import { die, info, ok, printJson } from "../lib/output.js";
 
 export async function loginCommand(
   flags: GlobalFlags & { token?: string; tenant?: string; profile?: string },

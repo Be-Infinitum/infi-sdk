@@ -1,7 +1,7 @@
 import { InfiError, parseErrorResponse } from "./errors.js";
 
 /** Best-effort unique id for the Idempotency-Key header (crypto.randomUUID with a fallback). */
-function newIdempotencyKey(): string {
+export function newIdempotencyKey(): string {
   const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
   if (c?.randomUUID) return c.randomUUID();
   return `idem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
