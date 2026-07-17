@@ -9,7 +9,8 @@ ${pc.dim("Usage:")}
   infi login [--token <session>] [--tenant <slug>] [--profile name]
   infi keys list|create|revoke [--key sk_...] [--json]
   infi sandbox create|get <id> [--ref cli] [--local] [--json]
-  infi sync [file] [--plan] [--key sk_...] [--local] [--json]
+  infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
+  infi pull [file] [--force]   # generate infi.billing.ts + lock from the backend
   infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
   infi deploy vercel [--prod]   # deploy + sync env + register webhook
 
@@ -52,6 +53,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     else if (arg === "--json") flags.json = true;
     else if (arg === "--local") flags.local = true;
     else if (arg === "--plan") flags.plan = true;
+    else if (arg === "--force") flags.force = true;
     else if (arg.startsWith("--")) {
       const key = arg.slice(2);
       const next = argv[i + 1];

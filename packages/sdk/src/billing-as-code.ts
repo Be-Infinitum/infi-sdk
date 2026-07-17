@@ -47,21 +47,52 @@ export function defineBilling(config: BillingConfig): BillingConfig {
 }
 
 export interface SyncAction {
-  action: "create" | "skip" | "update" | "bump";
+  action: "create" | "skip" | "update" | "bump" | "blocked";
   resource: "product" | "meter" | "version" | "price" | "deliverable";
   ref: string;
-  /** Human-readable reason for an update/bump (e.g. changed fields). */
+  /** Human-readable reason for an update/bump/blocked (e.g. changed fields, drift). */
   detail?: string;
+}
+
+/** Per-product provenance recorded after a sync — the "config versioning" lockfile. */
+export interface ProductLock {
+  /** Canonical fingerprint of the backend state this product had after the sync. */
+  state: string;
+  /** Published version id at that time. */
+  versionId?: string;
+  syncedAt: string;
+}
+
+/** `infi.billing.lock.json` — what the last sync applied, per product key. */
+export interface SyncLock {
+  version: 1;
+  products: Record<string, ProductLock>;
+}
+
+/** A product whose backend state changed outside the config since the last sync. */
+export interface DriftEntry {
+  product: string;
+  detail: string;
 }
 
 export interface SyncResult {
   planned: boolean;
   actions: SyncAction[];
+  /** Drift detected against the previous lock (changed in the dashboard since last sync). */
+  drift: DriftEntry[];
+  /** Fresh lock to persist (unchanged in plan mode). */
+  lock: SyncLock;
 }
 
 export interface SyncOptions {
   /** Compute the diff without applying it (like `terraform plan`). */
   plan?: boolean;
+  /** Previous lockfile (drift is measured against this). */
+  lock?: SyncLock;
+  /** Apply even when the backend drifted from the lock (overwrites dashboard edits). */
+  force?: boolean;
+  /** Timestamp stamped into the returned lock (defaults to now). */
+  now?: string;
 }
 
 // ── Diff helpers ─────────────────────────────────────────────────────────────
@@ -130,6 +161,63 @@ function currentVersion(versions: Version[]): Version | undefined {
   return byVersionDesc.find((v) => v.status === "published") ?? byVersionDesc[0];
 }
 
+/** Deterministic JSON with sorted keys — stable across runs for fingerprinting. */
+function canon(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
+  if (Array.isArray(value)) return `[${value.map(canon).join(",")}]`;
+  const obj = value as Record<string, unknown>;
+  return `{${Object.keys(obj)
+    .sort()
+    .map((k) => `${JSON.stringify(k)}:${canon(obj[k])}`)
+    .join(",")}}`;
+}
+
+/** Canonical fingerprint of a product's managed backend state (for drift detection). */
+function productFingerprint(
+  prod: Pick<Product, "name" | "type" | "pricingModel" | "currency">,
+  version: Version | undefined,
+  prices: Price[],
+  idToKey: Map<string, string>,
+): string {
+  return canon({
+    name: prod.name ?? null,
+    type: prod.type ?? null,
+    pricingModel: prod.pricingModel ?? null,
+    currency: prod.currency ?? null,
+    billingCycle: version?.billingCycle ?? null,
+    basePrice: normNum(version?.basePrice),
+    creditsPerCycle: normNum(version?.creditsPerCycle),
+    prices: prices
+      .map((pr) => ({
+        meter: pr.meterId ? (idToKey.get(pr.meterId) ?? pr.meterId) : null,
+        model: pr.model ?? null,
+        unitAmount: normNum(pr.unitAmount),
+        currency: pr.currency ?? null,
+        tiers: pr.tiers ?? null,
+      }))
+      .sort((a, b) => priceKey(a.meter).localeCompare(priceKey(b.meter))),
+  });
+}
+
+/** Re-read a product's current state and fingerprint it for the lock. */
+async function snapshotProduct(
+  infi: Infi,
+  productId: string,
+  meta: Pick<Product, "name" | "type" | "pricingModel" | "currency">,
+  now: string,
+): Promise<ProductLock> {
+  const [versions, meters] = await Promise.all([
+    infi.products.versions.list(productId),
+    infi.products.meters.list(productId),
+  ]);
+  const cur = currentVersion(versions);
+  const prices = cur ? await infi.products.prices.list(productId, cur.id!) : [];
+  const idToKey = new Map(
+    meters.filter((m) => m.id && m.name).map((m) => [m.id!, m.name!] as const),
+  );
+  return { state: productFingerprint(meta, cur, prices, idToKey), versionId: cur?.id, syncedAt: now };
+}
+
 /** Create + publish a new version with the config's prices. Shared by seed and bump. */
 async function publishVersion(
   infi: Infi,
@@ -168,7 +256,12 @@ async function publishVersion(
  *
  * Never deletes; never mutates a published version. Meters are created when
  * missing (metadata updates need a backend endpoint that does not exist yet).
- * Pass `{ plan: true }` to compute the diff without applying it.
+ *
+ * Drift guard: pass the previous `lock` (from `infi.billing.lock.json`). If a
+ * product's backend state changed since that lock (edited in the dashboard), an
+ * `update`/`bump` is **blocked** rather than silently overwriting it — pass
+ * `{ force: true }` to override, or reconcile with `infi pull`. The returned
+ * `lock` is the fresh provenance to persist (unchanged in plan mode).
  */
 export async function syncBilling(
   infi: Infi,
@@ -176,7 +269,12 @@ export async function syncBilling(
   opts: SyncOptions = {},
 ): Promise<SyncResult> {
   const plan = opts.plan ?? false;
+  const force = opts.force ?? false;
+  const now = opts.now ?? new Date().toISOString();
+  const prevLock = opts.lock;
   const actions: SyncAction[] = [];
+  const drift: DriftEntry[] = [];
+  const lock: SyncLock = { version: 1, products: {} };
   const existingProducts = await infi.products.list();
 
   for (const p of config.products) {
@@ -184,6 +282,13 @@ export async function syncBilling(
     // Prefer the natural key (unique per tenant); fall back to name for older tenants.
     const existing = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name));
     let productId = existing?.id;
+    // Metadata we know for this product (updated as we go), for the post-sync snapshot.
+    let meta: Pick<Product, "name" | "type" | "pricingModel" | "currency"> = existing ?? {
+      name,
+      type: p.type,
+      pricingModel: p.pricingModel,
+      currency: p.currency,
+    };
 
     if (!existing) {
       actions.push({ action: "create", resource: "product", ref: name });
@@ -199,26 +304,48 @@ export async function syncBilling(
           billingCycle: p.billingCycle ?? undefined,
         });
         productId = created.id;
-      }
-    } else {
-      const patch = productPatch(existing, p);
-      const changed = Object.keys(patch);
-      if (changed.length > 0) {
-        actions.push({ action: "update", resource: "product", ref: name, detail: changed.join(", ") });
-        if (!plan) await infi.products.update(productId!, patch);
-      } else {
-        actions.push({ action: "skip", resource: "product", ref: name });
+        meta = created;
       }
     }
 
     // In plan mode without a real product id we can only report the parent create.
     if (!productId) continue;
 
-    // Meters — create any missing, keyed by (product, name).
+    // Meters — read first (needed for fingerprinting and price resolution).
     const existingMeters = await infi.products.meters.list(productId);
     const meterIdByKey = new Map<string, string | undefined>(
       existingMeters.map((m) => [m.name ?? "", m.id]),
     );
+    const idToKey = new Map(
+      existingMeters.filter((m) => m.id && m.name).map((m) => [m.id!, m.name!] as const),
+    );
+
+    // Drift: has the backend changed since the last sync recorded in the lock?
+    const versions = await infi.products.versions.list(productId);
+    const current = currentVersion(versions);
+    const currentPrices = current ? await infi.products.prices.list(productId, current.id!) : [];
+    const prev = prevLock?.products[p.key];
+    const preState = existing ? productFingerprint(existing, current, currentPrices, idToKey) : "";
+    const drifted = Boolean(existing && prev && prev.state !== preState);
+
+    // Product metadata — update when it drifted from config (guarded against dashboard drift).
+    if (existing) {
+      const patch = productPatch(existing, p);
+      const changed = Object.keys(patch);
+      if (changed.length > 0) {
+        if (drifted && !force) {
+          actions.push({ action: "blocked", resource: "product", ref: name, detail: "changed in dashboard since last sync" });
+          drift.push({ product: p.key, detail: `product ${changed.join(", ")} would overwrite a dashboard edit` });
+        } else {
+          actions.push({ action: "update", resource: "product", ref: name, detail: changed.join(", ") });
+          if (!plan) meta = await infi.products.update(productId, patch);
+        }
+      } else {
+        actions.push({ action: "skip", resource: "product", ref: name });
+      }
+    }
+
+    // Meters — create any missing, keyed by (product, name).
     for (const m of p.meters ?? []) {
       if (meterIdByKey.has(m.key)) {
         actions.push({ action: "skip", resource: "meter", ref: `${name}/${m.key}` });
@@ -237,11 +364,13 @@ export async function syncBilling(
     }
 
     // Versions — seed the first one, or bump when the desired pricing drifted.
-    const versions = await infi.products.versions.list(productId);
-    const current = currentVersion(versions);
+    let applied = !existing; // created products already seeded above (when not plan)
     if (!current) {
       actions.push({ action: "create", resource: "version", ref: name });
-      if (!plan) await publishVersion(infi, productId, p, meterIdByKey);
+      if (!plan) {
+        await publishVersion(infi, productId, p, meterIdByKey);
+        applied = true;
+      }
     } else {
       const desired: DesiredPrice[] = (p.prices ?? []).map((pr) => ({
         meterId: pr.meter ? meterIdByKey.get(pr.meter) : null,
@@ -252,14 +381,21 @@ export async function syncBilling(
       }));
       // A desired price referencing a not-yet-created meter (id undefined) is new by definition.
       const unresolvedMeter = desired.some((d) => d.meterId === undefined);
-      const currentPrices = await infi.products.prices.list(productId, current.id!);
       const reasons: string[] = [];
       if (!versionFieldsEqual(current, p)) reasons.push("version fields");
       if (unresolvedMeter || !pricesEqual(currentPrices, desired)) reasons.push("prices");
 
       if (reasons.length > 0) {
-        actions.push({ action: "bump", resource: "version", ref: name, detail: reasons.join(", ") });
-        if (!plan) await publishVersion(infi, productId, p, meterIdByKey);
+        if (drifted && !force) {
+          actions.push({ action: "blocked", resource: "version", ref: name, detail: "changed in dashboard since last sync" });
+          drift.push({ product: p.key, detail: `version ${reasons.join(", ")} would supersede a dashboard edit` });
+        } else {
+          actions.push({ action: "bump", resource: "version", ref: name, detail: reasons.join(", ") });
+          if (!plan) {
+            await publishVersion(infi, productId, p, meterIdByKey);
+            applied = true;
+          }
+        }
       } else {
         actions.push({ action: "skip", resource: "version", ref: name });
       }
@@ -272,7 +408,42 @@ export async function syncBilling(
         await infi.products.deliverable.save(productId, { kind: "link", url: p.deliverable.url });
       }
     }
+
+    // Lock: a blocked product keeps its prior entry (stays flagged until resolved);
+    // otherwise record the post-sync state so the next run measures drift from here.
+    const wasBlocked = drift.some((d) => d.product === p.key);
+    if (plan) {
+      if (prev) lock.products[p.key] = prev;
+    } else if (wasBlocked) {
+      if (prev) lock.products[p.key] = prev;
+    } else if (applied) {
+      lock.products[p.key] = await snapshotProduct(infi, productId, meta, now);
+    } else {
+      lock.products[p.key] = { state: preState, versionId: current?.id, syncedAt: now };
+    }
   }
 
-  return { planned: plan, actions };
+  return { planned: plan, actions, drift, lock: plan ? (prevLock ?? lock) : lock };
+}
+
+/**
+ * Snapshot the current backend state of every product in `config` into a lock,
+ * without applying anything. Used by `infi pull` so a freshly pulled config +
+ * lock reports no drift on the next `sync`.
+ */
+export async function buildLock(
+  infi: Infi,
+  config: BillingConfig,
+  now?: string,
+): Promise<SyncLock> {
+  const t = now ?? new Date().toISOString();
+  const products = await infi.products.list();
+  const lock: SyncLock = { version: 1, products: {} };
+  for (const p of config.products) {
+    const name = p.name ?? p.key;
+    const existing = products.find((x) => (x.key ? x.key === p.key : x.name === name));
+    if (!existing?.id) continue;
+    lock.products[p.key] = await snapshotProduct(infi, existing.id, existing, t);
+  }
+  return lock;
 }

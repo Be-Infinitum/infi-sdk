@@ -9,13 +9,17 @@ export {
 } from "./hosted.js";
 export { clearSessionCookie, setSessionCookie } from "./session.js";
 export {
+  buildLock,
   defineBilling,
   syncBilling,
   type BillingConfig,
   type BillingMeter,
   type BillingPrice,
   type BillingProduct,
+  type DriftEntry,
+  type ProductLock,
   type SyncAction,
+  type SyncLock,
   type SyncOptions,
   type SyncResult,
 } from "./billing-as-code.js";

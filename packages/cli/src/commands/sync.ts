@@ -1,12 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { BillingConfig } from "@beinfi/sdk";
+import pc from "picocolors";
+import type { BillingConfig, SyncLock } from "@beinfi/sdk";
 import type { GlobalFlags } from "../lib/client.js";
 import { infiClient } from "../lib/client.js";
 import { die, ok, printJson } from "../lib/output.js";
 
 const DEFAULT_FILES = ["infi.billing.ts", "infi.billing.mts", "billing.config.ts"];
+const LOCK_FILE = "infi.billing.lock.json";
 
 async function loadBillingConfig(filePath: string): Promise<BillingConfig> {
   const abs = path.resolve(filePath);
@@ -32,30 +34,64 @@ function resolveBillingFile(explicit?: string): string {
   die(`No billing config found. Pass a file or create ${DEFAULT_FILES[0]}`);
 }
 
-export async function syncCommand(flags: GlobalFlags & { file?: string; plan?: boolean }): Promise<void> {
+/** Lockfile sits next to the config file. */
+export function lockPathFor(configFile: string): string {
+  return path.join(path.dirname(path.resolve(configFile)), LOCK_FILE);
+}
+
+export function readLock(lockPath: string): SyncLock | undefined {
+  if (!fs.existsSync(lockPath)) return undefined;
+  try {
+    return JSON.parse(fs.readFileSync(lockPath, "utf8")) as SyncLock;
+  } catch {
+    return undefined;
+  }
+}
+
+export function writeLock(lockPath: string, lock: SyncLock): void {
+  fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
+}
+
+export async function syncCommand(
+  flags: GlobalFlags & { file?: string; plan?: boolean; force?: boolean },
+): Promise<void> {
   const file = resolveBillingFile(flags.file);
+  const lockPath = lockPathFor(file);
   const config = await loadBillingConfig(file);
   const infi = infiClient(flags);
-  const result = await infi.sync(config, { plan: flags.plan ?? false });
+  const result = await infi.sync(config, {
+    plan: flags.plan ?? false,
+    force: flags.force ?? false,
+    lock: readLock(lockPath),
+  });
 
   if (flags.json) {
     printJson(result);
+    if (result.drift.length && !flags.force) process.exitCode = 2;
     return;
   }
 
-  if (flags.plan) {
-    ok(`Plan (${result.actions.length} actions):`);
-    for (const a of result.actions) {
-      const detail = a.detail ? `  (${a.detail})` : "";
-      console.log(`  ${a.action}\t${a.resource}\t${a.ref}${detail}`);
-    }
-    return;
-  }
-
-  ok(`Synced (${result.actions.length} actions)`);
+  const label = flags.plan ? "Plan" : "Synced";
+  ok(`${label} (${result.actions.length} actions):`);
   for (const a of result.actions) {
-    if (a.action === "skip") continue;
-    const detail = a.detail ? ` (${a.detail})` : "";
-    console.log(`  ${a.action} ${a.resource} ${a.ref}${detail}`);
+    if (!flags.plan && a.action === "skip") continue;
+    const detail = a.detail ? `  ${pc.dim(`(${a.detail})`)}` : "";
+    const tag = a.action === "blocked" ? pc.yellow(a.action) : a.action;
+    console.log(`  ${tag}\t${a.resource}\t${a.ref}${detail}`);
+  }
+
+  if (result.drift.length && !flags.force) {
+    console.log("");
+    console.log(pc.yellow(`⚠ ${result.drift.length} product(s) changed in the dashboard since the last sync:`));
+    for (const d of result.drift) console.log(`  ${d.product}: ${d.detail}`);
+    console.log(pc.dim("Re-run with --force to overwrite, or `infi pull` to adopt the dashboard changes."));
+    if (!flags.plan) writeLock(lockPath, result.lock); // persist unblocked products
+    process.exitCode = 2;
+    return;
+  }
+
+  if (!flags.plan) {
+    writeLock(lockPath, result.lock);
+    console.log(pc.dim(`Lock written: ${path.relative(process.cwd(), lockPath)}`));
   }
 }

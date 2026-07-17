@@ -84,6 +84,17 @@ export async function run(argv: string[]): Promise<void> {
         ...gf,
         file: parsed.sub,
         plan: parsed.flags.plan === true,
+        force: parsed.flags.force === true,
+      });
+      break;
+
+    case "pull":
+      await (
+        await import("./commands/pull.js")
+      ).pullCommand({
+        ...gf,
+        file: typeof parsed.flags.file === "string" ? parsed.flags.file : parsed.sub,
+        force: parsed.flags.force === true,
       });
       break;
 

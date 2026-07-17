@@ -159,4 +159,55 @@ describe("syncBilling", () => {
     expect(calls.versionCreate).toBe(0);
     expect(calls.publish).toBe(0);
   });
+
+  function matchedState(): FakeState {
+    return {
+      products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
+      meters: { prod_1: [{ id: "m_1", name: "tokens" }] },
+      versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
+      prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.002", currency: "BRL" }] },
+    };
+  }
+
+  it("blocks a bump when the backend drifted from the lock", async () => {
+    const state = matchedState();
+    const { infi, calls } = fakeInfi(state);
+
+    const first = await syncBilling(infi, CONFIG, { now: "t1" });
+    expect(first.lock.products["ai-chat"]!.state).toBeTruthy();
+
+    // Dashboard edit: price changed outside the config.
+    state.prices.v_1![0]!.unitAmount = "0.005";
+
+    const second = await syncBilling(infi, CONFIG, { lock: first.lock, now: "t2" });
+    expect(second.actions.find((a) => a.resource === "version")?.action).toBe("blocked");
+    expect(second.drift).toHaveLength(1);
+    expect(calls.versionCreate).toBe(0); // nothing written
+    // Blocked product keeps its previous lock entry (stays flagged).
+    expect(second.lock.products["ai-chat"]!.state).toBe(first.lock.products["ai-chat"]!.state);
+  });
+
+  it("--force overrides drift and bumps", async () => {
+    const state = matchedState();
+    const { infi, calls } = fakeInfi(state);
+
+    const first = await syncBilling(infi, CONFIG, { now: "t1" });
+    state.prices.v_1![0]!.unitAmount = "0.005";
+
+    const forced = await syncBilling(infi, CONFIG, { lock: first.lock, force: true, now: "t2" });
+    expect(forced.actions.find((a) => a.resource === "version")?.action).toBe("bump");
+    expect(forced.drift).toHaveLength(0);
+    expect(calls.versionCreate).toBe(1);
+  });
+
+  it("no drift when config and backend both match the lock (skip, lock refreshed)", async () => {
+    const state = matchedState();
+    const { infi } = fakeInfi(state);
+    const first = await syncBilling(infi, CONFIG, { now: "t1" });
+    const second = await syncBilling(infi, CONFIG, { lock: first.lock, now: "t2" });
+
+    expect(second.drift).toHaveLength(0);
+    expect(second.actions.find((a) => a.resource === "version")?.action).toBe("skip");
+    expect(second.lock.products["ai-chat"]!.syncedAt).toBe("t2");
+  });
 });

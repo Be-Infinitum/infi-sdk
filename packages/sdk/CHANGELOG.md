@@ -7,7 +7,12 @@
   product metadata and **version-bumps** on price / base-price / credits / billing-cycle
   changes (a new version is published; prior versions stay immutable), instead of
   seed-only. `SyncAction.action` gains `"update"` and `"bump"` plus a `detail` reason;
-  `infi sync --plan` prints them. Never deletes, never mutates a published version.
+  `infi sync --plan` prints them.
+- Drift guard + config versioning: `SyncOptions` accepts a previous `lock` and
+  `force`; `SyncResult` returns `{ drift, lock }`. When a product changed in the
+  dashboard since the last sync, an update/bump is **blocked** unless `--force`. The
+  CLI persists `infi.billing.lock.json`; `infi pull` regenerates config + lock from
+  the backend. New exports: `buildLock`, `SyncLock`, `ProductLock`, `DriftEntry`. Never deletes, never mutates a published version.
 - `infi.coupons.list/create/get/delete/updateStatus` — tenant-wide merchant
   discounts for subscription invoices (`/billing/coupons`).
 - `pay.applyCoupon({ slug, invoiceId, code })` — apply a coupon at public checkout,

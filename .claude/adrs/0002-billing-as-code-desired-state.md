@@ -46,6 +46,14 @@ invoices, subscriptions — transactional, per-customer.
 - **Never mutate a published version.** Price changes always create a new version.
 - **Plan-gated.** `infi sync --plan` shows create / update / version-bump / drift
   before apply; CI applies only after approval.
+- **Drift-guarded (config versioning).** A lockfile (`infi.billing.lock.json`,
+  committed next to the config) records a fingerprint of each product's backend
+  state after every sync. The next sync measures drift as *backend-now vs
+  backend-at-last-sync*: if a product changed in the dashboard since the lock, an
+  `update`/`bump` is **blocked** (not silently overwritten) and reported as drift.
+  `--force` overrides; `infi pull` regenerates the config + lock from the backend to
+  adopt dashboard changes. This closes the two-sources-of-truth gap without any
+  backend change (client-side provenance).
 
 ## Consequences
 
