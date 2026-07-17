@@ -46,13 +46,16 @@ export async function syncCommand(flags: GlobalFlags & { file?: string; plan?: b
   if (flags.plan) {
     ok(`Plan (${result.actions.length} actions):`);
     for (const a of result.actions) {
-      console.log(`  ${a.action}\t${a.resource}\t${a.ref}`);
+      const detail = a.detail ? `  (${a.detail})` : "";
+      console.log(`  ${a.action}\t${a.resource}\t${a.ref}${detail}`);
     }
     return;
   }
 
   ok(`Synced (${result.actions.length} actions)`);
   for (const a of result.actions) {
-    if (a.action !== "skip") console.log(`  ${a.action} ${a.resource} ${a.ref}`);
+    if (a.action === "skip") continue;
+    const detail = a.detail ? ` (${a.detail})` : "";
+    console.log(`  ${a.action} ${a.resource} ${a.ref}${detail}`);
   }
 }

@@ -3,6 +3,11 @@
 ## Unreleased
 
 ### Added
+- Billing-as-code desired-state sync (ADR 0002, P1): `infi.sync()` now **updates**
+  product metadata and **version-bumps** on price / base-price / credits / billing-cycle
+  changes (a new version is published; prior versions stay immutable), instead of
+  seed-only. `SyncAction.action` gains `"update"` and `"bump"` plus a `detail` reason;
+  `infi sync --plan` prints them. Never deletes, never mutates a published version.
 - `infi.coupons.list/create/get/delete/updateStatus` — tenant-wide merchant
   discounts for subscription invoices (`/billing/coupons`).
 - `pay.applyCoupon({ slug, invoiceId, code })` — apply a coupon at public checkout,

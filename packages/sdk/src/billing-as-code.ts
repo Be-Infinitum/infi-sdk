@@ -1,5 +1,5 @@
 import type { Infi } from "./client.js";
-import type { PriceInput } from "./types.js";
+import type { CreateProductRequest, Price, PriceInput, Product, Version } from "./types.js";
 
 // ── Declarative billing config ("billing as code") ──────────────────────────
 
@@ -47,9 +47,11 @@ export function defineBilling(config: BillingConfig): BillingConfig {
 }
 
 export interface SyncAction {
-  action: "create" | "skip";
+  action: "create" | "skip" | "update" | "bump";
   resource: "product" | "meter" | "version" | "price" | "deliverable";
   ref: string;
+  /** Human-readable reason for an update/bump (e.g. changed fields). */
+  detail?: string;
 }
 
 export interface SyncResult {
@@ -62,14 +64,111 @@ export interface SyncOptions {
   plan?: boolean;
 }
 
+// ── Diff helpers ─────────────────────────────────────────────────────────────
+
+/** Normalize a decimal string for comparison (`"0.0020"` === `"0.002"`); null-ish → null. */
+function normNum(v?: string | null): string | null {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? v : String(n);
+}
+
+function tiersKey(t?: unknown): string {
+  return t ? JSON.stringify(t) : "";
+}
+
+type DesiredPrice = {
+  meterId: string | null | undefined;
+  model: string;
+  unitAmount: string | null;
+  currency: string;
+  tiers?: unknown;
+};
+
+/** Match key for a price within a version: meter id, or a sentinel for the base fee. */
+function priceKey(meterId: string | null | undefined): string {
+  return meterId == null ? "__base__" : meterId;
+}
+
+/** True when the published version's prices already match the desired set. */
+function pricesEqual(current: Price[], desired: DesiredPrice[]): boolean {
+  if (current.length !== desired.length) return false;
+  const cur = new Map(current.map((c) => [priceKey(c.meterId), c]));
+  for (const d of desired) {
+    const c = cur.get(priceKey(d.meterId));
+    if (!c) return false;
+    if ((c.model ?? "") !== d.model) return false;
+    if (normNum(c.unitAmount) !== normNum(d.unitAmount)) return false;
+    if ((c.currency ?? "") !== d.currency) return false;
+    if (tiersKey(c.tiers) !== tiersKey(d.tiers)) return false;
+  }
+  return true;
+}
+
+function versionFieldsEqual(v: Version, p: BillingProduct): boolean {
+  return (
+    normNum(v.basePrice) === normNum(p.basePrice) &&
+    normNum(v.creditsPerCycle) === normNum(p.creditsPerCycle) &&
+    (v.billingCycle ?? null) === (p.billingCycle ?? null)
+  );
+}
+
+/** Metadata patch for an existing product (only changed fields). */
+function productPatch(existing: Product, p: BillingProduct): Partial<CreateProductRequest> {
+  const name = p.name ?? p.key;
+  const patch: Partial<CreateProductRequest> = {};
+  if ((existing.name ?? "") !== name) patch.name = name;
+  if (p.type && existing.type !== p.type) patch.type = p.type;
+  if (p.pricingModel && existing.pricingModel !== p.pricingModel) patch.pricingModel = p.pricingModel;
+  if (p.currency && existing.currency !== p.currency) patch.currency = p.currency;
+  return patch;
+}
+
+/** Pick the version a bump should diff against: latest published, else latest. */
+function currentVersion(versions: Version[]): Version | undefined {
+  const byVersionDesc = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
+  return byVersionDesc.find((v) => v.status === "published") ?? byVersionDesc[0];
+}
+
+/** Create + publish a new version with the config's prices. Shared by seed and bump. */
+async function publishVersion(
+  infi: Infi,
+  productId: string,
+  p: BillingProduct,
+  meterIdByKey: Map<string, string | undefined>,
+): Promise<void> {
+  const version = await infi.products.versions.create(productId, {
+    billingCycle: p.billingCycle ?? null,
+    basePrice: p.basePrice ?? null,
+    creditsPerCycle: p.creditsPerCycle ?? null,
+  });
+  for (const pr of p.prices ?? []) {
+    const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
+    await infi.products.prices.add(productId, version.id!, {
+      model: pr.model,
+      unitAmount: pr.unitAmount,
+      currency: pr.currency ?? p.currency ?? "BRL",
+      meterId,
+      tiers: pr.tiers,
+    } as PriceInput);
+  }
+  await infi.products.versions.publish(productId, version.id!);
+}
+
 /**
- * Apply a billing config idempotently. Products are matched by name, meters by
- * `(product, name)`, and prices are seeded once (a first published version) —
- * re-running is a no-op. Price changes on an existing product need a version bump
- * (not yet automated); such products are reported as `skip`.
+ * Apply a billing config as desired state (ADR 0002). Products are matched by
+ * their unique per-tenant `key` (falling back to `name` for older tenants), then:
  *
- * Products are matched by their unique per-tenant `key` (falling back to `name`
- * for tenants created before keys existed).
+ * - **create** the product when missing (+ seed a first published version);
+ * - **update** its metadata (name/type/pricingModel/currency) when it drifted;
+ * - **bump** the published version when the desired prices, base price, credits,
+ *   or billing cycle differ — a NEW version is created + published, leaving prior
+ *   versions immutable so existing subscriptions keep their pinned pricing;
+ * - **skip** when nothing changed.
+ *
+ * Never deletes; never mutates a published version. Meters are created when
+ * missing (metadata updates need a backend endpoint that does not exist yet).
+ * Pass `{ plan: true }` to compute the diff without applying it.
  */
 export async function syncBilling(
   infi: Infi,
@@ -83,9 +182,10 @@ export async function syncBilling(
   for (const p of config.products) {
     const name = p.name ?? p.key;
     // Prefer the natural key (unique per tenant); fall back to name for older tenants.
-    let productId = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name))?.id;
+    const existing = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name));
+    let productId = existing?.id;
 
-    if (!productId) {
+    if (!existing) {
       actions.push({ action: "create", resource: "product", ref: name });
       if (!plan) {
         const created = await infi.products.create({
@@ -101,7 +201,14 @@ export async function syncBilling(
         productId = created.id;
       }
     } else {
-      actions.push({ action: "skip", resource: "product", ref: name });
+      const patch = productPatch(existing, p);
+      const changed = Object.keys(patch);
+      if (changed.length > 0) {
+        actions.push({ action: "update", resource: "product", ref: name, detail: changed.join(", ") });
+        if (!plan) await infi.products.update(productId!, patch);
+      } else {
+        actions.push({ action: "skip", resource: "product", ref: name });
+      }
     }
 
     // In plan mode without a real product id we can only report the parent create.
@@ -129,31 +236,33 @@ export async function syncBilling(
       }
     }
 
-    // Prices — seed once. If a version already exists, leave it (immutable history).
+    // Versions — seed the first one, or bump when the desired pricing drifted.
     const versions = await infi.products.versions.list(productId);
-    if (versions.length === 0) {
+    const current = currentVersion(versions);
+    if (!current) {
       actions.push({ action: "create", resource: "version", ref: name });
-      if (!plan) {
-        const version = await infi.products.versions.create(productId, {
-          billingCycle: p.billingCycle ?? null,
-          basePrice: p.basePrice ?? null,
-          creditsPerCycle: p.creditsPerCycle ?? null,
-        });
-        for (const pr of p.prices ?? []) {
-          const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
-          await infi.products.prices.add(productId, version.id!, {
-            model: pr.model,
-            unitAmount: pr.unitAmount,
-            currency: pr.currency ?? p.currency ?? "BRL",
-            meterId,
-            tiers: pr.tiers,
-          } as PriceInput);
-          actions.push({ action: "create", resource: "price", ref: `${name}/${pr.meter ?? "base"}` });
-        }
-        await infi.products.versions.publish(productId, version.id!);
-      }
+      if (!plan) await publishVersion(infi, productId, p, meterIdByKey);
     } else {
-      actions.push({ action: "skip", resource: "version", ref: name });
+      const desired: DesiredPrice[] = (p.prices ?? []).map((pr) => ({
+        meterId: pr.meter ? meterIdByKey.get(pr.meter) : null,
+        model: pr.model,
+        unitAmount: pr.unitAmount ?? null,
+        currency: pr.currency ?? p.currency ?? "BRL",
+        tiers: pr.tiers,
+      }));
+      // A desired price referencing a not-yet-created meter (id undefined) is new by definition.
+      const unresolvedMeter = desired.some((d) => d.meterId === undefined);
+      const currentPrices = await infi.products.prices.list(productId, current.id!);
+      const reasons: string[] = [];
+      if (!versionFieldsEqual(current, p)) reasons.push("version fields");
+      if (unresolvedMeter || !pricesEqual(currentPrices, desired)) reasons.push("prices");
+
+      if (reasons.length > 0) {
+        actions.push({ action: "bump", resource: "version", ref: name, detail: reasons.join(", ") });
+        if (!plan) await publishVersion(infi, productId, p, meterIdByKey);
+      } else {
+        actions.push({ action: "skip", resource: "version", ref: name });
+      }
     }
 
     // Deliverable (link only in sync; file uploads go through presign/save).

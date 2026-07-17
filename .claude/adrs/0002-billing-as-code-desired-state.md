@@ -69,8 +69,10 @@ meter are reported as `skip` until the backend adds update.
 
 ## Phasing
 
-- **P1 — the core:** products `update` + `version-bump` diff engine; richer `--plan`
-  output. This is what makes it "billing as code" rather than a seeder.
+- **P1 — the core (DONE):** products `update` + `version-bump` diff engine; richer
+  `--plan` output. Implemented in `billing-as-code.ts` (`SyncAction` gains
+  `update`/`bump` + `detail`). This is what makes it "billing as code" rather than a
+  seeder.
 - **P2 — platform config:** `apps` and `webhooks` sections in `defineBilling()` +
   reconcile.
 - **P3 — deferred:** default rate-cards (needs backend); meter update (needs backend).
