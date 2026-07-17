@@ -9,11 +9,37 @@ import type {
 
 const enc = encodeURIComponent;
 
+/** Generate an invoice from an enrollment's accrued usage over a window. */
+export interface FromUsageInput {
+  /** Enrollment id (from `products.enroll`) — the id usage is keyed on. */
+  customerId: string;
+  /** Window start (ISO 8601). */
+  from: string;
+  /** Window end (ISO 8601). */
+  to: string;
+  /** Finalize + email the invoice (fires invoice.sent). */
+  send?: boolean;
+}
+
 export class InvoicesResource {
   constructor(private readonly t: Transport) {}
 
   create(input: CreateInvoiceRequest, idempotencyKey?: string): Promise<Invoice> {
     return this.t.request("POST", "/billing/invoices", {
+      body: input,
+      requireSecret: true,
+      idempotencyKey,
+    });
+  }
+
+  /**
+   * Roll an enrollment's accrued metered usage over `[from, to)` into a finalized
+   * invoice — the subscription-free usage→invoice path. Rated against the product's
+   * current published version (or a per-customer rate card). Rejects (422) when the
+   * window has no billable usage. `send` finalizes + emails it.
+   */
+  fromUsage(input: FromUsageInput, idempotencyKey?: string): Promise<Invoice> {
+    return this.t.request("POST", "/billing/invoices/from-usage", {
       body: input,
       requireSecret: true,
       idempotencyKey,

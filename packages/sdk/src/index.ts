@@ -1,6 +1,7 @@
 export { Infi, type CheckoutOptions } from "./client.js";
 export { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
 export { extractTokens, resolveUsageValue, type MeterOptions, type MeterMode } from "./meter.js";
+export { MeteringSession } from "./meter-session.js";
 export {
   buildHostedLoginUrl,
   extractCodeFromUrl,
@@ -39,6 +40,7 @@ export {
   type WebhookInput,
 } from "./webhooks.js";
 export type { UsageQuery } from "./resources/usage.js";
+export type { FromUsageInput } from "./resources/invoices.js";
 export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
 export type { CreateApiKeyInput } from "./resources/api-keys.js";
 export type {

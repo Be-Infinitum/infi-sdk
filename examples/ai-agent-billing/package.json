@@ -1,0 +1,19 @@
+{
+  "name": "@beinfi/example-ai-agent-billing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run index.ts"
+  },
+  "dependencies": {
+    "@beinfi/sdk": "workspace:*",
+    "@ai-sdk/google": "^1.0.0",
+    "@ai-sdk/openai": "^1.0.0",
+    "@ngrok/ngrok": "^1.4.1",
+    "ai": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "typescript": "^5.8.3"
+  }
+}

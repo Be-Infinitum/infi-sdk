@@ -741,6 +741,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/invoices/from-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate an invoice from an enrollment's accrued usage (on demand)
+         * @description Rolls a customer enrollment's metered usage over [from, to) into a finalized invoice, rated against the product's current published version (or a per-customer rate card) — the subscription-free usage→invoice path. Fails (422) when the window has no billable usage. Set `send: true` to finalize + email it (`invoice.sent`).
+         */
+        post: operations["generateInvoiceFromUsage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/products/{productID}/invoices": {
         parameters: {
             query?: never;
@@ -2059,6 +2079,19 @@ export interface components {
                 /** @description Line total (decimal). */
                 amount: string;
             }[];
+        };
+        FromUsageRequest: {
+            /**
+             * Format: uuid
+             * @description Enrollment id (product_customers.id) usage is keyed on.
+             */
+            customerId: string;
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            /** @description Finalize + email the invoice (invoice.sent). */
+            send?: boolean;
         };
         CreateProductInvoiceRequest: {
             customer: {
@@ -3886,6 +3919,33 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Created invoice (open) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    generateInvoiceFromUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FromUsageRequest"];
             };
         };
         responses: {

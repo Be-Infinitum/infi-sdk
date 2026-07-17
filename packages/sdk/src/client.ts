@@ -12,6 +12,7 @@ import { SubscriptionsResource } from "./resources/subscriptions.js";
 import { WebhooksResource } from "./resources/webhooks-resource.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
 import { PayResource } from "./resources/pay.js";
+import { MeteringSession } from "./meter-session.js";
 import { verifyWebhook, type WebhookEvent, type WebhookInput } from "./webhooks.js";
 import {
   syncBilling,
@@ -262,6 +263,15 @@ export class Infi {
       throw await parseErrorResponse(res);
     }
     return (await res.json()) as IngestResult;
+  }
+
+  /**
+   * Open a batching usage session for a customer — queue several `track` calls,
+   * then `flush()` them as one `trackBatch`. Server-side (secret key).
+   */
+  session(customerId: string): MeteringSession {
+    this.#requireSecretKey("session");
+    return new MeteringSession((events) => this.trackBatch(events), customerId);
   }
 
   /** Ingest a batch of usage events (all-or-nothing). */

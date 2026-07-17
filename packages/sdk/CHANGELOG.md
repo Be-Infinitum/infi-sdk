@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Added
+- `infi.invoices.fromUsage({ customerId, from, to, send })` — roll an enrollment's
+  accrued usage over a window into a finalized invoice on demand, rated server-side
+  (backend `POST /billing/invoices/from-usage`; subscription-free). No more building
+  usage line items by hand. New type `FromUsageInput`.
+- `infi.session(customerId)` — a batching usage session (`track(...).track(...)` then
+  `flush()`), sugar over `trackBatch`. New export `MeteringSession`.
+- `examples/ai-agent-billing` — end-to-end demo: real OpenAI + Gemini calls, usage
+  session, `fromUsage` invoice, webhook (ngrok + `verifyWebhook`) waiting for
+  `payment.confirmed`.
 - `infi.products.meters.update(productId, meterId, patch)` — update a meter's
   displayName / unit / aggregation (backend `PATCH …/meters/{id}`; `name` immutable).
   `infi.sync()` now reconciles meter metadata (create + update). New type
