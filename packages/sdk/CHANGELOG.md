@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fixed
+- `products.create` now unwraps the backend's `{ product, version }` response
+  (previously returned the wrapper, so `.id` was undefined against the real API).
+- `track` / `trackBatch` send an `Idempotency-Key` header and auto-generate a
+  per-event `eventId` when omitted — the metering ingest requires both.
+- `session(customerId, productId?)` stamps `productId` on each event (the ingest
+  requires it). Verified end-to-end against the sandbox.
+
 ### Changed
 - **`new Infi` takes `mode`, not base URLs.** Replaced `baseUrl`/`authBaseUrl`/
   `payBaseUrl` with `mode: "sandbox" | "live"` (inferred from the key prefix —

@@ -1,10 +1,14 @@
-import { defineBilling } from "@beinfi/sdk";
+import { defineCompany } from "@beinfi/sdk";
 
 const CURRENCY = "BRL";
 const TOKEN_PRICE = "0.0001";
 const REQUEST_PRICE = "0.005";
 
-export default defineBilling({
+/**
+ * Company as code for the AI agent billing sandbox demo.
+ * Apply via `infi.sync` in index.ts (or `infi sync infi.billing.ts`).
+ */
+export default defineCompany({
   products: [
     {
       key: "ai-agent-pro",
@@ -13,8 +17,19 @@ export default defineBilling({
       pricingModel: "usage",
       currency: CURRENCY,
       meters: [
-        { key: "tokens", displayName: "AI Tokens", unit: "token", aggregation: "sum" },
-        { key: "requests", displayName: "API Requests", unit: "request", aggregation: "count" },
+        {
+          key: "tokens",
+          displayName: "AI Tokens",
+          unit: "token",
+          aggregation: "sum",
+          valueProperty: "value",
+        },
+        {
+          key: "requests",
+          displayName: "API Requests",
+          unit: "request",
+          aggregation: "count",
+        },
       ],
       prices: [
         { meter: "tokens", model: "per_unit", unitAmount: TOKEN_PRICE, currency: CURRENCY },
@@ -25,3 +40,4 @@ export default defineBilling({
 });
 
 export const PRODUCT_KEY = "ai-agent-pro";
+export { CURRENCY, TOKEN_PRICE, REQUEST_PRICE };

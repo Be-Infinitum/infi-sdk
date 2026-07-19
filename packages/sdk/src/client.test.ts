@@ -106,7 +106,7 @@ describe("track", () => {
     expect(url).toBe(`${BASE}/metering/events`);
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk_test_x");
-    expect(body).toEqual({ meter: "tokens", value: "100", customerId: "cust_1" });
+    expect(body).toEqual({ eventId: expect.any(String), meter: "tokens", value: "100", customerId: "cust_1" });
   });
 
   it("POSTs a batch to /metering/events/batch", async () => {
@@ -117,7 +117,12 @@ describe("track", () => {
 
     const { url, body } = lastCall();
     expect(url).toBe(`${BASE}/metering/events/batch`);
-    expect(body).toEqual({ events: [{ meter: "a" }, { meter: "b" }] });
+    expect(body).toEqual({
+      events: [
+        { eventId: expect.any(String), meter: "a" },
+        { eventId: expect.any(String), meter: "b" },
+      ],
+    });
   });
 });
 

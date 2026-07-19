@@ -19,6 +19,11 @@ export interface BillingMeter {
   displayName?: string;
   unit: "token" | "request" | "unit";
   aggregation: "sum" | "count" | "unique_count" | "max" | "last";
+  /**
+   * JSON path on the usage event for the numeric value (backend ingest).
+   * Use `"value"` for the standard `track({ value })` shape.
+   */
+  valueProperty?: string | null;
 }
 
 export interface BillingPrice {
@@ -536,6 +541,7 @@ export async function syncBilling(
           displayName: m.displayName ?? m.key,
           unit: m.unit,
           aggregation: m.aggregation,
+          ...(m.valueProperty != null ? { valueProperty: m.valueProperty } : {}),
         });
         meterIdByKey.set(m.key, created.id);
       }

@@ -58,8 +58,8 @@ describe("infi.session", () => {
     expect(String(url)).toBe(`${BASE}/metering/events/batch`);
     expect(JSON.parse(init.body as string)).toEqual({
       events: [
-        { customerId: "enr_1", meter: "tokens", value: "1500", metadata: { model: "gpt-4o-mini" } },
-        { customerId: "enr_1", meter: "requests", value: "1" },
+        { eventId: expect.any(String), customerId: "enr_1", meter: "tokens", value: "1500", metadata: { model: "gpt-4o-mini" } },
+        { eventId: expect.any(String), customerId: "enr_1", meter: "requests", value: "1" },
       ],
     });
   });
