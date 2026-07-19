@@ -14,6 +14,7 @@ import {
   type TemplateId,
 } from "../lib/init-support.js";
 import { runInstall, runDbPush, runSetup, startDockerDb } from "../lib/run-setup.js";
+import type { ClaimRef } from "../lib/claim.js";
 
 /** Brand wordmark (ANSI Shadow "infi") in a cyan gradient. */
 function banner(): void {
@@ -58,6 +59,7 @@ type InitOptions = {
   skipSetup: boolean;
   local: boolean;
   yes: boolean;
+  ref?: ClaimRef;
 };
 
 function parseInitArgs(argv: string[]): Partial<InitOptions> & { help?: boolean } {
@@ -72,6 +74,7 @@ function parseInitArgs(argv: string[]): Partial<InitOptions> & { help?: boolean 
     else if (arg === "--skip-install") out.skipInstall = true;
     else if (arg === "--skip-setup") out.skipSetup = true;
     else if (arg === "--local") out.local = true;
+    else if (arg === "--ref") out.ref = argv[++i] as ClaimRef;
     else if (arg === "--template") out.template = argv[++i] as TemplateId;
     else if (arg === "--port") out.port = Number(argv[++i]);
     else if (!arg.startsWith("-")) positional.push(arg);
@@ -96,6 +99,7 @@ ${pc.dim("Options:")}
   --skip-provision    Do not provision a claimable tenant (write .env.example only)
   --skip-install      Skip package install
   --skip-setup        Skip db:push and setup script
+  --ref <cursor|lovable|mcp|cli>  Claim attribution (default: cli)
   -y, --yes           Skip prompts
   -h, --help          Show help
 `);
@@ -169,6 +173,7 @@ async function resolveOptions(argv: string[]): Promise<InitOptions | null> {
     skipSetup: parsed.skipSetup ?? false,
     local: parsed.local ?? false,
     yes: parsed.yes ?? false,
+    ref: parsed.ref,
   };
 }
 
@@ -201,7 +206,10 @@ export async function initCommand(argv: string[]): Promise<void> {
   if (!options.skipProvision) {
     s.start("Provisioning claimable tenant…");
     try {
-      const claimable = await provisionClaimable({ local: options.local, ref: "cli" });
+      const claimable = await provisionClaimable({
+        local: options.local,
+        ref: options.ref ?? (process.env.INFI_CLAIM_REF as ClaimRef | undefined) ?? "cli",
+      });
       writeEnvFile(
         {
           targetDir,

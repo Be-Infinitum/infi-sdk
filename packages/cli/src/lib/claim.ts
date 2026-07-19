@@ -1,4 +1,4 @@
-import { parseErrorResponse } from "@beinfi/sdk";
+import { parseErrorResponse, type CompanyIntent } from "@beinfi/sdk";
 
 export type ClaimRef = "lovable" | "mcp" | "cursor" | "cli";
 
@@ -24,21 +24,33 @@ export type ClaimableTenantPublicView = {
   claimedAt?: string;
 };
 
+export type CreateClaimableOptions = {
+  ref?: ClaimRef;
+  /** Seed catalog from a company intent (backend may ignore until API ships). */
+  intent?: CompanyIntent;
+  /** Preview/prod app URL for allowlist seed (optional in lax sandbox). */
+  appUrl?: string;
+};
+
 /**
  * Provision a claimable tenant — instant credentials the user can start with
- * immediately, then claim to own (neon.new-style). Public, no secret key. Lives
- * in the CLI because provisioning is a dev-time/onboarding concern (ADR 0001),
- * and "sandbox" now means only test-vs-live mode (backend ADR 0005).
+ * immediately, then claim to own (neon.new-style). Public, no secret key.
  */
 export async function createClaimable(
   baseUrl: string,
-  ref: ClaimRef = "cli",
+  refOrOpts: ClaimRef | CreateClaimableOptions = "cli",
 ): Promise<ClaimableTenantCreateResponse> {
+  const opts: CreateClaimableOptions =
+    typeof refOrOpts === "string" ? { ref: refOrOpts } : refOrOpts;
   const base = baseUrl.replace(/\/$/, "");
+  const body: Record<string, string> = { ref: opts.ref ?? "cli" };
+  if (opts.intent) body.intent = opts.intent;
+  if (opts.appUrl) body.appUrl = opts.appUrl;
+
   const res = await fetch(`${base}/public/v1/claimables`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ ref }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     throw await parseErrorResponse(res);

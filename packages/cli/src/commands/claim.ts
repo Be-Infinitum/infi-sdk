@@ -1,12 +1,16 @@
+import type { CompanyIntent } from "@beinfi/sdk";
 import { apiBase, type GlobalFlags } from "../lib/client.js";
-import { provisionClaimable } from "../lib/provision.js";
-import { getClaimable, type ClaimRef } from "../lib/claim.js";
+import { createClaimable, getClaimable, type ClaimRef } from "../lib/claim.js";
 import { die, ok, printJson } from "../lib/output.js";
 
 export async function claimCreate(
-  flags: GlobalFlags & { ref?: ClaimRef },
+  flags: GlobalFlags & { ref?: ClaimRef; intent?: CompanyIntent; appUrl?: string },
 ): Promise<void> {
-  const claimable = await provisionClaimable(flags);
+  const claimable = await createClaimable(apiBase(flags), {
+    ref: flags.ref ?? "cli",
+    intent: flags.intent,
+    appUrl: flags.appUrl,
+  });
   if (flags.json) {
     printJson(claimable);
     return;

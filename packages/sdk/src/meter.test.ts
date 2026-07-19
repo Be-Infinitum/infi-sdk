@@ -163,6 +163,30 @@ describe("infi.meter", () => {
     expect(JSON.parse(init.body as string)).toEqual({ eventId: expect.any(String), customerId: "c1", meter: "inventory_update", value: "3" });
   });
 
+  it("forwards productId on track", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 1 }));
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+
+    await infi.meter(
+      {
+        enrollmentId: "enr1",
+        productId: "prod_1",
+        meter: "tokens",
+        value: 10,
+        mode: "postpaid",
+      },
+      async () => ({}),
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({
+      customerId: "enr1",
+      productId: "prod_1",
+      meter: "tokens",
+      value: "10",
+    });
+  });
+
   it('mode "streaming" gates but does not record', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" })); // gate only
     const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });

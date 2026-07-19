@@ -1,12 +1,32 @@
+import type { InfiErrorFix } from "./error-fixes.js";
+import { fixForCode } from "./error-fixes.js";
+
+export type { InfiErrorFix } from "./error-fixes.js";
+export { INFI_ERROR_FIXES, fixForCode } from "./error-fixes.js";
+
 export class InfiError extends Error {
   readonly status: number;
   readonly code?: string;
+  /** Actionable remediation for agents and tooling (CLI, MCP). */
+  readonly fix?: InfiErrorFix;
 
-  constructor(message: string, status: number, code?: string) {
+  constructor(message: string, status: number, code?: string, fix?: InfiErrorFix) {
     super(message);
     this.name = "InfiError";
     this.status = status;
     this.code = code;
+    this.fix = fix ?? fixForCode(code);
+  }
+
+  /** JSON shape for `--json` CLI output and MCP tools. */
+  toJSON(): Record<string, unknown> {
+    return {
+      name: this.name,
+      message: this.message,
+      status: this.status,
+      code: this.code,
+      fix: this.fix,
+    };
   }
 }
 

@@ -3,10 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bun run index.ts"
+    "start": "bun run index.ts",
+    "doctor": "infi doctor --json",
+    "go-live": "infi go-live --json"
   },
   "dependencies": {
     "@beinfi/sdk": "workspace:*",
+    "@beinfi/cli": "workspace:*",
     "@ai-sdk/google": "^1.0.0",
     "@ai-sdk/openai": "^1.0.0",
     "@ngrok/ngrok": "^1.4.1",

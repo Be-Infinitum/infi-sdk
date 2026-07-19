@@ -1,0 +1,39 @@
+{
+  "name": "@beinfi/auth",
+  "version": "0.1.0",
+  "description": "Framework-agnostic Infi auth handlers (Web Request/Response) — hosted login, callback, session, state",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@beinfi/sdk": "^0.8.1"
+  },
+  "devDependencies": {
+    "@beinfi/sdk": "workspace:*",
+    "@types/node": "^22.15.30",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

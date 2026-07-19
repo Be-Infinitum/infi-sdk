@@ -20,6 +20,7 @@ import {
   type SyncOptions,
   type SyncResult,
 } from "./billing-as-code.js";
+import { walletFromSession, type Wallet, type WalletFromSessionOptions } from "./wallet.js";
 import type {
   AuthResult,
   CreateInvoiceRequest,
@@ -337,6 +338,7 @@ export class Infi {
         customerId,
         meter: options.meter,
         value,
+        ...(options.productId ? { productId: options.productId } : {}),
         ...(options.metadata ? { metadata: options.metadata } : {}),
       });
     }
@@ -417,12 +419,29 @@ export class Infi {
     return verifyWebhook(input, secret, toleranceSeconds);
   }
 
-  // ── Billing as code: apply a declarative config idempotently ──────────────
+  // ── Company as code: apply a declarative config idempotently ──────────────
 
-  /** Apply a `defineBilling(...)` config idempotently (pass `{ plan: true }` to dry-run). */
+  /**
+   * Apply a `defineCompany(...)` / `defineBilling(...)` config idempotently
+   * (pass `{ plan: true }` to dry-run).
+   */
   sync(config: BillingConfig, opts?: SyncOptions): Promise<SyncResult> {
     return syncBilling(this, config, opts);
   }
+
+  /**
+   * Billing wallet helpers — hides enrollment vs customer id for agents.
+   *
+   * @example
+   * ```ts
+   * const wallet = await infi.wallet.fromSession(token, { productKey: "ai-chat", starterCredits: "2000" });
+   * await infi.meter({ customerId: wallet.enrollmentId, meter: "tokens", mode: "streaming" }, fn);
+   * ```
+   */
+  readonly wallet = {
+    fromSession: (sessionToken: string, options: WalletFromSessionOptions): Promise<Wallet> =>
+      walletFromSession(this, sessionToken, options),
+  };
 
   #appUrl(slug: string, action: string): string {
     return `${this.#apiBase}/identity/apps/${encodeURIComponent(slug)}/${action}`;

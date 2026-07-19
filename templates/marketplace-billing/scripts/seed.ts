@@ -23,25 +23,15 @@ import { PrismaClient } from "../src/generated/prisma/index.js";
 const prisma = new PrismaClient();
 
 const slug = process.env.NEXT_PUBLIC_INFI_APP_SLUG ?? "marketplace-demo";
-
-const appConfig = {
-  slug,
-  name: "Marketplace Billing Demo",
-  allowedOrigins: ["http://localhost:3013"],
-  redirectUris: ["http://localhost:3013/callback"],
-};
+const origin = "http://localhost:3013";
 
 async function main() {
-  // 1. Declarative product/meters/prices — idempotent, publishes a version.
   const config = defineBilling({
     products: [
       {
         key: PRODUCT_KEY,
         name: "Integration",
         type: "agent",
-        // A recurring usage cycle = pricingModel "subscription" with meters (no
-        // flat base). "usage" is for cycle-less ad-hoc billing and cannot carry a
-        // billingCycle, so it can't be subscribed — subscription is the cycle.
         pricingModel: "subscription",
         currency: CURRENCY,
         billingCycle: "monthly",
@@ -59,25 +49,17 @@ async function main() {
         })),
       },
     ],
+    apps: [
+      {
+        slug,
+        name: "Marketplace Billing Demo",
+        allowedOrigins: [origin],
+        redirectUris: [`${origin}/callback`],
+      },
+    ],
   });
   const syncResult = await infi.sync(config);
   console.log("sync:", JSON.stringify(syncResult.actions));
-
-  // 1b. Register (or update) the identity app so hosted login resolves — the
-  //     browser is redirected to the Infi frontend's /identity/{slug}/login and
-  //     back to this app's /callback, both of which must be allowlisted here.
-  const existingApp = (await infi.apps.list()).find((a) => a.slug === slug);
-  if (existingApp?.id) {
-    const app = await infi.apps.update(existingApp.id, {
-      name: appConfig.name,
-      allowedOrigins: appConfig.allowedOrigins,
-      redirectUris: appConfig.redirectUris,
-    });
-    console.log(`updated app "${app.slug}" (${app.id})`);
-  } else {
-    const app = await infi.apps.create(appConfig);
-    console.log(`created app "${app.slug}" (${app.id})`);
-  }
 
   // Resolve the product + meter ids.
   const product = (await infi.products.list()).find((p) => p.key === PRODUCT_KEY);
