@@ -6,7 +6,7 @@ const REQUEST_PRICE = "0.005";
 
 /**
  * Company as code for the AI agent billing sandbox demo.
- * Apply via `infi.sync` in index.ts (or `infi sync infi.billing.ts`).
+ * Apply via `infi.sync` in index.ts (or `infi sync infi.company.ts`).
  */
 export default defineCompany({
   products: [
