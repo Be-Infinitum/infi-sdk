@@ -7,7 +7,7 @@ integrating [Beinfi](https://beinfi.com) billing, auth, and metering.
 
 ```bash
 # 1. Provision sandbox tenant (or use existing sk_test_ key)
-infi claim create --ref cursor --json
+infi claim create --ref lovable --json   # or cursor, mcp, cli
 
 # 2. Scaffold (optional)
 npm create infi-app my-app --template ai-chat
@@ -127,6 +127,7 @@ Tools: `infi_claim_create`, `infi_doctor`, `infi_sync_plan`, `infi_sync_apply`, 
 
 | Intent | Template / skill |
 |--------|------------------|
+| **Lovable + Supabase** | **`skills/lovable-integration/`** |
 | Prepaid AI chat (tokens) | `templates/ai-chat`, `skills/add-prepaid-ai-chat/` |
 | One-time file sale | `templates/ebook-sale`, `skills/add-one-time-checkout/` |
 | Usage-based SaaS | `templates/marketplace-billing`, `skills/add-usage-based-saas/` |
