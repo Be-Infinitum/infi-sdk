@@ -3,7 +3,7 @@ import pc from "picocolors";
 import path from "node:path";
 import fs from "node:fs";
 import { scaffold } from "../lib/scaffold.js";
-import { provisionSandbox } from "../lib/provision.js";
+import { provisionClaimable } from "../lib/provision.js";
 import {
   DEFAULT_PORT,
   TEMPLATE_META,
@@ -93,7 +93,7 @@ ${pc.dim("Options:")}
   --template <id>     Template: default, crm, ebook-sale, ai-chat, marketplace-billing
   --port <n>          Dev server port (default: 3000)
   --local             Use local Infi API (:8088) and frontend (:4003)
-  --skip-provision    Do not create a sandbox (write .env.example only)
+  --skip-provision    Do not provision a claimable tenant (write .env.example only)
   --skip-install      Skip package install
   --skip-setup        Skip db:push and setup script
   -y, --yes           Skip prompts
@@ -199,9 +199,9 @@ export async function initCommand(argv: string[]): Promise<void> {
   let claimUrl: string | undefined;
 
   if (!options.skipProvision) {
-    s.start("Provisioning Infi sandbox…");
+    s.start("Provisioning claimable tenant…");
     try {
-      const sandbox = await provisionSandbox({ local: options.local, ref: "cli" });
+      const claimable = await provisionClaimable({ local: options.local, ref: "cli" });
       writeEnvFile(
         {
           targetDir,
@@ -210,12 +210,12 @@ export async function initCommand(argv: string[]): Promise<void> {
           port: options.port,
           local: options.local,
         },
-        sandbox,
+        claimable,
       );
-      claimUrl = sandbox.claimUrl;
-      s.stop("Sandbox provisioned");
+      claimUrl = claimable.claimUrl;
+      s.stop("Claimable tenant provisioned");
     } catch (err) {
-      s.stop(pc.yellow("Sandbox provisioning failed — writing .env.example"));
+      s.stop(pc.yellow("Provisioning failed — writing .env.example"));
       writeEnvExample(targetDir, options.projectName, appSlug, options.port);
       p.log.warn(err instanceof Error ? err.message : String(err));
       p.log.info("Fill INFI_SECRET_KEY manually, then run `bun run setup`.");
@@ -268,7 +268,7 @@ export async function initCommand(argv: string[]): Promise<void> {
   if (claimUrl) {
     p.note(
       `${pc.dim("Keep this tenant after the trial:")}\n${pc.cyan(claimUrl)}`,
-      pc.bold("Claim your sandbox"),
+      pc.bold("Claim your tenant"),
     );
   }
 

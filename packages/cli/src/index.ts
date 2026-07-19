@@ -56,23 +56,23 @@ export async function run(argv: string[]): Promise<void> {
       break;
     }
 
-    case "sandbox": {
-      const sandbox = await import("./commands/sandbox.js");
+    case "claim": {
+      const claim = await import("./commands/claim.js");
       switch (parsed.sub) {
         case "create":
-          await sandbox.sandboxCreate({
+          await claim.claimCreate({
             ...gf,
             ref: typeof parsed.flags.ref === "string" ? (parsed.flags.ref as "cli") : "cli",
           });
           break;
         case "get":
-          await sandbox.sandboxGet({
+          await claim.claimGet({
             ...gf,
             id: parsed.positional[0] ?? (typeof parsed.flags.id === "string" ? parsed.flags.id : undefined),
           });
           break;
         default:
-          die("Usage: infi sandbox create|get <id>");
+          die("Usage: infi claim create|get <id>");
       }
       break;
     }

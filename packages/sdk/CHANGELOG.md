@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Changed
+- **Rename sandbox → claim** (backend ADR 0005). "Sandbox" now means only
+  test-vs-live mode; the provision-instant-creds-then-claim flow is a *claimable
+  tenant*. CLI: `infi sandbox create|get` → `infi claim create|get`; `@beinfi/cli`
+  helpers `createSandbox`/`getSandbox` → `createClaimable`/`getClaimable`, types
+  `ClaimableSandbox*`/`SandboxRef` → `ClaimableTenant*`/`ClaimRef`. Scaffolded env
+  `INFI_SANDBOX_ID`/`INFI_SANDBOX_CLAIM_URL` → `INFI_CLAIM_ID`/`INFI_CLAIM_URL`.
+  Public endpoint `/public/v1/sandbox` → `/public/v1/claimables`.
+
 ### Added
 - `infi.invoices.fromUsage({ customerId, from, to, send })` — roll an enrollment's
   accrued usage over a window into a finalized invoice on demand, rated server-side

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createSandbox, getSandbox } from "./sandbox.js";
+import { createClaimable, getClaimable } from "./claim.js";
 
 const BASE = "http://localhost:8088";
 
@@ -10,7 +10,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-describe("cli sandbox", () => {
+describe("cli claim", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
@@ -19,7 +19,7 @@ describe("cli sandbox", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
-  it("createSandbox POSTs /public/v1/sandbox without auth", async () => {
+  it("createClaimable POSTs /public/v1/claimables without auth", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse(
         {
@@ -36,17 +36,17 @@ describe("cli sandbox", () => {
       ),
     );
 
-    const sandbox = await createSandbox(BASE, "cli");
+    const claimable = await createClaimable(BASE, "cli");
 
-    expect(sandbox.apiKeySecret).toBe("sk_test_abc");
+    expect(claimable.apiKeySecret).toBe("sk_test_abc");
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe(`${BASE}/public/v1/sandbox`);
+    expect(String(url)).toBe(`${BASE}/public/v1/claimables`);
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
     expect(JSON.parse(init.body as string)).toEqual({ ref: "cli" });
   });
 
-  it("getSandbox fetches public sandbox status", async () => {
+  it("getClaimable fetches public claimable status", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         id: "sb_1",
@@ -58,10 +58,10 @@ describe("cli sandbox", () => {
       }),
     );
 
-    const view = await getSandbox(BASE, "sb_1");
+    const view = await getClaimable(BASE, "sb_1");
 
     expect(view.status).toBe("UNCLAIMED");
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe(`${BASE}/public/v1/sandbox/sb_1`);
+    expect(String(url)).toBe(`${BASE}/public/v1/claimables/sb_1`);
   });
 });

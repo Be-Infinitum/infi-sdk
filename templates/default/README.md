@@ -38,9 +38,9 @@ infi deploy vercel --prod                     # vercel deploy + env sync + webho
 
 Requires [Vercel CLI](https://vercel.com/docs/cli) for `deploy vercel`. Set `DATABASE_URL` in Vercel (Postgres addon or external).
 
-## Claim do sandbox
+## Claim do tenant
 
-Se `INFI_SANDBOX_CLAIM_URL` estiver no `.env.local`, a landing exibe um banner até você finalizar o claim no dashboard Infi.
+Se `INFI_CLAIM_URL` estiver no `.env.local`, a landing exibe um banner até você finalizar o claim no dashboard Infi.
 
 ## Scripts
 

@@ -8,7 +8,7 @@ ${pc.dim("Usage:")}
   infi init [project-name] [--template <id>] [--port <n>] [--local] [-y]
   infi login [--token <session>] [--tenant <slug>] [--profile name]
   infi keys list|create|revoke [--key sk_...] [--json]
-  infi sandbox create|get <id> [--ref cli] [--local] [--json]
+  infi claim create|get <id> [--ref cli] [--local] [--json]
   infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
   infi pull [file] [--force]   # generate infi.billing.ts + lock from the backend
   infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
@@ -23,7 +23,7 @@ ${pc.dim("Global flags:")}
 
 ${pc.dim("Examples:")}
   infi init my-app --template ai-chat
-  infi sandbox create --json
+  infi claim create --json
   infi keys create --key sk_test_...
   infi sync infi.billing.ts --plan
   infi deploy --url https://my-app.vercel.app

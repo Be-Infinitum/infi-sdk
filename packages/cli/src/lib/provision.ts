@@ -1,14 +1,18 @@
 import type { GlobalFlags } from "./client.js";
 import { apiBase, publicInfi } from "./client.js";
-import { createSandbox } from "./sandbox.js";
-import type { ClaimableSandboxCreateResponse, SandboxRef } from "./sandbox.js";
+import { createClaimable } from "./claim.js";
+import type { ClaimableTenantCreateResponse, ClaimRef } from "./claim.js";
 
-export type { ClaimableSandboxCreateResponse, ClaimableSandboxPublicView, SandboxRef } from "./sandbox.js";
+export type {
+  ClaimableTenantCreateResponse,
+  ClaimableTenantPublicView,
+  ClaimRef,
+} from "./claim.js";
 
-export async function provisionSandbox(
-  flags: GlobalFlags & { ref?: SandboxRef },
-): Promise<ClaimableSandboxCreateResponse> {
-  return createSandbox(apiBase(flags), flags.ref ?? "cli");
+export async function provisionClaimable(
+  flags: GlobalFlags & { ref?: ClaimRef },
+): Promise<ClaimableTenantCreateResponse> {
+  return createClaimable(apiBase(flags), flags.ref ?? "cli");
 }
 
 export { publicInfi };

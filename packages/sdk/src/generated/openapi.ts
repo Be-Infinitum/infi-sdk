@@ -92,7 +92,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/v1/sandbox": {
+    "/public/v1/claimables": {
         parameters: {
             query?: never;
             header?: never;
@@ -101,23 +101,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Provision claimable billing sandbox (no auth) */
-        post: operations["createClaimableSandbox"];
+        /** Provision a claimable tenant (instant creds, claim later; no auth) */
+        post: operations["createClaimable"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/public/v1/sandbox/{sandboxID}": {
+    "/public/v1/claimables/{claimableID}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Public sandbox status (no secrets) */
-        get: operations["getClaimableSandbox"];
+        /** Public claimable-tenant status (no secrets) */
+        get: operations["getClaimable"];
         put?: never;
         post?: never;
         delete?: never;
@@ -126,7 +126,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/sandbox/{sandboxID}/claim": {
+    "/auth/claimables/{claimableID}/claim": {
         parameters: {
             query?: never;
             header?: never;
@@ -135,8 +135,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Claim sandbox to signed-in user */
-        post: operations["claimSandbox"];
+        /** Claim a provisional tenant to the signed-in user */
+        post: operations["claimTenant"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1579,7 +1579,7 @@ export interface components {
                 time: string;
             }[];
         };
-        ClaimableSandboxCreateResponse: {
+        ClaimableTenantCreateResponse: {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
@@ -1594,7 +1594,7 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
-        ClaimableSandboxPublicView: {
+        ClaimableTenantPublicView: {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
@@ -1609,7 +1609,7 @@ export interface components {
             /** Format: date-time */
             claimedAt?: string;
         };
-        ClaimSandboxResponse: {
+        ClaimTenantResponse: {
             tenantSlug: string;
             /** Format: uuid */
             tenantId: string;
@@ -2638,7 +2638,7 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
-    createClaimableSandbox: {
+    createClaimable: {
         parameters: {
             query?: never;
             header?: never;
@@ -2654,59 +2654,59 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Sandbox created */
+            /** @description Claimable tenant created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClaimableSandboxCreateResponse"];
+                    "application/json": components["schemas"]["ClaimableTenantCreateResponse"];
                 };
             };
         };
     };
-    getClaimableSandbox: {
+    getClaimable: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                sandboxID: string;
+                claimableID: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Sandbox status */
+            /** @description Claimable tenant status */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClaimableSandboxPublicView"];
+                    "application/json": components["schemas"]["ClaimableTenantPublicView"];
                 };
             };
         };
     };
-    claimSandbox: {
+    claimTenant: {
         parameters: {
             query?: never;
             header: {
                 Authorization: string;
             };
             path: {
-                sandboxID: string;
+                claimableID: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Sandbox claimed */
+            /** @description Tenant claimed */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClaimSandboxResponse"];
+                    "application/json": components["schemas"]["ClaimTenantResponse"];
                 };
             };
         };
