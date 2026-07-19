@@ -2,7 +2,7 @@
  * @beinfi/sdk — AI Agent Billing Demo
  *
  * End-to-end AI agent billing demo:
- * 1. `infi.sync(infi.billing.ts)` — company as code (product + meters + prices)
+ * 1. `infi.sync(infi.company.ts)` — company as code (product + meters + prices)
  * 2. Registers a customer, makes real AI calls, tracks usage
  * 3. Generates invoice; optional ngrok webhooks for payment.confirmed
  *
@@ -22,7 +22,7 @@ import {
   type PaymentConfirmedData,
   type WebhookEvent,
 } from "@beinfi/sdk";
-import billing, { PRODUCT_KEY, CURRENCY } from "./infi.billing.js";
+import company, { PRODUCT_KEY, CURRENCY } from "./infi.company.js";
 
 // The Vercel AI SDK's Google provider reads GOOGLE_GENERATIVE_AI_API_KEY;
 // accept GEMINI_API_KEY as a friendlier alias.
@@ -125,7 +125,7 @@ async function cleanup() {
 async function main() {
   header("1. Sync company (defineCompany)");
 
-  const sync = await infi.sync(billing);
+  const sync = await infi.sync(company);
   console.log(
     `Synced (${sync.actions.length} actions):`,
     sync.actions.map((a) => `${a.action}:${a.resource}`).join(", ") || "none",

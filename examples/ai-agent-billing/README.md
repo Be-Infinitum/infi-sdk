@@ -10,12 +10,13 @@ invoice with `invoices.fromUsage`, email it, and wait for the customer to pay
 ```bash
 bun install
 INFI_SECRET_KEY=sk_test_… \
-INFI_API_URL=https://api-sandbox.beinfi.com \
 OPENAI_API_KEY=sk-… \
-GOOGLE_GENERATIVE_AI_API_KEY=… \
-NGROK_AUTHTOKEN=… \
+GEMINI_API_KEY=… \
 bun run index.ts
 ```
 
+Company config lives in `infi.company.ts` (`defineCompany`). Optional:
+`INFI_API_URL` (local only), `NGROK_AUTHTOKEN` (live webhooks).
+
 The customer pays via the emailed hosted-checkout link; the `payment.confirmed`
-webhook closes the flow. `INFI_APP_SLUG` is optional (prettifies logging only).
+webhook closes the flow when ngrok is set.
