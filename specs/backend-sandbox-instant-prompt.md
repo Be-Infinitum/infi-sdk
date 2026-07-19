@@ -164,14 +164,18 @@ OpenAPI + tests for each stage.
 
 ---
 
-## 5) (Nice-to-have) Credit pack auto-grant
+## 5) Meter wallet runtime — **out of scope for sandbox P0**
 
-If product/catalog supports it, add declarative behavior:
+Do **not** implement here. Full backend prompt:
 
-- On `payment.confirmed` for a product with something like `onPayment: { grantCredits: "50000" }` (or metadata / product flag), grant credits to the enrollment automatically.
-- Removes webhook glue from vibe apps. Can be a follow-up PR if too large.
+→ **`specs/backend-meter-wallet-prompt.md`** (ADR 0005)
+
+SDK already has `wallet.debit` / `credit` / `balance` + `grants[]` in company
+config (cycle maps to `creditsPerCycle` until the API ships).
 
 ---
+
+
 
 ## 6) OpenAPI + migrations + tests
 

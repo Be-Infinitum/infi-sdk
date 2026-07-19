@@ -20,8 +20,10 @@ export {
   buildLock,
   defineBilling,
   syncBilling,
+  cycleGrantAmount,
   type BillingApp,
   type BillingConfig,
+  type BillingGrant,
   type BillingMeter,
   type BillingPrice,
   type BillingProduct,
@@ -43,7 +45,16 @@ export {
   type CompanyIntent,
   type CompanyIntentOptions,
 } from "./company.js";
-export { walletFromSession, type Wallet, type WalletFromSessionOptions } from "./wallet.js";
+export {
+  bindWallet,
+  walletFromSession,
+  type BoundWallet,
+  type MeterBalance,
+  type Wallet,
+  type WalletFromSessionOptions,
+  type WalletGrantOn,
+  type WalletOpOptions,
+} from "./wallet.js";
 export {
   verifyWebhook,
   type CustomerCreatedData,

@@ -56,15 +56,17 @@ export default defineCompany({
 | `INFI_API_URL` | local only | Override; omit in Lovable/prod |
 | `INFI_AUTH_BASE_URL` / `INFI_PAY_BASE_URL` | **no** | Legacy — remove |
 
-## Wallet (enrollment) helper
+## Wallet (meter ledger)
 
 ```ts
-const wallet = await infi.wallet.fromSession(token, {
-  productKey: "ai-chat",
-  starterCredits: "2000",
-});
-// wallet.enrollmentId → meter / credits / state
+const wallet = await infi.wallet.fromSession(token, { productKey: "ai-chat" });
+await wallet.debit("tokens", "120");
+await wallet.credit({ meter: "tokens", amount: "50000" });
+await wallet.balance("tokens");
+// or: infi.wallet.bind(enrollmentId)
 ```
+
+Plan grants (company as code): `grants: [{ meter: "tokens", amount: "50000", on: "cycle" }]`.
 
 ## Auth
 
