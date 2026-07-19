@@ -27,7 +27,7 @@ export function meterAction<Args extends unknown[], R>(
   options: MeterActionOptions,
   actionFn: (...args: Args) => Promise<R>,
 ) {
-  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+  const infi = new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl });
 
   return async function runAction(...args: Args): Promise<R> {
     // infi.meter gates (unless postpaid), runs the action, records usage from
@@ -61,7 +61,7 @@ export function meterAction<Args extends unknown[], R>(
  * ```
  */
 export function guardCredit(options: GuardCreditOptions): Promise<void> {
-  return new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl }).assertCredit(
+  return new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl }).assertCredit(
     options.customerId,
   );
 }

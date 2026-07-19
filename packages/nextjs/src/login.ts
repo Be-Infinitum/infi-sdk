@@ -17,7 +17,7 @@ export function Login(options: LoginOptions) {
     const url = buildHostedLoginUrl({
       slug: options.slug,
       redirectTo,
-      authBaseUrl: options.authBaseUrl,
+      appUrl: options.appUrl,
       state,
     });
     return NextResponse.redirect(url);

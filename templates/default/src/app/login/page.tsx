@@ -41,7 +41,7 @@ export default async function LoginPage({
               </p>
             ) : null}
 
-            <LoginForm slug={SLUG} baseUrl={PUBLIC_API_URL} redirectTo={`${APP_ORIGIN}/callback`} />
+            <LoginForm slug={SLUG} apiUrl={PUBLIC_API_URL} redirectTo={`${APP_ORIGIN}/callback`} />
 
             <p className="text-center text-xs text-muted-foreground">
               Ao continuar, você concorda com os Termos de Uso e a Política de Privacidade.

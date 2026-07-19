@@ -17,7 +17,7 @@ export type AppUser = UserProfile & {
 export async function getCurrentUser(): Promise<AppUser | null> {
   const session = await getSession({
     secretKey: process.env.INFI_SECRET_KEY!,
-    baseUrl: process.env.INFI_API_URL,
+    apiUrl: process.env.INFI_API_URL,
   });
   if (!session?.customer?.id) return null;
 

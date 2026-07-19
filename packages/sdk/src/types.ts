@@ -70,15 +70,22 @@ export interface GrantCreditInput {
 }
 export type PaymentMethod = "pix" | "boleto" | "card";
 
+/** Test vs live. Picks which API host the SDK talks to. */
+export type InfiMode = "sandbox" | "live";
+
 export interface InfiConfig {
   /** Secret API key (`sk_live_...` / `sk_test_...`) for server-side calls. */
   secretKey?: string;
-  /** Beinfi API base URL. Default: https://api.beinfi.com */
-  baseUrl?: string;
-  /** Hosted login base URL (the API host). Default: https://api.beinfi.com */
-  authBaseUrl?: string;
-  /** Hosted checkout base URL (the frontend app). Default: https://app.beinfi.com */
-  payBaseUrl?: string;
+  /**
+   * `"sandbox"` (default) or `"live"`. When omitted it is inferred from the key
+   * prefix (`sk_live_` → live, else sandbox). The SDK resolves the API host from
+   * this — you never pass a base URL for prod.
+   */
+  mode?: InfiMode;
+  /** Override the API host (local dev / self-host / tests). Defaults per mode. */
+  apiUrl?: string;
+  /** Override the app host that serves hosted checkout/login. Default app.beinfi.com. */
+  appUrl?: string;
 }
 
 export interface SendEmailCodeOptions {
@@ -134,21 +141,28 @@ export interface StartHostedLoginOptions {
   state?: string;
   /**
    * Host that serves the hosted-login page (`/identity/{slug}/login`) — the
-   * frontend app, NOT the API host. Defaults to {@link DEFAULT_HOSTED_LOGIN_BASE}.
-   * Point it at your local frontend in dev (e.g. `http://localhost:3000`).
+   * frontend app. Defaults to {@link DEFAULT_APP_BASE}. Point it at your local
+   * frontend in dev (e.g. `http://localhost:3000`).
    */
-  authBaseUrl?: string;
+  appUrl?: string;
 }
 
-export const DEFAULT_API_BASE = "https://api.beinfi.com";
-// Legacy auth base (the API host). The hosted-login PAGE is served by the frontend
-// app — see DEFAULT_HOSTED_LOGIN_BASE — not the API host.
-export const DEFAULT_AUTH_BASE = "https://api.beinfi.com";
+// API hosts, picked by mode. Sandbox and live are separate deployments (ADR 0014);
+// the SDK selects the host from `mode` so callers never hand-pass a base.
+export const SANDBOX_API_BASE = "https://api-sandbox.beinfi.com";
+export const LIVE_API_BASE = "https://api.beinfi.com";
 // The frontend app renders the hosted-login page (`/identity/{slug}/login`) and
-// hosted checkout (`/pay/...`). `buildHostedLoginUrl` links the browser straight
-// here — no backend redirect hop.
-export const DEFAULT_HOSTED_LOGIN_BASE = "https://app.beinfi.com";
-// Hosted checkout pages (`/pay/{slug}/invoices/{id}`) are rendered by the frontend
-// app, not a pay.* subdomain.
-export const DEFAULT_PAY_BASE = "https://app.beinfi.com";
+// hosted checkout (`/pay/...`) for both modes — same host.
+export const DEFAULT_APP_BASE = "https://app.beinfi.com";
 export const SESSION_COOKIE_NAME = "infi_session";
+
+/** Infer the mode from a key prefix: `sk_live_` → live, anything else → sandbox. */
+export function modeFromKey(secretKey?: string): InfiMode {
+  return secretKey?.startsWith("sk_live_") ? "live" : "sandbox";
+}
+
+/** Resolve the API host from mode, honoring an explicit override (local/tests). */
+export function resolveApiBase(mode: InfiMode, override?: string): string {
+  if (override) return override.replace(/\/$/, "");
+  return mode === "live" ? LIVE_API_BASE : SANDBOX_API_BASE;
+}

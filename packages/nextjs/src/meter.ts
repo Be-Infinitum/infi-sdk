@@ -62,7 +62,7 @@ export function withMeter<T>(
   options: MeterRouteOptions,
   handler: (req: NextRequest, ctx: { customerId: string }) => Promise<T>,
 ) {
-  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+  const infi = new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl });
   const mode = effectiveMode(options);
 
   return async function POST(req: NextRequest): Promise<NextResponse | Response> {

@@ -30,7 +30,7 @@ afterEach(() => {
 describe("sendEmailCode", () => {
   it("POSTs to the slug-scoped email-code endpoint", async () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 202 }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const out = await infi.sendEmailCode({
       slug: "acme",
@@ -52,7 +52,7 @@ describe("sendEmailCode", () => {
 
   it("throws on non-202", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ message: "nope" }, 429));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
     await expect(infi.sendEmailCode({ slug: "acme", email: "a@b.com" })).rejects.toThrow("nope");
   });
 });
@@ -62,7 +62,7 @@ describe("verifyEmailCode", () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ redirectUrl: "http://localhost:3009/callback?code=abc&state=s1" }),
     );
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const out = await infi.verifyEmailCode({ slug: "acme", email: "a@b.com", code: "123456" });
 
@@ -77,7 +77,7 @@ describe("verifyEmailCode", () => {
 describe("exchangeCode", () => {
   it("POSTs with secret-key bearer auth", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ identity: { id: "id_1" } }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const result = await infi.exchangeCode("code_1", { sessionMode: "infi" });
 
@@ -90,7 +90,7 @@ describe("exchangeCode", () => {
   });
 
   it("rejects a publishable key", async () => {
-    const infi = new Infi({ secretKey: "pk_live_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "pk_live_x", apiUrl: BASE });
     await expect(infi.exchangeCode("code_1")).rejects.toThrow("publishable key");
   });
 });
@@ -98,7 +98,7 @@ describe("exchangeCode", () => {
 describe("track", () => {
   it("POSTs a single usage event to /metering/events", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 1 }, 202));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await infi.track({ meter: "tokens", value: "100", customerId: "cust_1" });
 
@@ -111,7 +111,7 @@ describe("track", () => {
 
   it("POSTs a batch to /metering/events/batch", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 2 }, 202));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await infi.trackBatch([{ meter: "a" }, { meter: "b" }]);
 
@@ -126,7 +126,7 @@ describe("getAppConfig", () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ appName: "Acme", slug: "acme", sessionMode: "infi" }),
     );
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const cfg = await infi.getAppConfig("acme");
 

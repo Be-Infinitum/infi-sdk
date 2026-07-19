@@ -1,4 +1,4 @@
-import { Infi, DEFAULT_API_BASE } from "@beinfi/sdk";
+import { Infi, LIVE_API_BASE } from "@beinfi/sdk";
 import { getProfile, loadConfig } from "./config.js";
 
 export type GlobalFlags = {
@@ -13,7 +13,7 @@ export function apiBase(flags: GlobalFlags): string {
   const fromEnv = process.env.INFI_API_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   const profile = getProfile(loadConfig(), flags.profile);
-  return profile?.baseUrl?.replace(/\/$/, "") ?? DEFAULT_API_BASE;
+  return profile?.baseUrl?.replace(/\/$/, "") ?? LIVE_API_BASE;
 }
 
 export function resolveSecretKey(flags: GlobalFlags): string {
@@ -27,10 +27,10 @@ export function resolveSecretKey(flags: GlobalFlags): string {
 export function infiClient(flags: GlobalFlags): Infi {
   return new Infi({
     secretKey: resolveSecretKey(flags),
-    baseUrl: apiBase(flags),
+    apiUrl: apiBase(flags),
   });
 }
 
 export function publicInfi(flags: GlobalFlags): Infi {
-  return new Infi({ baseUrl: apiBase(flags) });
+  return new Infi({ apiUrl: apiBase(flags) });
 }

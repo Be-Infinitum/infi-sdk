@@ -17,7 +17,7 @@ import type { StateOptions } from "./types.js";
  * ```
  */
 export function State(options: StateOptions) {
-  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+  const infi = new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl });
 
   return async function GET(req: NextRequest): Promise<NextResponse> {
     const customerId = await options.resolveCustomerId(req);

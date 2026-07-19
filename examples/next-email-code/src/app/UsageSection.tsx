@@ -13,7 +13,7 @@ export default async function UsageSection() {
   if (!customerId || !secretKey) return null;
 
   try {
-    const infi = new Infi({ secretKey, baseUrl: process.env.INFI_API_URL });
+    const infi = new Infi({ secretKey, apiUrl: process.env.INFI_API_URL });
     const state = await infi.customers.state(customerId);
     return (
       <div className="mx-auto mt-6 max-w-lg px-4 pb-16">

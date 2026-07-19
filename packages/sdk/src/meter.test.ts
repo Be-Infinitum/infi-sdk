@@ -83,7 +83,7 @@ describe("infi.meter", () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" })) // credit gate
       .mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const llmResult = { choices: ["hi"], usage: { total_tokens: 42 } };
     const out = await infi.meter({ customerId: "c1", meter: "tokens" }, async () => llmResult);
@@ -107,7 +107,7 @@ describe("infi.meter", () => {
     fetchMock
       .mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" })) // credit gate
       .mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await infi.meter({ enrollmentId: "enr1", meter: "tokens" }, async () => ({
       usage: { total_tokens: 7 },
@@ -125,7 +125,7 @@ describe("infi.meter", () => {
 
   it("throws InsufficientCreditError before running fn when balance is 0", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "0", total: "10" }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const fn = vi.fn(async () => ({ usage: { total_tokens: 1 } }));
     await expect(infi.meter({ customerId: "c1", meter: "tokens" }, fn)).rejects.toBeInstanceOf(
@@ -137,7 +137,7 @@ describe("infi.meter", () => {
 
   it("skipGuard records without a credit check (deprecated alias of postpaid)", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track only
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await infi.meter({ customerId: "c1", meter: "req", value: 1, skipGuard: true }, async () => ({}));
 
@@ -148,7 +148,7 @@ describe("infi.meter", () => {
 
   it('mode "postpaid" records without gating', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 1 })); // track only
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await infi.meter(
       { customerId: "c1", meter: "inventory_update", value: 3, mode: "postpaid" },
@@ -163,7 +163,7 @@ describe("infi.meter", () => {
 
   it('mode "streaming" gates but does not record', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" })); // gate only
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const stream = { toDataStreamResponse: () => "stream" };
     const out = await infi.meter(
@@ -179,7 +179,7 @@ describe("infi.meter", () => {
 
   it('mode "streaming" still throws when out of credit', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "0", total: "0" }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const fn = vi.fn(async () => ({}));
     await expect(
@@ -190,7 +190,7 @@ describe("infi.meter", () => {
 
   it("does not record when fn throws", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "100", total: "100" }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await expect(
       infi.meter({ customerId: "c1", meter: "tokens" }, async () => {

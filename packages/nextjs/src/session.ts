@@ -4,8 +4,8 @@ import { cookies } from "next/headers";
 export interface GetSessionOptions {
   /** Secret key (`sk_...`) used to resolve the token server-side. */
   secretKey: string;
-  /** Infi API base URL. Defaults to the SDK's DEFAULT_API_BASE. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
 }
 
 /**
@@ -38,7 +38,7 @@ export async function getSession(
   const token = await getSessionToken();
   if (!token) return null;
 
-  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+  const infi = new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl });
   try {
     return await infi.getSession(token);
   } catch {

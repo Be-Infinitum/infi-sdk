@@ -17,7 +17,7 @@ describe("infi.invoices.fromUsage", () => {
 
   it("POSTs /billing/invoices/from-usage with the window", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "inv_1", status: "open", total: "12.34" }, 201));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const inv = await infi.invoices.fromUsage({ customerId: "enr_1", from: "2026-07-01T00:00:00Z", to: "2026-07-17T00:00:00Z", send: true });
 
@@ -44,7 +44,7 @@ describe("infi.session", () => {
 
   it("batches queued events into one trackBatch, then clears", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ accepted: 2, failed: 0 }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const s = infi.session("enr_1");
     s.track("tokens", 1500, { model: "gpt-4o-mini" }).track("requests", 1);
@@ -65,7 +65,7 @@ describe("infi.session", () => {
   });
 
   it("flush is a no-op when empty", async () => {
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
     const res = await infi.session("enr_1").flush();
     expect(res).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();

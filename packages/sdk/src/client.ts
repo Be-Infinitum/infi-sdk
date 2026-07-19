@@ -27,6 +27,7 @@ import type {
   ExchangeCodeOptions,
   HostedAppConfig,
   InfiConfig,
+  InfiMode,
   InfiRequestLike,
   IngestResult,
   Invoice,
@@ -35,7 +36,7 @@ import type {
   UsageEvent,
   VerifyEmailCodeOptions,
 } from "./types.js";
-import { DEFAULT_API_BASE, DEFAULT_AUTH_BASE, DEFAULT_PAY_BASE } from "./types.js";
+import { DEFAULT_APP_BASE, modeFromKey, resolveApiBase } from "./types.js";
 
 function isPublishableKey(key: string): boolean {
   return key.startsWith("pk_");
@@ -74,9 +75,9 @@ export type CheckoutOptions =
 
 export class Infi {
   readonly #secretKey?: string;
-  readonly #baseUrl: string;
-  readonly #authBaseUrl: string;
-  readonly #payBaseUrl: string;
+  readonly #mode: InfiMode;
+  readonly #apiBase: string;
+  readonly #appBase: string;
 
   /** Catalog: products, versions, prices, meters. */
   readonly products: ProductsResource;
@@ -100,25 +101,19 @@ export class Infi {
   readonly pay: PayResource;
 
   constructor(config: InfiConfig | string) {
-    if (typeof config === "string") {
-      if (!isSecretKey(config)) {
-        throw new InfiError("Infi constructor expects a secret key (sk_...)", 400, "invalid_key");
-      }
-      this.#secretKey = config;
-      this.#baseUrl = DEFAULT_API_BASE;
-      this.#authBaseUrl = DEFAULT_AUTH_BASE;
-      this.#payBaseUrl = DEFAULT_PAY_BASE;
-    } else {
-      // No key is required for the public email-code endpoints (sendEmailCode /
-      // verifyEmailCode / getAppConfig). The secret key is only needed server-side
-      // for exchangeCode, metering and the billing surface (guarded per method).
-      this.#secretKey = config.secretKey;
-      this.#baseUrl = (config.baseUrl ?? DEFAULT_API_BASE).replace(/\/$/, "");
-      this.#authBaseUrl = (config.authBaseUrl ?? DEFAULT_AUTH_BASE).replace(/\/$/, "");
-      this.#payBaseUrl = (config.payBaseUrl ?? DEFAULT_PAY_BASE).replace(/\/$/, "");
+    // No key is required for the public endpoints (email-code login, pay). The
+    // secret key is only needed server-side (guarded per method). The mode picks
+    // the API host — callers never pass a base URL for prod.
+    const cfg: InfiConfig = typeof config === "string" ? { secretKey: config } : config;
+    if (typeof config === "string" && !isSecretKey(config)) {
+      throw new InfiError("Infi constructor expects a secret key (sk_...)", 400, "invalid_key");
     }
+    this.#secretKey = cfg.secretKey;
+    this.#mode = cfg.mode ?? modeFromKey(cfg.secretKey);
+    this.#apiBase = resolveApiBase(this.#mode, cfg.apiUrl);
+    this.#appBase = (cfg.appUrl ?? DEFAULT_APP_BASE).replace(/\/$/, "");
 
-    const transport = new Transport(this.#baseUrl, this.#secretKey);
+    const transport = new Transport(this.#apiBase, this.#secretKey);
     this.products = new ProductsResource(transport);
     this.customers = new CustomersResource(transport);
     this.apps = new AppsResource(transport);
@@ -128,15 +123,22 @@ export class Infi {
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
     this.webhooks = new WebhooksResource(transport);
-    this.pay = new PayResource(this.#baseUrl);
+    this.pay = new PayResource(this.#apiBase);
   }
 
-  get baseUrl(): string {
-    return this.#baseUrl;
+  /** `"sandbox"` or `"live"` — the resolved mode. */
+  get mode(): InfiMode {
+    return this.#mode;
   }
 
-  get authBaseUrl(): string {
-    return this.#authBaseUrl;
+  /** The API host this client calls (resolved from mode). */
+  get apiBase(): string {
+    return this.#apiBase;
+  }
+
+  /** The app host serving hosted checkout/login. */
+  get appBase(): string {
+    return this.#appBase;
   }
 
   // ── Identity: email-code login (public, slug-scoped) ───────────────────────
@@ -197,7 +199,7 @@ export class Infi {
   /** Exchange a single-use auth code for a verified identity and optional session. */
   async exchangeCode(code: string, options: ExchangeCodeOptions = {}): Promise<AuthResult> {
     this.#requireSecretKey("exchangeCode");
-    const res = await fetch(`${this.#baseUrl}/identity/exchange`, {
+    const res = await fetch(`${this.#apiBase}/identity/exchange`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.#secretKey}`,
@@ -221,7 +223,7 @@ export class Infi {
    */
   async getSession(token: string): Promise<SessionIntrospection> {
     this.#requireSecretKey("getSession");
-    const res = await fetch(`${this.#baseUrl}/identity/session`, {
+    const res = await fetch(`${this.#apiBase}/identity/session`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${this.#secretKey}`,
@@ -250,7 +252,7 @@ export class Infi {
   /** Ingest a single usage event. */
   async track(event: UsageEvent): Promise<IngestResult> {
     this.#requireSecretKey("track");
-    const res = await fetch(`${this.#baseUrl}/metering/events`, {
+    const res = await fetch(`${this.#apiBase}/metering/events`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.#secretKey}`,
@@ -277,7 +279,7 @@ export class Infi {
   /** Ingest a batch of usage events (all-or-nothing). */
   async trackBatch(events: UsageEvent[]): Promise<IngestResult> {
     this.#requireSecretKey("trackBatch");
-    const res = await fetch(`${this.#baseUrl}/metering/events/batch`, {
+    const res = await fetch(`${this.#apiBase}/metering/events/batch`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.#secretKey}`,
@@ -397,7 +399,7 @@ export class Infi {
         cancelUrl: opts.cancelUrl,
       });
     }
-    const url = `${this.#payBaseUrl}/pay/${encodeURIComponent(opts.slug)}/invoices/${invoice.id}`;
+    const url = `${this.#appBase}/pay/${encodeURIComponent(opts.slug)}/invoices/${invoice.id}`;
     return { invoice, url };
   }
 
@@ -419,7 +421,7 @@ export class Infi {
   }
 
   #appUrl(slug: string, action: string): string {
-    return `${this.#baseUrl}/identity/apps/${encodeURIComponent(slug)}/${action}`;
+    return `${this.#apiBase}/identity/apps/${encodeURIComponent(slug)}/${action}`;
   }
 
   #requireSecretKey(method: string): void {

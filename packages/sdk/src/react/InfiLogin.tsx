@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useState, type FormEvent } from "react";
-import { DEFAULT_API_BASE } from "../types.js";
+import { LIVE_API_BASE } from "../types.js";
 
 export interface InfiLoginProps {
   /** App slug the login is scoped to. */
   slug: string;
   /** API base URL. Default: https://api.beinfi.com */
-  baseUrl?: string;
+  apiUrl?: string;
   /** Where to land after the auth code is verified (must be in the app allowlist). */
   redirectTo?: string;
   /** Opaque value echoed back on the redirect URL. */
@@ -28,8 +28,8 @@ export interface InfiLoginProps {
   onVerified?: (redirectUrl: string) => void;
 }
 
-function appUrl(baseUrl: string, slug: string, action: string): string {
-  return `${baseUrl.replace(/\/$/, "")}/identity/apps/${encodeURIComponent(slug)}/${action}`;
+function appUrl(apiUrl: string, slug: string, action: string): string {
+  return `${apiUrl.replace(/\/$/, "")}/identity/apps/${encodeURIComponent(slug)}/${action}`;
 }
 
 /**
@@ -38,7 +38,7 @@ function appUrl(baseUrl: string, slug: string, action: string): string {
  */
 export function InfiLogin({
   slug,
-  baseUrl = DEFAULT_API_BASE,
+  apiUrl = LIVE_API_BASE,
   redirectTo,
   state,
   className,
@@ -60,7 +60,7 @@ export function InfiLogin({
       e.preventDefault();
       setLoading(true);
       try {
-        const res = await fetch(appUrl(baseUrl, slug, "email-code"), {
+        const res = await fetch(appUrl(apiUrl, slug, "email-code"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, redirectTo, state }),
@@ -76,7 +76,7 @@ export function InfiLogin({
         setLoading(false);
       }
     },
-    [baseUrl, slug, email, redirectTo, state, onSent, onError],
+    [apiUrl, slug, email, redirectTo, state, onSent, onError],
   );
 
   const verifyCode = useCallback(
@@ -84,7 +84,7 @@ export function InfiLogin({
       e.preventDefault();
       setLoading(true);
       try {
-        const res = await fetch(appUrl(baseUrl, slug, "verify-code"), {
+        const res = await fetch(appUrl(apiUrl, slug, "verify-code"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, code }),
@@ -104,7 +104,7 @@ export function InfiLogin({
         setLoading(false);
       }
     },
-    [baseUrl, slug, email, code, onVerified, onError],
+    [apiUrl, slug, email, code, onVerified, onError],
   );
 
   if (step === "code") {

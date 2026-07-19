@@ -12,7 +12,7 @@ import {
 } from "@/lib/styles";
 
 const apiUrl = process.env.NEXT_PUBLIC_INFI_API_URL ?? "http://localhost:8088";
-const authBaseUrl = process.env.NEXT_PUBLIC_INFI_AUTH_BASE_URL ?? apiUrl;
+const appUrl = process.env.NEXT_PUBLIC_INFI_AUTH_BASE_URL ?? apiUrl;
 const slug = process.env.NEXT_PUBLIC_INFI_APP_SLUG ?? "dev";
 
 type Tab = "embedded" | "hosted" | "headless";
@@ -61,7 +61,7 @@ export default function HomePage() {
   async function verifyHeadless() {
     setError(null);
     try {
-      const infi = new Infi({ baseUrl: apiUrl });
+      const infi = new Infi({ apiUrl: apiUrl });
       const { redirectUrl } = await infi.verifyEmailCode({ slug, email, code });
       window.location.assign(redirectUrl);
     } catch (e) {
@@ -121,7 +121,7 @@ export default function HomePage() {
             <InfiLogin
               slug={slug}
               redirectTo={redirectTo}
-              baseUrl={apiUrl}
+              apiUrl={apiUrl}
               className={loginFormClass}
               inputClassName={inputClass}
               buttonClassName={buttonClass}
@@ -141,7 +141,7 @@ export default function HomePage() {
             <button
               type="button"
               className={buttonClass}
-              onClick={() => startHostedLogin({ slug, redirectTo, authBaseUrl })}
+              onClick={() => startHostedLogin({ slug, redirectTo, appUrl })}
             >
               Sign in with Infi
             </button>

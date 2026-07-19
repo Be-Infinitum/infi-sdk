@@ -6,7 +6,7 @@ import { prisma } from "@/lib/db";
 export async function POST() {
   const session = await getSession({
     secretKey: process.env.INFI_SECRET_KEY!,
-    baseUrl: process.env.INFI_API_URL,
+    apiUrl: process.env.INFI_API_URL,
   });
   if (!session?.customer?.id) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

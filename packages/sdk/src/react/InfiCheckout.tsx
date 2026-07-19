@@ -8,7 +8,7 @@ import type { Payment } from "../resources/pay.js";
 export interface InfiCheckoutProps {
   slug: string;
   invoiceId: string;
-  baseUrl?: string;
+  apiUrl?: string;
   /** Which methods to offer (default both). */
   methods?: Array<"pix" | "card">;
   className?: string;
@@ -31,7 +31,7 @@ export interface InfiCheckoutProps {
 export function InfiCheckout({
   slug,
   invoiceId,
-  baseUrl,
+  apiUrl,
   methods = ["pix", "card"],
   className,
   tabClassName,
@@ -68,7 +68,7 @@ export function InfiCheckout({
         <InfiPixQr
           slug={slug}
           invoiceId={invoiceId}
-          baseUrl={baseUrl}
+          apiUrl={apiUrl}
           className={pixClassName}
           onPaid={() => onPaid?.()}
           onError={onError}
@@ -77,7 +77,7 @@ export function InfiCheckout({
         <InfiCardForm
           slug={slug}
           invoiceId={invoiceId}
-          baseUrl={baseUrl}
+          apiUrl={apiUrl}
           className={cardClassName}
           inputClassName={inputClassName}
           buttonClassName={buttonClassName}

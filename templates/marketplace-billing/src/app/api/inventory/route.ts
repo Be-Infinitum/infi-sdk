@@ -22,7 +22,7 @@ interface InventoryUpdate {
 export const POST = withMeter(
   {
     secretKey: process.env.INFI_SECRET_KEY!,
-    baseUrl: process.env.INFI_API_URL,
+    apiUrl: process.env.INFI_API_URL,
     meter: "inventory_update",
     // External id (as with trackBatch), passed by the marketplace on the header.
     resolveCustomerId: (req) => req.headers.get("x-org-id") ?? undefined,

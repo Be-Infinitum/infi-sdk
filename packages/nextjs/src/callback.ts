@@ -13,7 +13,7 @@ import type { CallbackOptions } from "./types.js";
  * ```
  */
 export function Callback(options: CallbackOptions) {
-  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+  const infi = new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl });
 
   return async function GET(req: NextRequest): Promise<NextResponse> {
     try {

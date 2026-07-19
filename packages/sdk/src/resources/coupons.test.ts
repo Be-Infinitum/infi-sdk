@@ -23,7 +23,7 @@ describe("infi.coupons", () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ id: "cpn_1", code: "LAUNCH20", percentOff: "20", status: "active" }, 201),
     );
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const coupon = await infi.coupons.create({
       code: "LAUNCH20",
@@ -40,7 +40,7 @@ describe("infi.coupons", () => {
 
   it("list GETs /billing/coupons and unwraps", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ coupons: [{ id: "cpn_1" }, { id: "cpn_2" }] }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const coupons = await infi.coupons.list();
     expect(coupons).toHaveLength(2);
@@ -48,7 +48,7 @@ describe("infi.coupons", () => {
 
   it("updateStatus PATCHes /billing/coupons/{id}", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "cpn_1", status: "archived" }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const coupon = await infi.coupons.updateStatus("cpn_1", "archived");
 

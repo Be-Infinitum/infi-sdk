@@ -20,7 +20,7 @@ export async function createContact(formData: FormData) {
   const ingest = meterAction(
     {
       secretKey: process.env.INFI_SECRET_KEY!,
-      baseUrl: process.env.INFI_API_URL,
+      apiUrl: process.env.INFI_API_URL,
       meter: "leads_ingested",
       customerId: user.id,
       mode: "postpaid",

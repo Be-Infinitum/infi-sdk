@@ -23,8 +23,8 @@ export interface LoginOptions {
   slug: string;
   /** Where the hosted flow lands after the code is verified. Relative paths are resolved against the request origin. */
   redirectTo: string;
-  /** Hosted login base URL. Defaults to the SDK's `DEFAULT_AUTH_BASE`. */
-  authBaseUrl?: string;
+  /** Hosted login base URL. Defaults to the mode-derived host. */
+  appUrl?: string;
   /** Opaque value echoed back on the redirect. A function receives the incoming request. */
   state?: string | ((req: NextRequest) => string | undefined);
 }
@@ -34,8 +34,8 @@ export interface CallbackOptions {
   secretKey: string;
   /** Where to send the browser after a successful exchange. Relative paths are resolved against the request origin. */
   successUrl: string;
-  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
   /** Session mode passed to `exchangeCode` ("infi" | "byo"). */
   sessionMode?: SessionMode;
   /** Cookie options forwarded to `setSessionCookie`. */
@@ -62,8 +62,8 @@ export interface CallbackOptions {
 export interface UsageOptions {
   /** Secret key (`sk_...`) used to ingest events server-side. */
   secretKey: string;
-  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
   /** Resolve the authed customer's id and stamp it onto every event in the request. */
   resolveCustomerId?: (req: NextRequest) => string | undefined | Promise<string | undefined>;
 }
@@ -71,8 +71,8 @@ export interface UsageOptions {
 export interface MeterRouteOptions {
   /** Secret key (`sk_...`) used to gate credit + record usage server-side. */
   secretKey: string;
-  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
   /** Meter the usage records against (e.g. "tokens"). */
   meter: string;
   /** Gate/record behavior by billing intent. Default `"prepaid"` (gate + record). */
@@ -96,8 +96,8 @@ export interface MeterRouteOptions {
 export interface MeterActionOptions {
   /** Secret key (`sk_...`) used to gate credit + record usage server-side. */
   secretKey: string;
-  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
   /** Meter the usage records against (e.g. "tokens"). */
   meter: string;
   /**
@@ -118,8 +118,8 @@ export interface MeterActionOptions {
 export interface GuardCreditOptions {
   /** Secret key (`sk_...`) used to read the customer's wallet balance. */
   secretKey: string;
-  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
   /** The customer whose credit is gated. */
   customerId: string;
 }
@@ -127,8 +127,8 @@ export interface GuardCreditOptions {
 export interface StateOptions {
   /** Secret key (`sk_...`) used to read customer state server-side. */
   secretKey: string;
-  /** Infi API base URL. Defaults to the SDK's `DEFAULT_API_BASE`. */
-  baseUrl?: string;
+  /** Infi API base URL. Defaults to the mode-derived host. */
+  apiUrl?: string;
   /** Resolve the authed customer's id from the request (required — whose state). */
   resolveCustomerId: (req: NextRequest) => string | undefined | Promise<string | undefined>;
 }

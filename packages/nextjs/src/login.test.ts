@@ -7,7 +7,7 @@ describe("Login", () => {
     const GET = Login({
       slug: "acme",
       redirectTo: "/api/auth/callback",
-      authBaseUrl: "https://auth.example.com",
+      appUrl: "https://auth.example.com",
     });
     const res = GET(new NextRequest("https://app.example.com/api/auth/login"));
 
@@ -21,7 +21,7 @@ describe("Login", () => {
     const GET = Login({
       slug: "acme",
       redirectTo: "/cb",
-      authBaseUrl: "https://auth.example.com",
+      appUrl: "https://auth.example.com",
       state: () => "xyz",
     });
     const res = GET(new NextRequest("https://app.example.com/login"));

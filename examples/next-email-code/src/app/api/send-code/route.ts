@@ -17,7 +17,7 @@ import { Infi } from "@beinfi/sdk";
 export const POST = withMeter(
   {
     secretKey: process.env.INFI_SECRET_KEY!,
-    baseUrl: process.env.INFI_API_URL,
+    apiUrl: process.env.INFI_API_URL,
     meter: "email_sends",
     mode: "postpaid",
     // A send is one unit — skip the LLM token auto-detection entirely.
@@ -26,7 +26,7 @@ export const POST = withMeter(
   },
   async (req) => {
     const { slug, email, redirectTo } = await req.json();
-    const infi = new Infi({ baseUrl: process.env.INFI_API_URL });
+    const infi = new Infi({ apiUrl: process.env.INFI_API_URL });
     await infi.sendEmailCode({ slug, email, redirectTo });
     // sendEmailCode resolves void; return a JSON-serializable ack for withMeter.
     return { sent: true };

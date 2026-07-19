@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Changed
+- **`new Infi` takes `mode`, not base URLs.** Replaced `baseUrl`/`authBaseUrl`/
+  `payBaseUrl` with `mode: "sandbox" | "live"` (inferred from the key prefix —
+  `sk_live_` → live, else sandbox) plus optional `apiUrl`/`appUrl` overrides for
+  local dev. The SDK resolves the API host from mode (sandbox →
+  api-sandbox.beinfi.com, live → api.beinfi.com); you never pass a base for prod.
+  React props and `@beinfi/nextjs` adapter options renamed `baseUrl` → `apiUrl`,
+  `authBaseUrl` → `appUrl`. Constants `DEFAULT_API_BASE`/`DEFAULT_AUTH_BASE`/
+  `DEFAULT_PAY_BASE` → `SANDBOX_API_BASE`/`LIVE_API_BASE`/`DEFAULT_APP_BASE`; new
+  `modeFromKey`, `resolveApiBase`, and the `InfiMode` type.
 - **Rename sandbox → claim** (backend ADR 0005). "Sandbox" now means only
   test-vs-live mode; the provision-instant-creds-then-claim flow is a *claimable
   tenant*. CLI: `infi sandbox create|get` → `infi claim create|get`; `@beinfi/cli`

@@ -11,7 +11,7 @@ describe("buildHostedLoginUrl", () => {
       slug: "acme",
       redirectTo: "http://localhost:3009/callback",
       state: "abc",
-      authBaseUrl: "http://localhost:8088",
+      appUrl: "http://localhost:8088",
     });
     expect(url).toBe(
       "http://localhost:8088/identity/acme/login?redirect_uri=http%3A%2F%2Flocalhost%3A3009%2Fcallback&state=abc",

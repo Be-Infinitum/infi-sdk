@@ -121,8 +121,11 @@ export type {
   WebhookEndpoint,
 } from "./types.js";
 export {
-  DEFAULT_API_BASE,
-  DEFAULT_AUTH_BASE,
-  DEFAULT_PAY_BASE,
+  SANDBOX_API_BASE,
+  LIVE_API_BASE,
+  DEFAULT_APP_BASE,
   SESSION_COOKIE_NAME,
+  modeFromKey,
+  resolveApiBase,
 } from "./types.js";
+export type { InfiMode } from "./types.js";

@@ -41,7 +41,7 @@ app.get("/api/auth/login", (c) => {
   const url = buildHostedLoginUrl({
     slug: SLUG,
     redirectTo: `${APP_URL}/callback`,
-    authBaseUrl: process.env.INFI_AUTH_BASE_URL,
+    appUrl: process.env.INFI_AUTH_BASE_URL,
   });
   return c.redirect(url);
 });

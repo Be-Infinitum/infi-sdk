@@ -58,7 +58,7 @@ export function App() {
             </div>
             <InfiLogin
               slug={import.meta.env.VITE_INFI_SLUG}
-              baseUrl={import.meta.env.VITE_INFI_API_URL}
+              apiUrl={import.meta.env.VITE_INFI_API_URL}
               redirectTo={`${window.location.origin}/callback`}
               sendLabel="Enviar código"
               verifyLabel="Entrar"

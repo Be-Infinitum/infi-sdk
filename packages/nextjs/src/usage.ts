@@ -20,7 +20,7 @@ function isBatch(body: unknown): body is BatchBody {
  * ```
  */
 export function Usage(options: UsageOptions) {
-  const infi = new Infi({ secretKey: options.secretKey, baseUrl: options.baseUrl });
+  const infi = new Infi({ secretKey: options.secretKey, apiUrl: options.apiUrl });
 
   return async function POST(req: NextRequest): Promise<NextResponse> {
     const body = (await req.json()) as UsageEvent | BatchBody;

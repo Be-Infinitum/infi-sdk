@@ -4,17 +4,17 @@ import { InfiLogin } from "@beinfi/sdk/react";
 
 export function LoginForm({
   slug,
-  baseUrl,
+  apiUrl,
   redirectTo,
 }: {
   slug: string;
-  baseUrl: string;
+  apiUrl: string;
   redirectTo: string;
 }) {
   return (
     <InfiLogin
       slug={slug}
-      baseUrl={baseUrl}
+      apiUrl={apiUrl}
       redirectTo={redirectTo}
       sendLabel="Enviar código"
       verifyLabel="Entrar"

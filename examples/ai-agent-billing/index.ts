@@ -25,8 +25,6 @@ import {
 
 // ── Config ──────────────────────────────────────────
 const API_KEY = process.env.INFI_SECRET_KEY;
-const BASE_URL = process.env.INFI_API_URL || "https://api-sandbox.beinfi.com";
-const PAY_BASE = process.env.INFI_PAY_BASE_URL || "https://app.beinfi.com";
 const WEBHOOK_PORT = parseInt(process.env.WEBHOOK_PORT || "9876", 10);
 const CUSTOMER_EMAIL = process.env.CUSTOMER_EMAIL || "demo@example.com";
 const CURRENCY = "BRL";
@@ -38,7 +36,10 @@ if (!API_KEY) {
   process.exit(1);
 }
 
-const infi = new Infi({ secretKey: API_KEY, baseUrl: BASE_URL, payBaseUrl: PAY_BASE });
+// The mode (test vs live) is inferred from the key prefix — `sk_test_` → sandbox
+// (api-sandbox.beinfi.com), `sk_live_` → live. No base URL to pass. Override the
+// host only for local dev with `apiUrl`.
+const infi = new Infi({ secretKey: API_KEY, apiUrl: process.env.INFI_API_URL });
 
 // ── Helpers ─────────────────────────────────────────
 function header(text: string) {

@@ -9,7 +9,7 @@ export interface InfiPixQrProps {
   /** Invoice to charge. */
   invoiceId: string;
   /** API base URL (default https://api.beinfi.com). */
-  baseUrl?: string;
+  apiUrl?: string;
   /** Charge automatically on mount (default true). When false, call via a ref/button. */
   autoCharge?: boolean;
   /** Poll interval for payment confirmation, ms (default 3000). */
@@ -33,7 +33,7 @@ export interface InfiPixQrProps {
 export function InfiPixQr({
   slug,
   invoiceId,
-  baseUrl,
+  apiUrl,
   autoCharge = true,
   pollIntervalMs = 3000,
   className,
@@ -49,7 +49,7 @@ export function InfiPixQr({
   const [loading, setLoading] = useState(false);
   const startedRef = useRef(false);
 
-  const pay = new PayResource(baseUrl ?? "https://api.beinfi.com");
+  const pay = new PayResource(apiUrl ?? "https://api.beinfi.com");
 
   const charge = useCallback(async () => {
     setLoading(true);
@@ -62,7 +62,7 @@ export function InfiPixQr({
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, invoiceId, baseUrl]);
+  }, [slug, invoiceId, apiUrl]);
 
   // Auto-charge once on mount.
   useEffect(() => {

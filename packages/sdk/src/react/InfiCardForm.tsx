@@ -6,7 +6,7 @@ import { PayResource, type CardInput, type Payment } from "../resources/pay.js";
 export interface InfiCardFormProps {
   slug: string;
   invoiceId: string;
-  baseUrl?: string;
+  apiUrl?: string;
   className?: string;
   inputClassName?: string;
   buttonClassName?: string;
@@ -39,7 +39,7 @@ const EMPTY: CardInput = {
 export function InfiCardForm({
   slug,
   invoiceId,
-  baseUrl,
+  apiUrl,
   className,
   inputClassName,
   buttonClassName,
@@ -58,7 +58,7 @@ export function InfiCardForm({
       e.preventDefault();
       setLoading(true);
       try {
-        const pay = new PayResource(baseUrl ?? "https://api.beinfi.com");
+        const pay = new PayResource(apiUrl ?? "https://api.beinfi.com");
         const payment = await pay.charge({ slug, invoiceId, method: "card", card });
         // Drop the card values from state immediately after submit.
         setCard(EMPTY);
@@ -69,7 +69,7 @@ export function InfiCardForm({
         setLoading(false);
       }
     },
-    [slug, invoiceId, baseUrl, card, onPaid, onError],
+    [slug, invoiceId, apiUrl, card, onPaid, onError],
   );
 
   return (

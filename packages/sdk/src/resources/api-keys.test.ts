@@ -22,7 +22,7 @@ describe("infi.apiKeys", () => {
 
   it("create POSTs /account/api-keys", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "key_1", secret: "sk_test_abc" }, 201));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const key = await infi.apiKeys.create({ kind: "secret" });
 
@@ -34,7 +34,7 @@ describe("infi.apiKeys", () => {
 
   it("list GETs /account/api-keys", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ apiKeys: [{ id: "k1" }] }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const keys = await infi.apiKeys.list();
     expect(keys).toHaveLength(1);
@@ -63,7 +63,7 @@ describe("exchangeCliToken", () => {
     );
 
     const res = await exchangeCliToken({
-      baseUrl: BASE,
+      apiUrl: BASE,
       sessionToken: "session_jwt",
     });
 

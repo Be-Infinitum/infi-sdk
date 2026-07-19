@@ -14,8 +14,8 @@ export const PUBLIC_API_URL = process.env.NEXT_PUBLIC_INFI_API_URL ?? "https://a
 
 export const infi = new Infi({
   secretKey: process.env.INFI_SECRET_KEY!,
-  baseUrl: process.env.INFI_API_URL,
-  payBaseUrl: process.env.INFI_PAY_BASE_URL,
+  apiUrl: process.env.INFI_API_URL,
+  appUrl: process.env.INFI_PAY_BASE_URL,
 });
 
 export async function productId(): Promise<string> {

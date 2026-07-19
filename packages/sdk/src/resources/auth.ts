@@ -2,14 +2,14 @@ import { parseErrorResponse } from "../errors.js";
 import type { CLITokenResponse } from "../types.js";
 
 export type ExchangeCliTokenOptions = {
-  baseUrl: string;
+  apiUrl: string;
   sessionToken: string;
   tenantSlug?: string;
 };
 
 /** Exchange a dashboard session token (from `infi login`) for a tenant API key. */
 export async function exchangeCliToken(options: ExchangeCliTokenOptions): Promise<CLITokenResponse> {
-  const base = options.baseUrl.replace(/\/$/, "");
+  const base = options.apiUrl.replace(/\/$/, "");
   const res = await fetch(`${base}/auth/cli/token`, {
     method: "POST",
     headers: {

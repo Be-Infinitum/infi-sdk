@@ -27,7 +27,7 @@ The CLI exchanges it for a tenant API key and saves it to ~/.config/infi/config.
 
   const baseUrl = apiBase(flags);
   const res = await exchangeCliToken({
-    baseUrl,
+    apiUrl: baseUrl,
     sessionToken: flags.token,
     tenantSlug: flags.tenant,
   });

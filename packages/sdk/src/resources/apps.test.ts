@@ -21,7 +21,7 @@ describe("infi.apps", () => {
 
   it("create POSTs /account/apps with the app config", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "app_1", slug: "crm-demo" }, 201));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const app = await infi.apps.create({
       slug: "crm-demo",
@@ -45,7 +45,7 @@ describe("infi.apps", () => {
 
   it("update PATCHes /account/apps/{id}", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: "app_1" }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await infi.apps.update("app_1", { redirectUris: ["http://localhost:3010/callback"] });
 
@@ -56,7 +56,7 @@ describe("infi.apps", () => {
 
   it("list unwraps the apps array", async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ apps: [{ id: "app_1" }, { id: "app_2" }] }));
-    const infi = new Infi({ secretKey: "sk_test_x", baseUrl: BASE });
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     const apps = await infi.apps.list();
     expect(apps).toHaveLength(2);
@@ -65,7 +65,7 @@ describe("infi.apps", () => {
   });
 
   it("requires a secret key", async () => {
-    const infi = new Infi({ baseUrl: BASE }); // no secret key
+    const infi = new Infi({ apiUrl: BASE }); // no secret key
     await expect(infi.apps.create({ slug: "x", name: "X" })).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
   });
