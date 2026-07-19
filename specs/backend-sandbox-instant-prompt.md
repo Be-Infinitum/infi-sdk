@@ -164,14 +164,35 @@ OpenAPI + tests for each stage.
 
 ---
 
-## 5) (Nice-to-have) Credit pack auto-grant
+## 5) (Nice-to-have) Credit pack auto-grant — **deferred unless rule below is implemented**
 
-If product/catalog supports it, add declarative behavior:
+Do **not** invent a second credit path that races with subscription prepaid.
 
-- On `payment.confirmed` for a product with something like `onPayment: { grantCredits: "50000" }` (or metadata / product flag), grant credits to the enrollment automatically.
-- Removes webhook glue from vibe apps. Can be a follow-up PR if too large.
+### Two mechanisms (orthogonal)
+
+| Mechanism | Trigger | Owns |
+|-----------|---------|------|
+| `credits_per_cycle` / subscription item `credit_grant` | Subscription cycle (prepaid plan renews) | Recurring prepaid (`pricingModel: prepaid`, e.g. intent `prepaid-ai-chat`) |
+| `onPayment.grantCredits` (proposed) | `payment.confirmed` on an invoice/checkout | One-shot credit packs / top-ups |
+
+Ambiguity **only** if both fire on the same product/payment (e.g. prepaid with `basePrice` + `credits_per_cycle` **and** `onPayment.grantCredits` on the same confirm → double grant).
+
+### Hard rules (if you implement this PR)
+
+1. **Eligibility:** `onPayment.grantCredits` applies **only** when:
+   - product `pricingModel` is `one_time` **or** product is an explicit credit pack / top-up flag, **and**
+   - the paid invoice / subscription default items do **not** already include a `credit_grant` line for that payment.
+2. **Never** attach `onPayment.grantCredits` to intent seed `prepaid-ai-chat` — that product uses cycle `credit_grant` only.
+3. **Idempotency:** grant keyed by `payment_id` (or invoice id). Re-delivery of `payment.confirmed` must no-op.
+4. **Wallet target:** grant to the enrollment / billing subject on the invoice (same id credits.balance / meter gate use).
+
+### Recommendation for this backend task
+
+- **Skip §5 in the first PR** (A allowlist, B claim intent, C go-live). Vibe demos that need packs can still call `credits.grant` from a webhook.
+- If you do ship §5, implement eligibility + idempotency above before touching the money path — do not “just grant on every payment.confirmed”.
 
 ---
+
 
 ## 6) OpenAPI + migrations + tests
 
