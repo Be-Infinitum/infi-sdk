@@ -32,6 +32,7 @@ describe("withMeter", () => {
 
     const [, trackInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
     expect(JSON.parse(String(trackInit.body))).toEqual({
+      eventId: expect.any(String),
       customerId: "cus_1",
       meter: "tokens",
       value: "30",
@@ -129,6 +130,7 @@ describe("withMeter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     const [, trackInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
     expect(JSON.parse(String(trackInit.body))).toEqual({
+      eventId: expect.any(String),
       customerId: "cus_1",
       meter: "tokens",
       value: "7",
@@ -181,6 +183,7 @@ describe("withMeter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1); // no gate, just track
     const [, trackInit] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(String(trackInit.body))).toEqual({
+      eventId: expect.any(String),
       customerId: "cus_1",
       meter: "tokens",
       value: "12",

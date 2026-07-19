@@ -97,6 +97,7 @@ describe("infi.meter", () => {
     const [trackUrl, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(String(trackUrl)).toBe(`${BASE}/metering/events`);
     expect(JSON.parse(trackInit.body as string)).toEqual({
+      eventId: expect.any(String),
       customerId: "c1",
       meter: "tokens",
       value: "42",
@@ -117,6 +118,7 @@ describe("infi.meter", () => {
     expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr1/credit`);
     const [, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(JSON.parse(trackInit.body as string)).toEqual({
+      eventId: expect.any(String),
       customerId: "enr1",
       meter: "tokens",
       value: "7",
@@ -158,7 +160,7 @@ describe("infi.meter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1); // no gate
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(String(url)).toBe(`${BASE}/metering/events`);
-    expect(JSON.parse(init.body as string)).toEqual({ customerId: "c1", meter: "inventory_update", value: "3" });
+    expect(JSON.parse(init.body as string)).toEqual({ eventId: expect.any(String), customerId: "c1", meter: "inventory_update", value: "3" });
   });
 
   it('mode "streaming" gates but does not record', async () => {

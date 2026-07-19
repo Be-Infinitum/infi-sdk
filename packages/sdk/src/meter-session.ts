@@ -17,12 +17,14 @@ export class MeteringSession {
   constructor(
     private readonly flushFn: (events: UsageEvent[]) => Promise<IngestResult>,
     private readonly customerId: string,
+    private readonly productId?: string,
   ) {}
 
   /** Queue one usage event (by meter name). Chainable. */
   track(meter: string, value: number | string, metadata?: Record<string, unknown>): this {
     this.#events.push({
       customerId: this.customerId,
+      ...(this.productId ? { productId: this.productId } : {}),
       meter,
       value: String(value),
       ...(metadata ? { metadata } : {}),

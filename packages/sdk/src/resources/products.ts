@@ -150,12 +150,18 @@ export class ProductsResource {
     this.#subscriptions = new SubscriptionsResource(t);
   }
 
-  create(input: CreateProductRequest, idempotencyKey?: string): Promise<Product> {
-    return this.t.request("POST", "/metering/products", {
+  /**
+   * Create a product. The backend also seeds a first draft version and returns
+   * `{ product, version }`; this unwraps to the product (use `versions.list` to
+   * get the seeded draft).
+   */
+  async create(input: CreateProductRequest, idempotencyKey?: string): Promise<Product> {
+    const res = await this.t.request<{ product?: Product } & Product>("POST", "/metering/products", {
       body: input,
       requireSecret: true,
       idempotencyKey,
     });
+    return res.product ?? res;
   }
 
   async list(): Promise<Product[]> {

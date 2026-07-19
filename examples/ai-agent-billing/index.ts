@@ -14,14 +14,20 @@
  */
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
-import ngrok from "@ngrok/ngrok";
-import { generateText } from "ai";
 import {
   Infi,
   verifyWebhook,
   type PaymentConfirmedData,
   type WebhookEvent,
 } from "@beinfi/sdk";
+import ngrok from "@ngrok/ngrok";
+import { generateText } from "ai";
+
+// The Vercel AI SDK's Google provider reads GOOGLE_GENERATIVE_AI_API_KEY;
+// accept GEMINI_API_KEY as a friendlier alias.
+if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY && process.env.GEMINI_API_KEY) {
+  process.env.GOOGLE_GENERATIVE_AI_API_KEY = process.env.GEMINI_API_KEY;
+}
 
 // ── Config ──────────────────────────────────────────
 const API_KEY = process.env.INFI_SECRET_KEY;
@@ -39,7 +45,7 @@ if (!API_KEY) {
 // The mode (test vs live) is inferred from the key prefix — `sk_test_` → sandbox
 // (api-sandbox.beinfi.com), `sk_live_` → live. No base URL to pass. Override the
 // host only for local dev with `apiUrl`.
-const infi = new Infi({ secretKey: API_KEY, apiUrl: process.env.INFI_API_URL });
+const infi = new Infi({ secretKey: API_KEY });
 
 // ── Helpers ─────────────────────────────────────────
 function header(text: string) {
@@ -122,6 +128,7 @@ async function main() {
     displayName: "AI Tokens",
     unit: "token",
     aggregation: "sum",
+    valueProperty: "value",
   });
   console.log(`Meter created: ${tokenMeter.id} (${tokenMeter.displayName})`);
 
@@ -131,7 +138,9 @@ async function main() {
     unit: "request",
     aggregation: "count",
   });
-  console.log(`Meter created: ${requestMeter.id} (${requestMeter.displayName})`);
+  console.log(
+    `Meter created: ${requestMeter.id} (${requestMeter.displayName})`,
+  );
 
   const version = await infi.products.versions.create(product.id!, {});
   await infi.products.prices.add(product.id!, version.id!, {
@@ -147,7 +156,9 @@ async function main() {
     meterId: requestMeter.id,
   });
   await infi.products.versions.publish(product.id!, version.id!);
-  console.log(`Prices published: ${TOKEN_PRICE}/token, ${REQUEST_PRICE}/request (${CURRENCY})`);
+  console.log(
+    `Prices published: ${TOKEN_PRICE}/token, ${REQUEST_PRICE}/request (${CURRENCY})`,
+  );
 
   // ── Register Customer ─────────────────────────────
   header("3. Register Customer");
@@ -158,67 +169,118 @@ async function main() {
     email: CUSTOMER_EMAIL,
   });
   const customerId = enrollment.id!;
-  console.log(`Customer registered: ${enrollment.externalId} (${enrollment.name})`);
+  console.log(
+    `Customer registered: ${enrollment.externalId} (${enrollment.name})`,
+  );
   console.log(`Invoice will be sent to: ${CUSTOMER_EMAIL}`);
 
   // ── Start Webhook Listener ────────────────────────
   header("4. Start Webhook Listener");
 
-  const listener = await ngrok.forward({ addr: WEBHOOK_PORT, authtoken_from_env: true });
-  const tunnelUrl = listener.url()!;
-  activeTunnel = listener;
-  console.log(`Tunnel open: ${tunnelUrl} -> localhost:${WEBHOOK_PORT}`);
+  // Webhooks are optional: they need an ngrok tunnel (NGROK_AUTHTOKEN). Without
+  // it, the demo still runs the full billing flow and just skips the live
+  // invoice/payment webhook waits.
+  let waitForEvent: ((type: string, ms?: number) => Promise<WebhookEvent>) | null = null;
+  if (process.env.NGROK_AUTHTOKEN) {
+    const listener = await ngrok.forward({ addr: WEBHOOK_PORT, authtoken_from_env: true });
+    const tunnelUrl = listener.url()!;
+    activeTunnel = listener;
+    console.log(`Tunnel open: ${tunnelUrl} -> localhost:${WEBHOOK_PORT}`);
 
-  const webhook = await infi.webhooks.create({
-    url: tunnelUrl,
-    events: ["invoice.finalized", "invoice.sent", "payment.confirmed", "payment.failed"],
-  });
-  webhookId = webhook.id;
-  if (!webhook.secret) throw new Error("webhook endpoint returned no signing secret");
-  console.log(`Webhook registered: ${webhook.id}`);
+    const webhook = await infi.webhooks.create({
+      url: tunnelUrl,
+      events: ["invoice.finalized", "invoice.sent", "payment.confirmed", "payment.failed"],
+    });
+    webhookId = webhook.id;
+    if (!webhook.secret) throw new Error("webhook endpoint returned no signing secret");
+    console.log(`Webhook registered: ${webhook.id}`);
 
-  const { server, waitForEvent } = startWebhookServer(webhook.secret, WEBHOOK_PORT);
-  webhookServer = server;
-  console.log(`Webhook server listening on port ${WEBHOOK_PORT}`);
+    const started = startWebhookServer(webhook.secret, WEBHOOK_PORT);
+    webhookServer = started.server;
+    waitForEvent = started.waitForEvent;
+    console.log(`Webhook server listening on port ${WEBHOOK_PORT}`);
+  } else {
+    console.log("NGROK_AUTHTOKEN not set — skipping webhooks (billing flow still runs).");
+  }
 
   // ── AI Agent Usage (real calls) ──────────────────
   header("5. AI Agent Usage");
   const windowStart = new Date().toISOString();
 
   const prompts = [
-    { prompt: "Summarize the benefits of serverless architecture in 2 sentences.", model: openai("gpt-4o-mini"), label: "gpt-4o-mini" },
-    { prompt: "Write a one-paragraph marketing copy for a fintech API platform.", model: google("gemini-2.0-flash"), label: "gemini-2.0-flash" },
-    { prompt: 'Translate to Portuguese: "Usage-based billing lets you pay only for what you use."', model: openai("gpt-4o-mini"), label: "gpt-4o-mini" },
-    { prompt: "Explain the difference between REST and GraphQL in 3 bullet points.", model: google("gemini-2.0-flash"), label: "gemini-2.0-flash" },
-    { prompt: "What is the capital of Brazil?", model: openai("gpt-4o-mini"), label: "gpt-4o-mini" },
+    {
+      prompt:
+        "Summarize the benefits of serverless architecture in 2 sentences.",
+      model: openai("gpt-4o-mini"),
+      label: "gpt-4o-mini",
+    },
+    {
+      prompt:
+        "Write a one-paragraph marketing copy for a fintech API platform.",
+      model: google("gemini-2.0-flash"),
+      label: "gemini-2.0-flash",
+    },
+    {
+      prompt:
+        'Translate to Portuguese: "Usage-based billing lets you pay only for what you use."',
+      model: openai("gpt-4o-mini"),
+      label: "gpt-4o-mini",
+    },
+    {
+      prompt:
+        "Explain the difference between REST and GraphQL in 3 bullet points.",
+      model: google("gemini-2.0-flash"),
+      label: "gemini-2.0-flash",
+    },
+    {
+      prompt: "What is the capital of Brazil?",
+      model: openai("gpt-4o-mini"),
+      label: "gpt-4o-mini",
+    },
   ];
 
-  const session = infi.session(customerId);
+  const session = infi.session(customerId, product.id!);
   let totalTokens = 0;
 
   for (const { prompt, model, label } of prompts) {
     console.log(`\n  -> [${label}] "${prompt}"`);
-    const result = await generateText({ model, prompt });
+    let result;
+    try {
+      result = await generateText({ model, prompt });
+    } catch (err) {
+      // A provider error (quota, key) shouldn't kill the demo — skip this call.
+      console.log(`     skipped (${label}): ${err instanceof Error ? err.message.split("\n")[0] : err}`);
+      continue;
+    }
     const tokens = result.usage.totalTokens ?? 0;
     totalTokens += tokens;
-    console.log(`     Response (${tokens} tokens): ${result.text.slice(0, 120).replace(/\n/g, " ")}...`);
+    console.log(
+      `     Response (${tokens} tokens): ${result.text.slice(0, 120).replace(/\n/g, " ")}...`,
+    );
     session.track("tokens", tokens, { model: label });
     session.track("requests", 1, { model: label });
   }
 
+  const eventCount = session.size;
   await session.flush(); // one batch → POST /metering/events/batch
-  console.log(`\nBatch sent: ${prompts.length * 2} events`);
+  console.log(`\nBatch sent: ${eventCount} events`);
   console.log(`Total tokens used: ${totalTokens}`);
 
   // ── Check Usage ───────────────────────────────────
   header("6. Check Usage");
 
-  const usage = await infi.usage.get({ customerId, from: windowStart, to: new Date().toISOString() });
+  const usage = await infi.usage.get({
+    customerId,
+    from: windowStart,
+    to: new Date().toISOString(),
+  });
   let totalCost = 0;
   for (const m of usage.meters) {
     const amount = Number(m.totalAmount ?? 0);
     totalCost += amount;
-    console.log(`  ${m.meter}: ${m.totalValue} ${m.unit}s = ${CURRENCY} ${amount.toFixed(2)}`);
+    console.log(
+      `  ${m.meter}: ${m.totalValue} ${m.unit}s = ${CURRENCY} ${amount.toFixed(2)}`,
+    );
   }
   console.log(`\n  Total: ${CURRENCY} ${totalCost.toFixed(2)}`);
 
@@ -227,45 +289,62 @@ async function main() {
   const to = new Date().toISOString();
   console.log(`Period: ${windowStart.split("T")[0]} to ${to.split("T")[0]}`);
 
-  const invoice = await infi.invoices.fromUsage({ customerId, from: windowStart, to });
+  const invoice = await infi.invoices.fromUsage({
+    customerId,
+    from: windowStart,
+    to,
+  });
   console.log(`Invoice created: ${invoice.invoiceNumber ?? invoice.id}`);
   console.log(`  Status: ${invoice.status}`);
   console.log(`  Total: ${invoice.currency} ${invoice.total}`);
 
   // ── Wait for Webhook ─────────────────────────────
   header("8. Wait for invoice.finalized Webhook");
-  try {
-    const event = await waitForEvent("invoice.finalized", 30_000);
-    console.log("Webhook received! Payload:");
-    console.log(JSON.stringify(event.data, null, 2));
-  } catch {
-    console.log("Timeout: invoice.finalized webhook not received within 30s (continuing anyway)");
+  if (waitForEvent) {
+    try {
+      const event = await waitForEvent("invoice.finalized", 30_000);
+      console.log("Webhook received! Payload:");
+      console.log(JSON.stringify(event.data, null, 2));
+    } catch {
+      console.log("Timeout: invoice.finalized webhook not received within 30s (continuing anyway)");
+    }
+  } else {
+    console.log("(webhooks disabled)");
   }
 
   // ── Send Invoice Email ────────────────────────────
   header("9. Send Invoice Email");
   await infi.invoices.send(invoice.id!);
-  console.log(`Invoice email sent to ${CUSTOMER_EMAIL} (hosted pay link included)`);
+  console.log(
+    `Invoice email sent to ${CUSTOMER_EMAIL} (hosted pay link included)`,
+  );
 
   // ── Wait for Payment ────────────────────────────
   header("10. Wait for payment.confirmed Webhook");
-  console.log("Waiting for customer to pay the invoice...");
-  try {
-    const event = await waitForEvent("payment.confirmed", 300_000);
-    const data = event.data as PaymentConfirmedData;
-    console.log(`Payment confirmed! ${data.amount} ${data.currency} (payment ${data.paymentId})`);
-  } catch {
-    console.log("Timeout: payment.confirmed webhook not received within 5min (continuing anyway)");
+  if (waitForEvent) {
+    console.log("Waiting for customer to pay the invoice...");
+    try {
+      const event = await waitForEvent("payment.confirmed", 300_000);
+      const data = event.data as PaymentConfirmedData;
+      console.log(`Payment confirmed! ${data.amount} ${data.currency} (payment ${data.paymentId})`);
+    } catch {
+      console.log("Timeout: payment.confirmed webhook not received within 5min (continuing anyway)");
+    }
+  } else {
+    console.log("(webhooks disabled — customer pays via the emailed link)");
   }
 
   // ── Cleanup ─────────────────────────────────────
   header("11. Cleanup");
-  await infi.webhooks.delete(webhook.id);
-  console.log(`Webhook deleted: ${webhook.id}`);
-  server.stop();
-  console.log("Webhook server stopped");
-  await ngrok.disconnect();
-  console.log("Tunnel closed");
+  if (webhookId) {
+    await infi.webhooks.delete(webhookId);
+    console.log(`Webhook deleted: ${webhookId}`);
+  }
+  webhookServer?.stop();
+  if (activeTunnel) {
+    await ngrok.disconnect();
+    console.log("Tunnel closed");
+  }
 
   // ── Done ──────────────────────────────────────────
   header("Done!");
@@ -273,10 +352,9 @@ async function main() {
 Summary:
   Product:    ${product.name} (${product.id})
   Customer:   ${enrollment.name} <${CUSTOMER_EMAIL}>
-  Usage:      ${prompts.length} AI interactions
-  Tokens:     ${totalTokens} total
+  Usage:      ${eventCount / 2} billed AI calls (${totalTokens} tokens)
   Invoice:    ${invoice.invoiceNumber ?? invoice.id} — ${invoice.currency} ${invoice.total}
-  Webhook:    Received & cleaned up
+  Webhooks:   ${waitForEvent ? "received & cleaned up" : "disabled (no NGROK_AUTHTOKEN)"}
 `);
 }
 

@@ -1,6 +1,6 @@
 import { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
 import { extractCodeFromUrl } from "./hosted.js";
-import { Transport } from "./http.js";
+import { Transport, newIdempotencyKey } from "./http.js";
 import { resolveUsageValue, resolveMeterMode, resolveCustomerId, type MeterOptions } from "./meter.js";
 import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
@@ -249,7 +249,7 @@ export class Infi {
 
   // ── Metering: usage ingestion (server-side, secret key) ────────────────────
 
-  /** Ingest a single usage event. */
+  /** Ingest a single usage event. A per-event `eventId` is auto-generated when omitted. */
   async track(event: UsageEvent): Promise<IngestResult> {
     this.#requireSecretKey("track");
     const res = await fetch(`${this.#apiBase}/metering/events`, {
@@ -257,8 +257,9 @@ export class Infi {
       headers: {
         Authorization: `Bearer ${this.#secretKey}`,
         "Content-Type": "application/json",
+        "Idempotency-Key": newIdempotencyKey(),
       },
-      body: JSON.stringify(event),
+      body: JSON.stringify({ eventId: newIdempotencyKey(), ...event }),
     });
 
     if (!res.ok) {
@@ -271,9 +272,9 @@ export class Infi {
    * Open a batching usage session for a customer — queue several `track` calls,
    * then `flush()` them as one `trackBatch`. Server-side (secret key).
    */
-  session(customerId: string): MeteringSession {
+  session(customerId: string, productId?: string): MeteringSession {
     this.#requireSecretKey("session");
-    return new MeteringSession((events) => this.trackBatch(events), customerId);
+    return new MeteringSession((events) => this.trackBatch(events), customerId, productId);
   }
 
   /** Ingest a batch of usage events (all-or-nothing). */
@@ -284,8 +285,11 @@ export class Infi {
       headers: {
         Authorization: `Bearer ${this.#secretKey}`,
         "Content-Type": "application/json",
+        "Idempotency-Key": newIdempotencyKey(),
       },
-      body: JSON.stringify({ events }),
+      body: JSON.stringify({
+        events: events.map((e) => ({ eventId: newIdempotencyKey(), ...e })),
+      }),
     });
 
     if (!res.ok) {
