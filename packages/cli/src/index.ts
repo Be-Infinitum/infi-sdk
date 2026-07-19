@@ -1,6 +1,7 @@
 import { die } from "./lib/output.js";
 import { globalFlags, parseArgs, printHelp } from "./parse.js";
 import type { ClaimRef } from "./lib/claim.js";
+import type { CompanyIntent } from "@beinfi/sdk";
 
 export { parseArgs, globalFlags, printHelp } from "./parse.js";
 
@@ -21,6 +22,24 @@ export async function run(argv: string[]): Promise<void> {
       await (await import("./commands/init.js")).initCommand(initArgs);
       break;
     }
+
+    case "bootstrap":
+      await (
+        await import("./commands/bootstrap.js")
+      ).bootstrapCommand({
+        ...gf,
+        intent: typeof parsed.flags.intent === "string" ? parsed.flags.intent : undefined,
+        ref: typeof parsed.flags.ref === "string" ? (parsed.flags.ref as ClaimRef) : undefined,
+        appUrl:
+          typeof parsed.flags["app-url"] === "string"
+            ? parsed.flags["app-url"]
+            : typeof parsed.flags.appUrl === "string"
+              ? parsed.flags.appUrl
+              : undefined,
+        slug: typeof parsed.flags.slug === "string" ? parsed.flags.slug : undefined,
+        skipSync: parsed.flags["skip-sync"] === true,
+      });
+      break;
 
     case "login":
       await (
@@ -63,9 +82,13 @@ export async function run(argv: string[]): Promise<void> {
         case "create":
           await claim.claimCreate({
             ...gf,
-            ref: (typeof parsed.flags.ref === "string"
-              ? parsed.flags.ref
-              : "cli") as ClaimRef,
+            ref: (typeof parsed.flags.ref === "string" ? parsed.flags.ref : "cli") as ClaimRef,
+            intent:
+              typeof parsed.flags.intent === "string"
+                ? (parsed.flags.intent as CompanyIntent)
+                : undefined,
+            appUrl:
+              typeof parsed.flags["app-url"] === "string" ? parsed.flags["app-url"] : undefined,
           });
           break;
         case "get":
@@ -88,6 +111,7 @@ export async function run(argv: string[]): Promise<void> {
         file: parsed.sub,
         plan: parsed.flags.plan === true,
         force: parsed.flags.force === true,
+        appUrl: typeof parsed.flags["app-url"] === "string" ? parsed.flags["app-url"] : undefined,
       });
       break;
 
@@ -103,6 +127,20 @@ export async function run(argv: string[]): Promise<void> {
 
     case "doctor":
       await (await import("./commands/doctor.js")).doctorCommand(gf);
+      break;
+
+    case "go-live":
+      await (
+        await import("./commands/go-live.js")
+      ).goLiveCommand({
+        ...gf,
+        claimId:
+          typeof parsed.flags["claim-id"] === "string"
+            ? parsed.flags["claim-id"]
+            : typeof parsed.flags.claimId === "string"
+              ? parsed.flags.claimId
+              : undefined,
+      });
       break;
 
     case "deploy":

@@ -16,10 +16,9 @@ routes (secret key never in the browser).
 Integrate Beinfi billing into this Lovable app. Follow these rules exactly:
 
 SETUP (do first)
-1. Add env secrets (Supabase/Lovable): INFI_SECRET_KEY, INFI_SLUG, INFI_AUTH_BASE_URL,
-   INFI_API_URL, APP_URL (this app's https://*.lovable.app URL), INFI_WEBHOOK_SECRET.
-2. Add infi.billing.ts at repo root with products + apps (allowedOrigins + redirectUris = APP_URL).
-3. Document that the developer must run once: npx @beinfi/cli sync infi.billing.ts && infi doctor --json
+1. Run once (local/CI): npx @beinfi/cli bootstrap --intent prepaid-ai-chat --ref lovable --app-url https://YOUR.lovable.app --json
+2. Add env secrets from bootstrap env: INFI_SECRET_KEY, INFI_SLUG, APP_URL. Do NOT set AUTH/PAY URLs.
+3. Optional: INFI_WEBHOOK_SECRET after webhook registration
 
 DEPENDENCIES
 - @beinfi/sdk, @beinfi/auth (server/edge only for auth helpers)

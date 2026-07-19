@@ -5,9 +5,9 @@ import { buildLock, type BillingConfig } from "@beinfi/sdk";
 import type { GlobalFlags } from "../lib/client.js";
 import { infiClient } from "../lib/client.js";
 import { die, ok } from "../lib/output.js";
-import { lockPathFor, writeLock } from "./sync.js";
+import { lockPathFor, writeLock } from "../lib/company-file.js";
 
-const CONFIG_FILE = "infi.billing.ts";
+const CONFIG_FILE = "infi.company.ts";
 
 function slug(name: string): string {
   return (
@@ -25,7 +25,7 @@ function compact<T extends Record<string, unknown>>(obj: T): Partial<T> {
   return out as Partial<T>;
 }
 
-/** Read the whole catalog and shape it into a defineBilling() config. */
+/** Read the whole catalog and shape it into a defineCompany() config. */
 async function pullConfig(infi: ReturnType<typeof infiClient>): Promise<BillingConfig> {
   const products = await infi.products.list();
   const out: BillingConfig["products"] = [];
@@ -93,7 +93,7 @@ async function pullConfig(infi: ReturnType<typeof infiClient>): Promise<BillingC
 }
 
 function renderConfig(config: BillingConfig): string {
-  return `import { defineBilling } from "@beinfi/sdk";\n\nexport default defineBilling(${JSON.stringify(config, null, 2)});\n`;
+  return `import { defineCompany } from "@beinfi/sdk";\n\nexport default defineCompany(${JSON.stringify(config, null, 2)});\n`;
 }
 
 export async function pullCommand(
@@ -112,7 +112,7 @@ export async function pullCommand(
   const lockPath = lockPathFor(file);
   writeLock(lockPath, await buildLock(infi, config));
 
-  ok(`Pulled ${config.products.length} product(s)`);
+  ok(`Pulled ${config.products.length} product(s) (company as code)`);
   console.log(`  config: ${path.relative(process.cwd(), file)}`);
   console.log(`  lock:   ${path.relative(process.cwd(), lockPath)}`);
   console.log(pc.dim("Commit both — the next `infi sync` starts from this baseline."));

@@ -8,23 +8,18 @@ globs:
 
 # Infi integration rules
 
-Read `/AGENTS.md` at the repo root before changing billing or auth.
+Read `/AGENTS.md` at the repo root before changing auth or company config.
 
 ## Non-negotiables
 
-1. **One config file**: `infi.billing.ts` with `products`, `apps`, and `webhooks` — never separate `apps.create()` in seed scripts.
-2. **Sync before login**: run `infi sync infi.billing.ts` (or `bun run seed`) before testing hosted login.
-3. **Diagnose**: run `infi doctor --json` when login loops or 401s appear.
-4. **Enrollment id** for credits/meter/state — not the session customer id unless they match.
+1. **Company as code**: prefer `infi.company.ts` + `defineCompany` / `defineCompany.fromIntent`.
+2. **Bootstrap first**: `infi bootstrap --intent <…> --json` (claim + sync + doctor).
+3. **No AUTH/PAY URL env vars** — SDK infers hosts from `INFI_SECRET_KEY`.
+4. **Wallet helper**: `infi.wallet.fromSession(token, { productKey })` for meter/credits.
+5. **Go-live**: guide humans via `infi go-live` / `infi_go_live_status` (claim → KYC) — never invent `sk_live_`.
 
 ## Stack picks
 
 - Next.js → `@beinfi/nextjs`
-- Hono / Vite / Workers → `@beinfi/auth`
-- Billing config only → TypeScript `infi.billing.ts` + `infi sync` (app can be any language)
+- Hono / Vite / Workers / Lovable → `@beinfi/auth`
 
-## Provision
-
-```bash
-infi claim create --ref cursor --json
-```

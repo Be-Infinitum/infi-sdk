@@ -46,6 +46,37 @@ describe("cli claim", () => {
     expect(JSON.parse(init.body as string)).toEqual({ ref: "cli" });
   });
 
+  it("createClaimable forwards intent and appUrl", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          id: "sb_2",
+          status: "UNCLAIMED",
+          tenantSlug: "acme",
+          productId: "prod_1",
+          appSlug: "crm",
+          apiKeySecret: "sk_test_abc",
+          claimUrl: "https://new.beinfi.com/claim/sb_2",
+          expiresAt: "2026-08-01T00:00:00Z",
+        },
+        201,
+      ),
+    );
+
+    await createClaimable(BASE, {
+      ref: "lovable",
+      intent: "crm",
+      appUrl: "https://x.lovable.app",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      ref: "lovable",
+      intent: "crm",
+      appUrl: "https://x.lovable.app",
+    });
+  });
+
   it("getClaimable fetches public claimable status", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({

@@ -21,30 +21,27 @@ checkout, metering, and prepaid AI credits.
 ```bash
 bun install && bun run build
 
-# Provision + scaffold
-infi claim create --ref cursor --json
-npm create infi-app my-app --template ai-chat
+# One-shot company setup (claim + infi.company.ts + sync + doctor)
+infi bootstrap --intent crm --ref cursor --json
 
-# Billing-as-code (TypeScript config — app can be any language)
-infi sync infi.billing.ts --plan
-infi sync infi.billing.ts
+# Or scaffold an example app
+npm create infi-app my-app --template ai-chat
 infi doctor --json
 ```
 
-## Billing-as-code
+## Company as code
 
-Declare products, apps, and webhooks in `infi.billing.ts`:
+Declare the company (products, apps, webhooks) in TypeScript — app can be any language:
 
 ```ts
-import { defineBilling } from "@beinfi/sdk";
+import { defineCompany } from "@beinfi/sdk";
 
-export default defineBilling({
-  products: [{ key: "starter", type: "agent", pricingModel: "prepaid", ... }],
-  apps: [{ slug: "my-app", allowedOrigins: ["http://localhost:3000"], redirectUris: [...] }],
+export default defineCompany.fromIntent("crm", {
+  appUrl: process.env.APP_URL,
 });
 ```
 
-The CLI interprets TypeScript at sync time — no need for the whole app to be TS.
+Hosts (API / auth / pay) are inferred from `INFI_SECRET_KEY`. Go-live (claim → KYC) via `infi go-live`.
 
 ## Examples
 

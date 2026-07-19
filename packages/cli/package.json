@@ -12,7 +12,9 @@
     "./lib/provision": "./dist/lib/provision.js",
     "./commands/init": "./dist/commands/init.js",
     "./doctor": "./dist/commands/doctor.js",
-    "./claim": "./dist/lib/claim.js"
+    "./claim": "./dist/lib/claim.js",
+    "./go-live": "./dist/commands/go-live.js",
+    "./bootstrap": "./dist/commands/bootstrap.js"
   },
   "files": ["dist", "templates"],
   "publishConfig": {

@@ -8,6 +8,8 @@ export default defineConfig({
     "src/lib/claim.ts",
     "src/commands/init.ts",
     "src/commands/doctor.ts",
+    "src/commands/go-live.ts",
+    "src/commands/bootstrap.ts",
   ],
   format: ["esm"],
   platform: "node",

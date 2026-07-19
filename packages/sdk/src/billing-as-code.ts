@@ -10,7 +10,8 @@ import type {
   WebhookEndpoint,
 } from "./types.js";
 
-// ── Declarative billing config ("billing as code") ──────────────────────────
+// ── Declarative company config ("company as code" — ADR 0004)
+// Legacy name: billing as code. Prefer defineCompany() in new code. ───────────
 
 export interface BillingMeter {
   /** Stable slug used by track() and as the idempotency key (unique per product). */
@@ -70,7 +71,10 @@ export interface BillingConfig {
   webhooks?: BillingWebhook[];
 }
 
-/** Identity helper for authoring a typed billing config. */
+/**
+ * Identity helper for authoring a typed company/billing config.
+ * Prefer `defineCompany` (same shape; company as code).
+ */
 export function defineBilling(config: BillingConfig): BillingConfig {
   return config;
 }

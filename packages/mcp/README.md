@@ -1,16 +1,18 @@
 # @beinfi/mcp
 
-MCP server exposing Infi operations to Cursor and Claude Desktop agents.
+MCP server for Cursor / Claude agents. Built on `@beinfi/sdk` + CLI libs (company as code).
 
 ## Tools
 
 | Tool | Description |
 |------|-------------|
-| `infi_claim_create` | Provision sandbox tenant (`ref`: cursor, lovable, mcp, cli) |
-| `infi_doctor` | Diagnose products, apps, env mistakes |
-| `infi_sync_plan` | Dry-run billing-as-code |
-| `infi_sync_apply` | Apply billing config |
-| `infi_pull` | Read tenant catalog from backend |
+| `infi_bootstrap` | Claim + `infi.company.ts` from intent + sync + doctor |
+| `infi_claim_create` | Sandbox tenant (`ref`, optional `intent`, `appUrl`) |
+| `infi_doctor` | Setup diagnostics |
+| `infi_go_live_status` | Claim → account → KYC guidance (never invents `sk_live_`) |
+| `infi_sync_plan` / `infi_sync_apply` | Company-as-code reconcile |
+| `infi_set_app_url` | Patch origins + sync |
+| `infi_pull` | Read backend catalog |
 
 ## Cursor config
 
@@ -19,13 +21,10 @@ MCP server exposing Infi operations to Cursor and Claude Desktop agents.
   "mcpServers": {
     "infi": {
       "command": "npx",
-      "args": ["-y", "@beinfi/mcp"],
-      "env": {
-        "INFI_SECRET_KEY": "sk_test_..."
-      }
+      "args": ["-y", "@beinfi/mcp"]
     }
   }
 }
 ```
 
-See [`AGENTS.md`](../../AGENTS.md) at the repo root.
+See [`AGENTS.md`](../../AGENTS.md) and ADR 0004.

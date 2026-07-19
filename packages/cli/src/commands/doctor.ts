@@ -23,28 +23,22 @@ function push(
   checks.push(check);
 }
 
-/** Detect common env var mistakes (API URL used for auth frontend, etc.). */
+/** Detect common env mistakes. Hosts are inferred from the key — AUTH/PAY URLs are legacy. */
 function checkEnvVars(checks: DoctorCheck[]): void {
-  const api = process.env.INFI_API_URL;
-  const auth =
-    process.env.INFI_AUTH_BASE_URL ??
-    process.env.NEXT_PUBLIC_INFI_AUTH_BASE_URL;
-  const pay = process.env.INFI_PAY_BASE_URL ?? process.env.NEXT_PUBLIC_INFI_PAY_BASE_URL;
-
-  if (auth && api && auth.replace(/\/$/, "") === api.replace(/\/$/, "")) {
+  if (process.env.INFI_AUTH_BASE_URL || process.env.NEXT_PUBLIC_INFI_AUTH_BASE_URL) {
     push(checks, {
-      id: "env_auth_api_same",
+      id: "env_auth_legacy",
       status: "warn",
-      message: "INFI_AUTH_BASE_URL equals INFI_API_URL — hosted login is served by the frontend, not the API.",
-      fix: fixForCode("no_products_for_login"),
+      message:
+        "INFI_AUTH_BASE_URL is legacy — the SDK serves hosted login from app.beinfi.com. You can remove it.",
     });
   }
-
-  if (pay && api && pay.replace(/\/$/, "") === api.replace(/\/$/, "")) {
+  if (process.env.INFI_PAY_BASE_URL || process.env.NEXT_PUBLIC_INFI_PAY_BASE_URL) {
     push(checks, {
-      id: "env_pay_api_same",
+      id: "env_pay_legacy",
       status: "warn",
-      message: "INFI_PAY_BASE_URL equals INFI_API_URL — hosted checkout is served by the frontend, not the API.",
+      message:
+        "INFI_PAY_BASE_URL is legacy — the SDK builds checkout URLs from app.beinfi.com. You can remove it.",
     });
   }
 
@@ -112,8 +106,8 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
         status: "fail",
         message: "Zero products on tenant — hosted login resolves without a customer (infinite login loop).",
         fix: {
-          command: "infi sync infi.billing.ts",
-          hint: "Declare at least one product in infi.billing.ts and sync.",
+          command: "infi bootstrap --intent crm --json",
+          hint: "Declare at least one product in infi.company.ts and sync (or re-run bootstrap).",
           docs: "AGENTS.md#mandatory-setup-order",
         },
       });
@@ -141,8 +135,8 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
         push(checks, {
           id: "app",
           status: "fail",
-          message: `Identity app "${slug}" not registered — add it to infi.billing.ts apps[] and sync.`,
-          fix: { command: "infi sync infi.billing.ts", docs: "AGENTS.md#billing-as-code" },
+          message: `Identity app "${slug}" not registered — add it to infi.company.ts apps[] and sync.`,
+          fix: { command: "infi sync infi.company.ts", docs: "AGENTS.md#company-as-code" },
         });
       } else {
         const origins = app.allowedOrigins ?? [];

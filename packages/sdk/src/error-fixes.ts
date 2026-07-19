@@ -21,14 +21,14 @@ export const INFI_ERROR_FIXES: Record<string, InfiErrorFix> = {
     docs: "AGENTS.md#auth-gotchas",
   },
   no_products_for_login: {
-    command: "infi sync infi.billing.ts",
-    hint: "Hosted login requires at least one product. Without products the session has no customer and apps bounce to /login.",
-    docs: "AGENTS.md#mandatory-setup-order",
+    command: "infi bootstrap --intent crm --json",
+    hint: "Hosted login requires at least one product. Bootstrap or sync infi.company.ts first.",
+    docs: "AGENTS.md#quick-start-preferred",
   },
   sync_drift_blocked: {
-    command: "infi sync infi.billing.ts --plan",
+    command: "infi sync infi.company.ts --plan",
     hint: "Dashboard changed since last sync. Run --plan to inspect, --force to overwrite, or infi pull to adopt.",
-    docs: "AGENTS.md#billing-as-code",
+    docs: "AGENTS.md#company-as-code",
   },
   insufficient_credit: {
     hint: "Customer wallet is empty. Return 402 and surface checkout to buy a credit pack.",

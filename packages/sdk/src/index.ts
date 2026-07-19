@@ -35,6 +35,16 @@ export {
   type SyncResult,
 } from "./billing-as-code.js";
 export {
+  defineCompany,
+  companyFromIntent,
+  withAppUrl,
+  COMPANY_INTENTS,
+  type CompanyConfig,
+  type CompanyIntent,
+  type CompanyIntentOptions,
+} from "./company.js";
+export { walletFromSession, type Wallet, type WalletFromSessionOptions } from "./wallet.js";
+export {
   verifyWebhook,
   type CustomerCreatedData,
   type InvoiceAmountData,
