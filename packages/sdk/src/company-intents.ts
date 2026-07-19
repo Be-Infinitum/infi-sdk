@@ -98,6 +98,7 @@ export function companyFromIntent(
             basePrice: options.price ?? "19.90",
             meters: [{ key: "tokens", unit: "token", aggregation: "sum" }],
             prices: [{ meter: "tokens", model: "prepaid_credits", unitAmount: "0.01" }],
+            grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],
           },
         ],
         apps,

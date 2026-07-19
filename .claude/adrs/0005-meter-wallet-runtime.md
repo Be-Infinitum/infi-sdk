@@ -1,6 +1,6 @@
 # ADR 0005 — Meter wallet runtime (generic debit/credit)
 
-**Status:** Proposed (2026-07)
+**Status:** Accepted (SDK client shipped; backend pending — see `specs/backend-meter-wallet-prompt.md`)
 
 ## Context
 

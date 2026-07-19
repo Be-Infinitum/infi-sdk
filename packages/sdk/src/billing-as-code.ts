@@ -35,6 +35,19 @@ export interface BillingPrice {
   tiers?: PriceInput["tiers"];
 }
 
+/**
+ * Declarative meter grant on the plan (ADR 0005).
+ * `on: "cycle"` maps to today's `creditsPerCycle` until the backend stores grants[].
+ * `on: "payment"` needs the meter-wallet backend (skipped at sync with a note).
+ */
+export interface BillingGrant {
+  /** Catalog meter key (same as meters[].key). */
+  meter: string;
+  /** Decimal string amount to credit. */
+  amount: string;
+  on: "cycle" | "payment";
+}
+
 export interface BillingProduct {
   /** Stable natural key. Also the product name unless `name` is given. */
   key: string;
@@ -44,12 +57,24 @@ export interface BillingProduct {
   currency?: string;
   billingCycle?: "weekly" | "monthly" | "annual" | null;
   basePrice?: string | null;
-  /** Prepaid credit allowance granted each cycle (decimal string). Prepaid only. */
+  /**
+   * @deprecated Prefer `grants: [{ meter, amount, on: "cycle" }]`.
+   * Prepaid credit allowance granted each cycle (decimal string).
+   */
   creditsPerCycle?: string | null;
+  /** Meter grants — cycle renew and/or payment.confirmed (ADR 0005). */
+  grants?: BillingGrant[];
   meters?: BillingMeter[];
   prices?: BillingPrice[];
   /** Link deliverables only (file uploads use products.deliverable.presign/save). */
   deliverable?: { kind: "link"; url: string };
+}
+
+/** Effective cycle grant amount: first `grants[{on:cycle}]`, else `creditsPerCycle`. */
+export function cycleGrantAmount(p: BillingProduct): string | null {
+  const fromGrant = (p.grants ?? []).find((g) => g.on === "cycle");
+  if (fromGrant) return fromGrant.amount;
+  return p.creditsPerCycle ?? null;
 }
 
 export interface BillingApp {
@@ -86,7 +111,7 @@ export function defineBilling(config: BillingConfig): BillingConfig {
 
 export interface SyncAction {
   action: "create" | "skip" | "update" | "bump" | "blocked";
-  resource: "product" | "meter" | "version" | "price" | "deliverable" | "app" | "webhook";
+  resource: "product" | "meter" | "version" | "price" | "deliverable" | "app" | "webhook" | "grant";
   ref: string;
   /** Human-readable reason for an update/bump/blocked (e.g. changed fields, drift). */
   detail?: string;
@@ -184,7 +209,7 @@ function pricesEqual(current: Price[], desired: DesiredPrice[]): boolean {
 function versionFieldsEqual(v: Version, p: BillingProduct): boolean {
   return (
     normNum(v.basePrice) === normNum(p.basePrice) &&
-    normNum(v.creditsPerCycle) === normNum(p.creditsPerCycle) &&
+    normNum(v.creditsPerCycle) === normNum(cycleGrantAmount(p)) &&
     (v.billingCycle ?? null) === (p.billingCycle ?? null)
   );
 }
@@ -273,7 +298,7 @@ async function publishVersion(
   const version = await infi.products.versions.create(productId, {
     billingCycle: p.billingCycle ?? null,
     basePrice: p.basePrice ?? null,
-    creditsPerCycle: p.creditsPerCycle ?? null,
+    creditsPerCycle: cycleGrantAmount(p),
   });
   for (const pr of p.prices ?? []) {
     const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
@@ -582,6 +607,25 @@ export async function syncBilling(
         }
       } else {
         actions.push({ action: "skip", resource: "version", ref: name });
+      }
+    }
+
+    // Grants — cycle → creditsPerCycle via publishVersion; payment needs backend ADR 0005.
+    for (const g of p.grants ?? []) {
+      if (g.on === "cycle") {
+        actions.push({
+          action: "skip",
+          resource: "grant",
+          ref: `${name}/${g.meter}@cycle`,
+          detail: `mapped to creditsPerCycle=${g.amount}`,
+        });
+      } else {
+        actions.push({
+          action: "skip",
+          resource: "grant",
+          ref: `${name}/${g.meter}@payment`,
+          detail: "payment grants require meter-wallet backend (ADR 0005) — not applied yet",
+        });
       }
     }
 

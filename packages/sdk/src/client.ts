@@ -20,7 +20,13 @@ import {
   type SyncOptions,
   type SyncResult,
 } from "./billing-as-code.js";
-import { walletFromSession, type Wallet, type WalletFromSessionOptions } from "./wallet.js";
+import {
+  bindWallet,
+  walletFromSession,
+  type BoundWallet,
+  type Wallet,
+  type WalletFromSessionOptions,
+} from "./wallet.js";
 import type {
   AuthResult,
   CreateInvoiceRequest,
@@ -430,17 +436,22 @@ export class Infi {
   }
 
   /**
-   * Billing wallet helpers — hides enrollment vs customer id for agents.
+   * Meter wallet helpers (ADR 0005) — debit/credit/balance by meter key.
    *
    * @example
    * ```ts
-   * const wallet = await infi.wallet.fromSession(token, { productKey: "ai-chat", starterCredits: "2000" });
-   * await infi.meter({ customerId: wallet.enrollmentId, meter: "tokens", mode: "streaming" }, fn);
+   * const wallet = await infi.wallet.fromSession(token, { productKey: "ai-chat" });
+   * await wallet.debit("tokens", "120");
+   * // or with an enrollment you already have:
+   * const w = infi.wallet.bind(enrollmentId);
+   * await w.credit({ meter: "tokens", amount: "50000" });
    * ```
    */
   readonly wallet = {
     fromSession: (sessionToken: string, options: WalletFromSessionOptions): Promise<Wallet> =>
       walletFromSession(this, sessionToken, options),
+    bind: (enrollmentId: string, options?: { defaultMeter?: string }): BoundWallet =>
+      bindWallet(this, enrollmentId, options),
   };
 
   #appUrl(slug: string, action: string): string {
