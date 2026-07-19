@@ -164,34 +164,42 @@ OpenAPI + tests for each stage.
 
 ---
 
-## 5) (Nice-to-have) Credit pack auto-grant — **deferred unless rule below is implemented**
+## 5) Feature wallet runtime — **out of scope for sandbox P0** (see ADR 0005)
 
-Do **not** invent a second credit path that races with subscription prepaid.
+Do **not** add a credit-only `onPayment.grantCredits` shortcut in this PR.
 
-### Two mechanisms (orthogonal)
+Long-term model (infi-sdk ADR 0005): backend is a **generic feature ledger**;
+billing plans declare `grants[]`; SDK exposes `wallet.debit` / `wallet.credit`.
 
-| Mechanism | Trigger | Owns |
-|-----------|---------|------|
-| `credits_per_cycle` / subscription item `credit_grant` | Subscription cycle (prepaid plan renews) | Recurring prepaid (`pricingModel: prepaid`, e.g. intent `prepaid-ai-chat`) |
-| `onPayment.grantCredits` (proposed) | `payment.confirmed` on an invoice/checkout | One-shot credit packs / top-ups |
+```ts
+// App code (SDK target)
+await wallet.debit("tokens", "120");
+await wallet.credit("exports", "10");
 
-Ambiguity **only** if both fire on the same product/payment (e.g. prepaid with `basePrice` + `credits_per_cycle` **and** `onPayment.grantCredits` on the same confirm → double grant).
+// Company as code — plan owns grants (not webhook glue)
+grants: [
+  { feature: "tokens", amount: "50000", on: "cycle" },   // prepaid renew
+  { feature: "tokens", amount: "100000", on: "payment" }, // one_time pack
+]
+```
 
-### Hard rules (if you implement this PR)
+| `on` | Replaces |
+|------|----------|
+| `cycle` | today’s `credits_per_cycle` / subscription `credit_grant` |
+| `payment` | the deferred “auto-grant on payment.confirmed” |
 
-1. **Eligibility:** `onPayment.grantCredits` applies **only** when:
-   - product `pricingModel` is `one_time` **or** product is an explicit credit pack / top-up flag, **and**
-   - the paid invoice / subscription default items do **not** already include a `credit_grant` line for that payment.
-2. **Never** attach `onPayment.grantCredits` to intent seed `prepaid-ai-chat` — that product uses cycle `credit_grant` only.
-3. **Idempotency:** grant keyed by `payment_id` (or invoice id). Re-delivery of `payment.confirmed` must no-op.
-4. **Wallet target:** grant to the enrollment / billing subject on the invoice (same id credits.balance / meter gate use).
+**Rule:** one product+feature uses either `cycle` or `payment`, never both on the
+same path. Idempotency by `payment_id` or `subscription_id+period`. Legacy
+`credits.*` = shim for `feature: "credits"` (or product default).
 
 ### Recommendation for this backend task
 
-- **Skip §5 in the first PR** (A allowlist, B claim intent, C go-live). Vibe demos that need packs can still call `credits.grant` from a webhook.
-- If you do ship §5, implement eligibility + idempotency above before touching the money path — do not “just grant on every payment.confirmed”.
+- **Skip §5 entirely** in PRs A/B/C (allowlist, claim intent, go-live).
+- When ready: implement generic ledger + `grants[]` on product version (ADR 0005),
+  not a one-off credit auto-grant.
 
 ---
+
 
 
 ## 6) OpenAPI + migrations + tests
