@@ -164,22 +164,23 @@ OpenAPI + tests for each stage.
 
 ---
 
-## 5) Feature wallet runtime — **out of scope for sandbox P0** (see ADR 0005)
+## 5) Meter wallet runtime — **out of scope for sandbox P0** (see ADR 0005)
 
 Do **not** add a credit-only `onPayment.grantCredits` shortcut in this PR.
 
-Long-term model (infi-sdk ADR 0005): backend is a **generic feature ledger**;
-billing plans declare `grants[]`; SDK exposes `wallet.debit` / `wallet.credit`.
+Long-term model (infi-sdk ADR 0005): backend is a **generic meter ledger**;
+plans declare `grants[]` using existing **meter** keys (not a new “feature”
+concept). SDK: `wallet.debit` / `wallet.credit`.
 
 ```ts
 // App code (SDK target)
 await wallet.debit("tokens", "120");
-await wallet.credit("exports", "10");
+await wallet.debit({ meter: "tokens", amount: "120" });
 
-// Company as code — plan owns grants (not webhook glue)
+// Company as code — same catalog vocabulary
 grants: [
-  { feature: "tokens", amount: "50000", on: "cycle" },   // prepaid renew
-  { feature: "tokens", amount: "100000", on: "payment" }, // one_time pack
+  { meter: "tokens", amount: "50000", on: "cycle" },    // prepaid renew
+  { meter: "tokens", amount: "100000", on: "payment" }, // one_time pack
 ]
 ```
 
@@ -188,15 +189,15 @@ grants: [
 | `cycle` | today’s `credits_per_cycle` / subscription `credit_grant` |
 | `payment` | the deferred “auto-grant on payment.confirmed” |
 
-**Rule:** one product+feature uses either `cycle` or `payment`, never both on the
+**Rule:** one product+meter uses either `cycle` or `payment`, never both on the
 same path. Idempotency by `payment_id` or `subscription_id+period`. Legacy
-`credits.*` = shim for `feature: "credits"` (or product default).
+`credits.*` = shim for the product’s default prepaid meter.
 
 ### Recommendation for this backend task
 
 - **Skip §5 entirely** in PRs A/B/C (allowlist, claim intent, go-live).
-- When ready: implement generic ledger + `grants[]` on product version (ADR 0005),
-  not a one-off credit auto-grant.
+- When ready: meter ledger + `grants[]` on product version (ADR 0005), not a
+  one-off credit auto-grant.
 
 ---
 
