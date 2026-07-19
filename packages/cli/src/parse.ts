@@ -11,6 +11,7 @@ ${pc.dim("Usage:")}
   infi claim create|get <id> [--ref cli] [--local] [--json]
   infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
   infi pull [file] [--force]   # generate infi.billing.ts + lock from the backend
+  infi doctor [--key sk_...] [--local] [--json]
   infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
   infi deploy vercel [--prod]   # deploy + sync env + register webhook
 
@@ -26,6 +27,7 @@ ${pc.dim("Examples:")}
   infi claim create --json
   infi keys create --key sk_test_...
   infi sync infi.billing.ts --plan
+  infi doctor --json
   infi deploy --url https://my-app.vercel.app
   infi deploy vercel --prod
   infi login --token eyJ...

@@ -1,5 +1,12 @@
 export { Infi, type CheckoutOptions } from "./client.js";
-export { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
+export {
+  InfiError,
+  InsufficientCreditError,
+  parseErrorResponse,
+  type InfiErrorFix,
+  INFI_ERROR_FIXES,
+  fixForCode,
+} from "./errors.js";
 export { extractTokens, resolveUsageValue, type MeterOptions, type MeterMode } from "./meter.js";
 export { MeteringSession } from "./meter-session.js";
 export {

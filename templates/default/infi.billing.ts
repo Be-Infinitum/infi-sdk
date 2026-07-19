@@ -29,4 +29,12 @@ export default defineBilling({
       prices: [{ meter: "usage_events", model: "prepaid_credits", unitAmount: "0.01" }],
     },
   ],
+  apps: [
+    {
+      slug: "__APP_SLUG__",
+      name: "__APP_NAME__",
+      allowedOrigins: ["http://localhost:__PORT__"],
+      redirectUris: ["http://localhost:__PORT__/callback"],
+    },
+  ],
 });

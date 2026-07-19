@@ -1,5 +1,6 @@
 import { die } from "./lib/output.js";
 import { globalFlags, parseArgs, printHelp } from "./parse.js";
+import type { ClaimRef } from "./lib/claim.js";
 
 export { parseArgs, globalFlags, printHelp } from "./parse.js";
 
@@ -62,7 +63,9 @@ export async function run(argv: string[]): Promise<void> {
         case "create":
           await claim.claimCreate({
             ...gf,
-            ref: typeof parsed.flags.ref === "string" ? (parsed.flags.ref as "cli") : "cli",
+            ref: (typeof parsed.flags.ref === "string"
+              ? parsed.flags.ref
+              : "cli") as ClaimRef,
           });
           break;
         case "get":
@@ -96,6 +99,10 @@ export async function run(argv: string[]): Promise<void> {
         file: typeof parsed.flags.file === "string" ? parsed.flags.file : parsed.sub,
         force: parsed.flags.force === true,
       });
+      break;
+
+    case "doctor":
+      await (await import("./commands/doctor.js")).doctorCommand(gf);
       break;
 
     case "deploy":

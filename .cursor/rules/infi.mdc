@@ -1,0 +1,30 @@
+---
+description: Integrate Infi billing, auth, and metering in this project
+globs:
+  - "**/infi.billing.ts"
+  - "**/scripts/seed.ts"
+  - "**/scripts/setup.ts"
+---
+
+# Infi integration rules
+
+Read `/AGENTS.md` at the repo root before changing billing or auth.
+
+## Non-negotiables
+
+1. **One config file**: `infi.billing.ts` with `products`, `apps`, and `webhooks` — never separate `apps.create()` in seed scripts.
+2. **Sync before login**: run `infi sync infi.billing.ts` (or `bun run seed`) before testing hosted login.
+3. **Diagnose**: run `infi doctor --json` when login loops or 401s appear.
+4. **Enrollment id** for credits/meter/state — not the session customer id unless they match.
+
+## Stack picks
+
+- Next.js → `@beinfi/nextjs`
+- Hono / Vite / Workers → `@beinfi/auth`
+- Billing config only → TypeScript `infi.billing.ts` + `infi sync` (app can be any language)
+
+## Provision
+
+```bash
+infi claim create --ref cursor --json
+```
