@@ -13,6 +13,7 @@
       "dependencies": {
         "@ai-sdk/google": "^1.0.0",
         "@ai-sdk/openai": "^1.0.0",
+        "@beinfi/cli": "workspace:*",
         "@beinfi/sdk": "workspace:*",
         "@ngrok/ngrok": "^1.4.1",
         "ai": "^4.0.0",

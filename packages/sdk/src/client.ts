@@ -338,6 +338,7 @@ export class Infi {
         customerId,
         meter: options.meter,
         value,
+        ...(options.productId ? { productId: options.productId } : {}),
         ...(options.metadata ? { metadata: options.metadata } : {}),
       });
     }

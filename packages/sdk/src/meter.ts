@@ -41,6 +41,11 @@ export interface MeterOptions {
   /** Meter name the usage records against (e.g. "tokens"). */
   meter: string;
   /**
+   * Product id stamped on the usage event. Required by metering ingest when the
+   * tenant has multiple products — same as `infi.session(customerId, productId)`.
+   */
+  productId?: string;
+  /**
    * Gate/record behavior, by billing intent. Default `"prepaid"` (gate + record).
    * See {@link MeterMode}.
    */
