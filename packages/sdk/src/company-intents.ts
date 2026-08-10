@@ -4,15 +4,8 @@ import type { BillingConfig } from "./billing-as-code.js";
 export type CompanyIntent = "crm" | "prepaid-ai-chat" | "one-time" | "usage-saas";
 
 export interface CompanyIntentOptions {
-  /** Identity app slug (default per intent). */
-  slug?: string;
-  /** App display name. */
+  /** Display name. */
   name?: string;
-  /**
-   * Public app origin (preview or prod URL). Used for allowedOrigins + /callback.
-   * Optional in sandbox when the API skips allowlists; still recommended.
-   */
-  appUrl?: string;
   /** ISO currency. Default BRL. */
   currency?: string;
   /** One-time / pack price as decimal string. */
@@ -21,27 +14,12 @@ export interface CompanyIntentOptions {
   deliverableUrl?: string;
 }
 
-const DEFAULTS: Record<CompanyIntent, { slug: string; name: string; productKey: string }> = {
-  crm: { slug: "crm", name: "CRM", productKey: "crm" },
-  "prepaid-ai-chat": { slug: "ai-chat", name: "AI Chat", productKey: "ai-chat" },
-  "one-time": { slug: "store", name: "Store", productKey: "item" },
-  "usage-saas": { slug: "saas", name: "Usage SaaS", productKey: "integration" },
+const DEFAULTS: Record<CompanyIntent, { name: string; productKey: string }> = {
+  crm: { name: "CRM", productKey: "crm" },
+  "prepaid-ai-chat": { name: "AI Chat", productKey: "ai-chat" },
+  "one-time": { name: "Store", productKey: "item" },
+  "usage-saas": { name: "Usage SaaS", productKey: "integration" },
 };
-
-function appsFor(slug: string, name: string, appUrl?: string): BillingConfig["apps"] {
-  if (!appUrl) {
-    return [{ slug, name, allowedOrigins: [], redirectUris: [] }];
-  }
-  const origin = appUrl.replace(/\/$/, "");
-  return [
-    {
-      slug,
-      name,
-      allowedOrigins: [origin],
-      redirectUris: [`${origin}/callback`],
-    },
-  ];
-}
 
 /** Build a `BillingConfig` / company config from a named intent. */
 export function companyFromIntent(
@@ -49,10 +27,8 @@ export function companyFromIntent(
   options: CompanyIntentOptions = {},
 ): BillingConfig {
   const meta = DEFAULTS[intent];
-  const slug = options.slug ?? meta.slug;
   const name = options.name ?? meta.name;
   const currency = options.currency ?? "BRL";
-  const apps = appsFor(slug, name, options.appUrl);
 
   switch (intent) {
     case "crm":
@@ -82,7 +58,6 @@ export function companyFromIntent(
             ],
           },
         ],
-        apps,
       };
 
     case "prepaid-ai-chat":
@@ -101,7 +76,6 @@ export function companyFromIntent(
             grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],
           },
         ],
-        apps,
       };
 
     case "one-time":
@@ -120,7 +94,6 @@ export function companyFromIntent(
           },
         ],
         // one-time checkout often needs no hosted login
-        apps: options.appUrl ? apps : undefined,
       };
 
     case "usage-saas":
@@ -146,7 +119,6 @@ export function companyFromIntent(
             ],
           },
         ],
-        apps,
       };
 
     default: {

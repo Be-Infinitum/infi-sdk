@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+### Removed — BREAKING: auth is no longer part of Beinfi
+
+Beinfi is billing only; merchants bring their own auth (backend ADR 0025). Everything
+that existed to log an end user in is gone:
+
+- `sendEmailCode`, `verifyEmailCode`, `getAppConfig`, `exchangeCode`,
+  `exchangeCodeFromRequest`, `getSession`
+- the `apps` resource (`apps.list/create/update`)
+- `InfiLogin` (from `@beinfi/sdk/react`), `buildHostedLoginUrl`, `startHostedLogin`,
+  `extractCodeFromUrl`, `extractTokenFromUrl`, `setSessionCookie`, `clearSessionCookie`
+- company-as-code `apps[]`: `BillingApp`, `withAppUrl`, and the `appUrl` option on
+  `defineCompany.fromIntent`. `infi sync` no longer patches origins.
+- types `App`, `AppIdentity`, `AuthResult`, `SessionIntrospection`, `SessionMode`,
+  `SessionPayload`, `HostedAppConfig`, `EmailCodeRequest`, `VerifyCodeRequest`,
+  `ExchangeRequest`, `ExchangeCodeOptions`, `SendEmailCodeOptions`,
+  `VerifyEmailCodeOptions`, `StartHostedLoginOptions`, `InfiRequestLike`,
+  `InfiResponseLike`, and `CustomerSummary.identityId`
+
+`exchangeCliToken` **stays** — that is operator/CLI auth (`/auth/cli/token`), not
+end-user login.
+
+### Changed — BREAKING
+
+- **`wallet.fromSession(token, opts)` → `wallet.forCustomer(externalId, opts)`.** It still
+  resolves productKey → product → enroll → starter credits → bound wallet; it just takes
+  your own user id instead of an Infi session token. `Wallet.customerId` → `Wallet.externalId`,
+  and `Wallet.session` is gone.
+
+### Migration
+
+```diff
+- const wallet = await infi.wallet.fromSession(sessionToken, { productKey: "ai-chat" });
++ const wallet = await infi.wallet.forCustomer(myUserId, { productKey: "ai-chat" });
+```
+
+Replace Infi login with any auth you like (Clerk, Supabase, NextAuth, your own), then pass
+that user's id as `externalId`. The enrollment id it returns is unchanged.
+
+
 ### Fixed
 - `products.create` now unwraps the backend's `{ product, version }` response
   (previously returned the wrapper, so `.id` was undefined against the real API).

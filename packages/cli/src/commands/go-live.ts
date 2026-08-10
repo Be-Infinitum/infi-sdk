@@ -1,5 +1,5 @@
 import type { GlobalFlags } from "../lib/client.js";
-import { apiBase, resolveSecretKey } from "../lib/client.js";
+import { apiBase, infiClient, resolveSecretKey } from "../lib/client.js";
 import { getClaimable } from "../lib/claim.js";
 import { die, ok, printJson } from "../lib/output.js";
 import pc from "picocolors";
@@ -7,9 +7,8 @@ import pc from "picocolors";
 export type GoLiveStage =
   | "sandbox_unclaimed"
   | "sandbox_claimed"
-  | "account_needed"
-  | "kyc_pending"
-  | "kyc_approved"
+  | "provider_needed"
+  | "webhook_pending"
   | "live_ready"
   | "unknown";
 
@@ -21,7 +20,8 @@ export type GoLiveStatus = {
     claim?: string;
     dashboard: string;
     account?: string;
-    kyc?: string;
+    /** Where the merchant connects their own Stripe / Asaas account. */
+    connect?: string;
   };
   blockers: Array<{ code: string; message: string; url?: string }>;
   claimable?: {
@@ -37,6 +37,7 @@ export type GoLiveStatus = {
 };
 
 const DASHBOARD = "https://app.beinfi.com";
+const CONNECT_URL = `${DASHBOARD}/go-live`;
 
 async function tryBackendGoLive(api: string, secretKey: string): Promise<unknown | null> {
   try {
@@ -48,6 +49,27 @@ async function tryBackendGoLive(api: string, secretKey: string): Promise<unknown
     });
     if (!res.ok) return null;
     return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Connection summary for the tenant's first usable provider, or null when it
+ * cannot be read (no key / API refused).
+ */
+async function providerState(
+  flags: GlobalFlags & { claimId?: string },
+): Promise<{ connected: boolean; webhookRegistered: boolean; name: string } | null> {
+  try {
+    const { connections } = await infiClient(flags).providers.list();
+    const usable = connections.find((c) => c.status === "connected") ?? connections[0];
+    if (!usable) return { connected: false, webhookRegistered: false, name: "" };
+    return {
+      connected: usable.status === "connected" || usable.status === "pending_webhook",
+      webhookRegistered: usable.webhookRegistered,
+      name: usable.provider,
+    };
   } catch {
     return null;
   }
@@ -118,39 +140,46 @@ export async function getGoLiveStatus(
     };
   }
 
-  const stage = mode === "live" ? "live_ready" : stageFromClaim(claimStatus);
+  // The real gate to live money is a connected provider (backend ADR 0012 replaced
+  // KYC with bring-your-own-provider), so ask the backend rather than guess.
+  const provider = secretKey ? await providerState(flags) : null;
 
+  let stage: GoLiveStage;
   const blockers: GoLiveStatus["blockers"] = [];
   let next: string;
 
-  switch (stage) {
-    case "sandbox_unclaimed":
-      next =
-        "Open the claim URL in a browser, create your Beinfi account, then complete KYC before using sk_live_ keys.";
-      blockers.push({
-        code: "claim_required",
-        message: "Tenant is still unclaimed.",
-        url: claimUrl,
-      });
-      break;
-    case "sandbox_claimed":
-      next =
-        "Finish account setup + KYC in the dashboard, then create an sk_live_ key and replace INFI_SECRET_KEY in production.";
-      blockers.push({
-        code: "kyc_required",
-        message: "Claimed — complete KYC to accept real payments.",
-        url: `${DASHBOARD}/kyc`,
-      });
-      break;
-    case "live_ready":
-      next = "Live key detected. Run infi doctor and ensure production APP_URL allowlists are synced.";
-      break;
-    default:
-      next =
-        "Set INFI_CLAIM_ID / INFI_CLAIM_URL from bootstrap, or open the dashboard to claim and complete KYC.";
-      if (claimUrl) {
-        blockers.push({ code: "claim_required", message: "Claim your sandbox tenant.", url: claimUrl });
-      }
+  if (claimStatus === "UNCLAIMED") {
+    stage = "sandbox_unclaimed";
+    next = "Open the claim URL and create your Beinfi account — an unclaimed sandbox expires.";
+    blockers.push({ code: "claim_required", message: "Tenant is still unclaimed.", url: claimUrl });
+  } else if (provider === null) {
+    stage = mode === "live" ? "live_ready" : stageFromClaim(claimStatus);
+    next =
+      "Could not read provider connections (no key, or the API refused). Run infi providers list.";
+  } else if (!provider.connected) {
+    stage = "provider_needed";
+    next = `Connect your own Stripe or Asaas account — that is where the money lands. ${CONNECT_URL}`;
+    blockers.push({
+      code: "provider_required",
+      message:
+        "No payment provider connected. Connecting needs fresh MFA, so it is a dashboard action.",
+      url: CONNECT_URL,
+    });
+  } else if (!provider.webhookRegistered) {
+    stage = "webhook_pending";
+    next = `${provider.name} is connected but its webhook is not registered — you would never learn a payment succeeded. Finish it at ${CONNECT_URL}`;
+    blockers.push({
+      code: "webhook_required",
+      message: `${provider.name} webhook not registered.`,
+      url: CONNECT_URL,
+    });
+  } else if (mode === "live") {
+    stage = "live_ready";
+    next = "Live key + connected provider + registered webhook. Run infi doctor to confirm.";
+  } else {
+    stage = "sandbox_claimed";
+    next =
+      "Sandbox is ready end to end. Create an sk_live_ key in the dashboard and replace INFI_SECRET_KEY to take real money.";
   }
 
   return {
@@ -161,7 +190,7 @@ export async function getGoLiveStatus(
       claim: claimUrl,
       dashboard: DASHBOARD,
       account: `${DASHBOARD}/signup`,
-      kyc: `${DASHBOARD}/kyc`,
+      connect: CONNECT_URL,
     },
     blockers,
     claimable,
@@ -183,13 +212,13 @@ export async function goLiveCommand(
   console.log(`  ${status.next}`);
   if (status.urls.claim) console.log(`  claim:     ${status.urls.claim}`);
   console.log(`  dashboard: ${status.urls.dashboard}`);
-  if (status.urls.kyc) console.log(`  kyc:       ${status.urls.kyc}`);
+  if (status.urls.connect) console.log(`  connect:   ${status.urls.connect}`);
   for (const b of status.blockers) {
     console.log(pc.yellow(`  ! ${b.message}${b.url ? ` → ${b.url}` : ""}`));
   }
   console.log(
     pc.dim(
-      "\nAgents: guide the human through claim → account → KYC. Never invent sk_live_ before KYC is approved.",
+      "\nAgents: guide the human through claim → connect provider → webhook. Connecting a provider needs fresh MFA, so it can only happen in the dashboard — never try it with an API key.",
     ),
   );
 }

@@ -1,6 +1,5 @@
 import path from "node:path";
 import pc from "picocolors";
-import { withAppUrl } from "@beinfi/sdk";
 import type { GlobalFlags } from "../lib/client.js";
 import { infiClient } from "../lib/client.js";
 import {
@@ -13,14 +12,11 @@ import {
 import { ok, printJson } from "../lib/output.js";
 
 export async function syncCommand(
-  flags: GlobalFlags & { file?: string; plan?: boolean; force?: boolean; appUrl?: string },
+  flags: GlobalFlags & { file?: string; plan?: boolean; force?: boolean },
 ): Promise<void> {
   const file = resolveCompanyFile(flags.file);
   const lockPath = lockPathFor(file);
-  let config = await loadCompanyConfig(file);
-  if (flags.appUrl) {
-    config = withAppUrl(config, flags.appUrl);
-  }
+  const config = await loadCompanyConfig(file);
   const infi = infiClient(flags);
   const result = await infi.sync(config, {
     plan: flags.plan ?? false,

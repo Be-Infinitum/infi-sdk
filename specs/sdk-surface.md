@@ -1,5 +1,9 @@
 # Spec — @beinfi/sdk surface expansion
 
+> **Status note (2026-08):** written when the SDK also sold auth. `sendEmailCode` /
+> `verifyEmailCode` / `exchangeCode` / `getSession` no longer exist — Beinfi is
+> billing-only and merchants bring their own auth. The surface goals below still hold.
+
 **Status:** P1 + P2 + P3 **implemented** in `@beinfi/sdk@0.3.0`. Metered-LLM surface
 (`infi.meter`, `customers.state`, `credits.consume`, `InsufficientCreditError`, `UsagePanel`,
 `@beinfi/nextjs withMeter`) added in `@0.9.0`. P1/P2: `checkout`,

@@ -7,7 +7,6 @@ export type ClaimableTenantCreateResponse = {
   status: "UNCLAIMED" | "CLAIMED";
   tenantSlug: string;
   productId: string;
-  appSlug: string;
   apiKeySecret: string;
   claimUrl: string;
   expiresAt: string;
@@ -18,7 +17,6 @@ export type ClaimableTenantPublicView = {
   status: "UNCLAIMED" | "CLAIMED";
   tenantSlug: string;
   productId?: string;
-  appSlug: string;
   ref: string;
   expiresAt: string;
   claimedAt?: string;
@@ -28,8 +26,6 @@ export type CreateClaimableOptions = {
   ref?: ClaimRef;
   /** Seed catalog from a company intent (backend may ignore until API ships). */
   intent?: CompanyIntent;
-  /** Preview/prod app URL for allowlist seed (optional in lax sandbox). */
-  appUrl?: string;
 };
 
 /**
@@ -45,7 +41,6 @@ export async function createClaimable(
   const base = baseUrl.replace(/\/$/, "");
   const body: Record<string, string> = { ref: opts.ref ?? "cli" };
   if (opts.intent) body.intent = opts.intent;
-  if (opts.appUrl) body.appUrl = opts.appUrl;
 
   const res = await fetch(`${base}/public/v1/claimables`, {
     method: "POST",

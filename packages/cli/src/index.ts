@@ -30,12 +30,6 @@ export async function run(argv: string[]): Promise<void> {
         ...gf,
         intent: typeof parsed.flags.intent === "string" ? parsed.flags.intent : undefined,
         ref: typeof parsed.flags.ref === "string" ? (parsed.flags.ref as ClaimRef) : undefined,
-        appUrl:
-          typeof parsed.flags["app-url"] === "string"
-            ? parsed.flags["app-url"]
-            : typeof parsed.flags.appUrl === "string"
-              ? parsed.flags.appUrl
-              : undefined,
         slug: typeof parsed.flags.slug === "string" ? parsed.flags.slug : undefined,
         skipSync: parsed.flags["skip-sync"] === true,
       });
@@ -76,6 +70,25 @@ export async function run(argv: string[]): Promise<void> {
       break;
     }
 
+    case "providers": {
+      const providers = await import("./commands/providers.js");
+      switch (parsed.sub) {
+        case undefined:
+        case "list":
+          await providers.providersList(gf);
+          break;
+        case "verify": {
+          const name = parsed.positional[0];
+          if (!name) die("Usage: infi providers verify <stripe|asaas>");
+          await providers.providersVerify({ ...gf, provider: name });
+          break;
+        }
+        default:
+          die("Usage: infi providers [list|verify <provider>]");
+      }
+      break;
+    }
+
     case "claim": {
       const claim = await import("./commands/claim.js");
       switch (parsed.sub) {
@@ -87,8 +100,6 @@ export async function run(argv: string[]): Promise<void> {
               typeof parsed.flags.intent === "string"
                 ? (parsed.flags.intent as CompanyIntent)
                 : undefined,
-            appUrl:
-              typeof parsed.flags["app-url"] === "string" ? parsed.flags["app-url"] : undefined,
           });
           break;
         case "get":
@@ -111,7 +122,6 @@ export async function run(argv: string[]): Promise<void> {
         file: parsed.sub,
         plan: parsed.flags.plan === true,
         force: parsed.flags.force === true,
-        appUrl: typeof parsed.flags["app-url"] === "string" ? parsed.flags["app-url"] : undefined,
       });
       break;
 

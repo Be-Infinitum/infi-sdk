@@ -553,7 +553,10 @@ export interface paths {
         /** Get a customer's credit balance and ledger entries */
         get: operations["getCredit"];
         put?: never;
-        /** Grant credit to a customer */
+        /**
+         * Grant credit to a customer
+         * @description Legacy shim that credits the default credits (CRD) meter pool. Prefer POST .../wallet/credit with an explicit meter (ADR 0021).
+         */
         post: operations["grantCredit"];
         delete?: never;
         options?: never;
@@ -578,9 +581,87 @@ export interface paths {
         put?: never;
         /**
          * Consume (deduct) credit from a customer
-         * @description Deducts credit via a negative `consumption` ledger entry. Rejects the request (409) if it would overdraw the balance.
+         * @description Deducts credit via a negative `consumption` ledger entry. Rejects the request (409) if it would overdraw the balance. Legacy shim for the default credits meter — prefer POST .../wallet/debit (ADR 0021).
          */
         post: operations["consumeCredit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/customers/{customerID}/wallet": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get meter wallet balances for an enrollment
+         * @description Returns all meter balances, or a single meter when `meter` is supplied (ADR 0021). Public meter `credits` is the legacy CRD pool.
+         */
+        get: operations["getWallet"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/customers/{customerID}/wallet/credit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Credit a meter balance
+         * @description Increases the enrollment's balance for the given meter. Idempotent when `idempotencyKey` is supplied (stored as a keyed ledger reference).
+         */
+        post: operations["walletCredit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/customers/{customerID}/wallet/debit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Debit a meter balance
+         * @description Decreases the enrollment's balance for the given meter. Rejects with 409 when the balance is insufficient. Idempotent when `idempotencyKey` is supplied.
+         */
+        post: operations["walletDebit"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1387,147 +1468,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/identity/exchange": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Exchange a hosted-mode auth code for a session */
-        post: operations["exchangeCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/identity/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Resolve a session token to its identity and customer
-         * @description Introspect an opaque session token (from the infi_session cookie) and return the current identity + customer. Secret-key authenticated; scoped to the key's tenant.
-         */
-        get: operations["getSession"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/identity/apps/{slug}/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Hosted login entrypoint (Mode B) — 302s to the frontend hosted page */
-        get: operations["getHostedLogin"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/identity/apps/{slug}/config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Public branding/config for the hosted login page (Mode B) */
-        get: operations["getHostedAppConfig"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/identity/apps/{slug}/email-code": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Send a hosted-mode email verification code (public, slug-scoped, rate limited) */
-        post: operations["sendHostedEmailCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/identity/apps/{slug}/verify-code": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Verify a hosted-mode email code, returning the redirect URL with an auth code */
-        post: operations["verifyHostedEmailCode"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/apps": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List apps for the tenant */
-        get: operations["listApps"];
-        put?: never;
-        /** Create an app */
-        post: operations["createApp"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/apps/{appID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get an app */
-        get: operations["getApp"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Update app config (origins, redirect URIs) */
-        patch: operations["updateApp"];
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1684,6 +1624,37 @@ export interface components {
             commitmentAmount?: string | null;
             commitmentResets?: boolean;
             creditsPerCycle?: string | null;
+            grants?: components["schemas"]["VersionGrant"][];
+        };
+        VersionGrant: {
+            /** @description Catalog meter key (e.g. tokens). credits aliases the legacy CRD pool. */
+            meter: string;
+            /** @description Decimal string quantity to credit. */
+            amount: string;
+            /**
+             * @description cycle = period open/renew; payment = payment.confirmed.
+             * @enum {string}
+             */
+            on: "cycle" | "payment";
+        };
+        WalletMutationRequest: {
+            meter: string;
+            /** @description Decimal string. */
+            amount: string;
+            reason?: string | null;
+            /** @description When set, the mutation is idempotent under this key. */
+            idempotencyKey?: string | null;
+            /** @description Free-form reference alias (not deduped). Prefer idempotencyKey. */
+            reference?: string | null;
+        };
+        WalletBalance: {
+            meter?: string;
+            balance?: string;
+            /** @description Lifetime credited total for this meter. */
+            total?: string;
+        };
+        WalletBalances: {
+            balances?: components["schemas"]["WalletBalance"][];
         };
         Meter: {
             /** Format: uuid */
@@ -2314,102 +2285,6 @@ export interface components {
             };
             active?: boolean;
         };
-        EmailCodeRequest: {
-            /** Format: email */
-            email: string;
-            /** Format: uri */
-            redirectTo?: string;
-            state?: string;
-        };
-        VerifyCodeRequest: {
-            /** Format: email */
-            email: string;
-            code: string;
-        };
-        HostedAppConfig: {
-            appName: string;
-            slug: string;
-            /** @enum {string} */
-            sessionMode: "infi" | "byo";
-            redirectAllowed?: boolean;
-        };
-        ExchangeRequest: {
-            code: string;
-            /** @enum {string} */
-            sessionMode?: "infi" | "byo";
-        };
-        AuthResult: {
-            identity?: components["schemas"]["AppIdentity"];
-            customer?: {
-                /** Format: uuid */
-                id?: string;
-                externalId?: string;
-                /** Format: uuid */
-                identityId?: string | null;
-                email?: string | null;
-            } | null;
-            session?: {
-                token?: string;
-                /** Format: date-time */
-                expiresAt?: string;
-            } | null;
-        };
-        SessionIntrospection: {
-            identity?: components["schemas"]["AppIdentity"];
-            customer?: {
-                /** Format: uuid */
-                id?: string;
-                /** Format: uuid */
-                customerId?: string | null;
-                externalId?: string;
-                /** Format: uuid */
-                identityId?: string | null;
-                email?: string | null;
-            } | null;
-            /** Format: date-time */
-            expiresAt?: string;
-        };
-        App: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            tenantId?: string;
-            slug?: string;
-            name?: string;
-            allowedOrigins?: string[];
-            redirectUris?: string[];
-            /** @enum {string} */
-            sessionMode?: "infi" | "byo";
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        AppIdentity: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            appId?: string;
-            /** Format: email */
-            email?: string;
-            /** Format: date-time */
-            verifiedAt?: string | null;
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        CreateAppRequest: {
-            slug: string;
-            name: string;
-            allowedOrigins?: string[];
-            redirectUris?: string[];
-            /** @enum {string} */
-            sessionMode?: "infi" | "byo";
-        };
-        UpdateAppRequest: {
-            name?: string;
-            allowedOrigins?: string[];
-            redirectUris?: string[];
-            /** @enum {string} */
-            sessionMode?: "infi" | "byo";
-        };
     };
     responses: {
         /** @description Malformed request */
@@ -2996,8 +2871,10 @@ export interface operations {
                     billingCycle?: "weekly" | "monthly" | "annual" | null;
                     /** @description Decimal string. */
                     basePrice?: string | null;
-                    /** @description Prepaid credit allowance granted each period (decimal string). Only meaningful for prepaid products; NULL grants nothing. */
+                    /** @description Legacy prepaid credit allowance granted each period to the default credits (CRD) pool. Prefer grants[] with meter keys (ADR 0021). NULL grants nothing via this shim. */
                     creditsPerCycle?: string | null;
+                    /** @description Plan meter grants for this version. One entry per meter; on is cycle (period open) or payment (payment.confirmed). */
+                    grants?: components["schemas"]["VersionGrant"][];
                 };
             };
         };
@@ -3642,6 +3519,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CreditSummary"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getWallet: {
+        parameters: {
+            query?: {
+                /** @description Catalog meter key (e.g. tokens). Omit to list all. */
+                meter?: string;
+            };
+            header?: never;
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One balance or a list of balances */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletBalance"] | components["schemas"]["WalletBalances"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    walletCredit: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Credited; updated meter balance */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletBalance"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    walletDebit: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalletMutationRequest"];
+            };
+        };
+        responses: {
+            /** @description Debited; updated meter balance */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalletBalance"];
                 };
             };
             401: components["responses"]["Unauthorized"];
@@ -5277,304 +5259,6 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
-        };
-    };
-    exchangeCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ExchangeRequest"];
-            };
-        };
-        responses: {
-            /** @description Verified user and optional session */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthResult"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getSession: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description The opaque session token to resolve. */
-                "X-Infi-Session": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The resolved session */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SessionIntrospection"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getHostedLogin: {
-        parameters: {
-            query: {
-                redirect_uri: string;
-                state?: string;
-            };
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Redirect to the frontend hosted login page, carrying redirect_uri and state */
-            302: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getHostedAppConfig: {
-        parameters: {
-            query?: {
-                /** @description If provided, the response reports whether it is in the app allowlist. */
-                redirect_uri?: string;
-            };
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Minimal app branding (never exposes allowlists, ids, or secrets) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HostedAppConfig"];
-                };
-            };
-            /** @description App not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    sendHostedEmailCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EmailCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description Accepted — always returned on success (no account enumeration) */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description App not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Too many requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    verifyHostedEmailCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                slug: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyCodeRequest"];
-            };
-        };
-        responses: {
-            /** @description Verified — navigate to redirectUrl (carries a single-use auth code) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        redirectUrl: string;
-                    };
-                };
-            };
-            /** @description App not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Invalid or expired code */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Too many requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    listApps: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Apps */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        apps?: components["schemas"]["App"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createApp: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateAppRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["App"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    getApp: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                appID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description App */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["App"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateApp: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                appID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateAppRequest"];
-            };
-        };
-        responses: {
-            /** @description Updated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["App"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
         };
     };
 }

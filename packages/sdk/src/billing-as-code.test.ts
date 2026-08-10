@@ -289,68 +289,23 @@ describe("syncBilling", () => {
 
 const PLATFORM = defineBilling({
   products: [],
-  apps: [
-    { slug: "crm", name: "CRM", allowedOrigins: ["http://localhost:3010"], redirectUris: ["http://localhost:3010/cb"] },
-  ],
   webhooks: [{ url: "https://app.example.com/hooks", events: ["payment.confirmed"] }],
 });
 
-describe("syncBilling apps + webhooks", () => {
-  it("creates missing app and webhook", async () => {
+describe("syncBilling webhooks", () => {
+  it("creates a missing webhook", async () => {
     const { infi, calls } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
     const res = await syncBilling(infi, PLATFORM);
 
-    expect(res.actions.find((a) => a.resource === "app")?.action).toBe("create");
     expect(res.actions.find((a) => a.resource === "webhook")?.action).toBe("create");
-    expect(calls.appCreate).toBe(1);
     expect(calls.webhookCreate).toBe(1);
   });
 
-  it("updates app when origins change, skips unchanged webhook", async () => {
-    const state: FakeState = {
-      products: [],
-      meters: {},
-      versions: {},
-      prices: {},
-      apps: [{ id: "app_1", slug: "crm", name: "CRM", allowedOrigins: ["http://old"], redirectUris: ["http://localhost:3010/cb"] }],
-      webhooks: [{ id: "wh_1", url: "https://app.example.com/hooks", events: ["payment.confirmed"], isActive: true }],
-    };
-    const { infi, calls } = fakeInfi(state);
-    const res = await syncBilling(infi, PLATFORM);
-
-    const app = res.actions.find((a) => a.resource === "app");
-    expect(app?.action).toBe("update");
-    expect(app?.detail).toContain("allowedOrigins");
-    expect(res.actions.find((a) => a.resource === "webhook")?.action).toBe("skip");
-    expect(calls.appUpdate).toBe(1);
-    expect(calls.webhookPatch).toBe(0);
-  });
-
-  it("plan mode writes no apps/webhooks", async () => {
+  it("plan mode writes no webhooks", async () => {
     const { infi, calls } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
     await syncBilling(infi, PLATFORM, { plan: true });
 
-    expect(calls.appCreate).toBe(0);
     expect(calls.webhookCreate).toBe(0);
   });
 
-  it("blocks an app update when it drifted in the dashboard, --force overrides", async () => {
-    const state: FakeState = { products: [], meters: {}, versions: {}, prices: {} };
-    const { infi, calls } = fakeInfi(state);
-
-    const first = await syncBilling(infi, PLATFORM, { now: "t1" });
-    expect(first.lock.apps?.crm?.state).toBeTruthy();
-
-    // Dashboard edit: someone changed the app's origins outside the config.
-    state.apps![0].allowedOrigins = ["http://hacked"];
-
-    const blocked = await syncBilling(infi, PLATFORM, { lock: first.lock, now: "t2" });
-    expect(blocked.actions.find((a) => a.resource === "app")?.action).toBe("blocked");
-    expect(blocked.drift.some((d) => d.product === "crm")).toBe(true);
-    expect(calls.appUpdate).toBe(0);
-
-    const forced = await syncBilling(infi, PLATFORM, { lock: first.lock, force: true, now: "t3" });
-    expect(forced.actions.find((a) => a.resource === "app")?.action).toBe("update");
-    expect(calls.appUpdate).toBe(1);
-  });
 });

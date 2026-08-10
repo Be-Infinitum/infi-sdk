@@ -42,20 +42,6 @@ function checkEnvVars(checks: DoctorCheck[]): void {
     });
   }
 
-  const slug = process.env.INFI_SLUG ?? process.env.NEXT_PUBLIC_INFI_APP_SLUG;
-  if (!slug) {
-    push(checks, {
-      id: "env_slug",
-      status: "warn",
-      message: "No INFI_SLUG / NEXT_PUBLIC_INFI_APP_SLUG — set the identity app slug for login.",
-    });
-  } else {
-    push(checks, {
-      id: "env_slug",
-      status: "pass",
-      message: `App slug: ${slug}`,
-    });
-  }
 }
 
 export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
@@ -85,7 +71,10 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
       message: "No secret key. Set INFI_SECRET_KEY, pass --key, or run `infi login`.",
       fix: fixForCode("missing_secret_key"),
     });
-    checkEnvVars(checks);
+    // A connected provider is the gate to real money (backend ADR 0012): without it
+  // a charge has no account to land in. A live key with no provider is the failure
+  // worth shouting about, so it fails there and only warns in sandbox.
+  checkEnvVars(checks);
     return { ok: false, checks };
   }
 
@@ -126,36 +115,43 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
     });
   }
 
-  const slug = process.env.INFI_SLUG ?? process.env.NEXT_PUBLIC_INFI_APP_SLUG;
-  if (slug) {
-    try {
-      const apps = await infi.apps.list();
-      const app = apps.find((a) => a.slug === slug);
-      if (!app) {
-        push(checks, {
-          id: "app",
-          status: "fail",
-          message: `Identity app "${slug}" not registered — add it to infi.company.ts apps[] and sync.`,
-          fix: { command: "infi sync infi.company.ts", docs: "AGENTS.md#company-as-code" },
-        });
-      } else {
-        const origins = app.allowedOrigins ?? [];
-        push(checks, {
-          id: "app",
-          status: origins.length > 0 ? "pass" : "warn",
-          message:
-            origins.length > 0
-              ? `App "${slug}" registered with ${origins.length} origin(s).`
-              : `App "${slug}" exists but has no allowedOrigins — hosted login redirects will be rejected.`,
-        });
-      }
-    } catch (err) {
+  try {
+    const { connections, supported } = await infi.providers.list();
+    const usable = connections.find((c) => c.status === "connected");
+    const live = (flags.key ?? process.env.INFI_SECRET_KEY ?? "").startsWith("sk_live_");
+    if (!usable) {
       push(checks, {
-        id: "app",
+        id: "provider",
+        status: live ? "fail" : "warn",
+        message:
+          connections.length === 0
+            ? `No payment provider connected (supported: ${supported.join(", ") || "none"}) — charges have nowhere to land.`
+            : `Provider ${connections[0]!.provider} is ${connections[0]!.status}, not connected.`,
+        fix: {
+          hint: "Connect it in the dashboard — it needs fresh MFA, so an API key cannot do it.",
+          docs: "https://app.beinfi.com/go-live",
+        },
+      });
+    } else if (!usable.webhookRegistered) {
+      push(checks, {
+        id: "provider",
         status: "warn",
-        message: `Could not list apps: ${err instanceof Error ? err.message : String(err)}`,
+        message: `${usable.provider} connected, but its webhook is not registered — you will not learn when a payment succeeds.`,
+        fix: { docs: "https://app.beinfi.com/go-live" },
+      });
+    } else {
+      push(checks, {
+        id: "provider",
+        status: "pass",
+        message: `${usable.provider} connected, webhook registered.`,
       });
     }
+  } catch (err) {
+    push(checks, {
+      id: "provider",
+      status: "warn",
+      message: `Could not read provider connections: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 
   checkEnvVars(checks);

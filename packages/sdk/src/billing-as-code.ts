@@ -1,11 +1,9 @@
 import type { Infi } from "./client.js";
 import type {
-  App,
   CreateProductRequest,
   Price,
   PriceInput,
   Product,
-  UpdateAppRequest,
   Version,
   WebhookEndpoint,
 } from "./types.js";
@@ -77,15 +75,6 @@ export function cycleGrantAmount(p: BillingProduct): string | null {
   return p.creditsPerCycle ?? null;
 }
 
-export interface BillingApp {
-  /** Stable natural key — the slug end-users log into (unique per tenant). */
-  slug: string;
-  name: string;
-  allowedOrigins?: string[];
-  redirectUris?: string[];
-  sessionMode?: "infi" | "byo";
-}
-
 export interface BillingWebhook {
   /** Stable natural key — the delivery URL. */
   url: string;
@@ -95,8 +84,6 @@ export interface BillingWebhook {
 
 export interface BillingConfig {
   products: BillingProduct[];
-  /** Identity apps (slug, origins, redirect URIs, session mode). */
-  apps?: BillingApp[];
   /** Webhook endpoints (url + subscribed events). */
   webhooks?: BillingWebhook[];
 }
@@ -134,7 +121,6 @@ export interface SyncLock {
   version: 1;
   products: Record<string, ProductLock>;
   /** Per-app provenance, keyed by slug. */
-  apps?: Record<string, EntityLock>;
   /** Per-webhook provenance, keyed by url. */
   webhooks?: Record<string, EntityLock>;
 }
@@ -320,25 +306,6 @@ function arrEq(a?: string[], b?: string[]): boolean {
   return x.length === y.length && x.every((v, i) => v === y[i]);
 }
 
-function appPatch(existing: App, a: BillingApp): UpdateAppRequest {
-  const patch: UpdateAppRequest = {};
-  if (existing.name !== a.name) patch.name = a.name;
-  if (a.allowedOrigins && !arrEq(existing.allowedOrigins, a.allowedOrigins)) patch.allowedOrigins = a.allowedOrigins;
-  if (a.redirectUris && !arrEq(existing.redirectUris, a.redirectUris)) patch.redirectUris = a.redirectUris;
-  if (a.sessionMode && existing.sessionMode !== a.sessionMode) patch.sessionMode = a.sessionMode;
-  return patch;
-}
-
-/** Canonical fingerprint of an app's managed backend state (for drift detection). */
-function appFingerprint(a: Pick<App, "name" | "allowedOrigins" | "redirectUris" | "sessionMode">): string {
-  return canon({
-    name: a.name ?? null,
-    allowedOrigins: [...(a.allowedOrigins ?? [])].sort(),
-    redirectUris: [...(a.redirectUris ?? [])].sort(),
-    sessionMode: a.sessionMode ?? null,
-  });
-}
-
 /** Canonical fingerprint of a webhook's managed backend state. */
 function webhookFingerprint(w: Pick<WebhookEndpoint, "events" | "isActive">): string {
   return canon({ events: [...(w.events ?? [])].sort(), isActive: w.isActive ?? null });
@@ -353,49 +320,6 @@ interface ReconcileCtx {
   lock: SyncLock;
   actions: SyncAction[];
   drift: DriftEntry[];
-}
-
-/** Reconcile identity apps by slug: create missing, update changed. Never deletes; drift-guarded. */
-async function reconcileApps(infi: Infi, apps: BillingApp[], ctx: ReconcileCtx): Promise<void> {
-  const existing = await infi.apps.list();
-  ctx.lock.apps ??= {};
-  for (const a of apps) {
-    const match = existing.find((x) => x.slug === a.slug);
-    if (!match) {
-      ctx.actions.push({ action: "create", resource: "app", ref: a.slug });
-      let created: App | undefined;
-      if (!ctx.plan) {
-        created = await infi.apps.create({
-          slug: a.slug,
-          name: a.name,
-          allowedOrigins: a.allowedOrigins,
-          redirectUris: a.redirectUris,
-          sessionMode: a.sessionMode,
-        });
-      }
-      ctx.lock.apps[a.slug] = { state: appFingerprint(created ?? a), syncedAt: ctx.now };
-      continue;
-    }
-
-    const prev = ctx.prevLock?.apps?.[a.slug];
-    const preState = appFingerprint(match);
-    const drifted = Boolean(prev && prev.state !== preState);
-    const patch = appPatch(match, a);
-    const changed = Object.keys(patch);
-
-    if (changed.length === 0) {
-      ctx.actions.push({ action: "skip", resource: "app", ref: a.slug });
-      ctx.lock.apps[a.slug] = { state: preState, syncedAt: ctx.now };
-    } else if (drifted && !ctx.force) {
-      ctx.actions.push({ action: "blocked", resource: "app", ref: a.slug, detail: "changed in dashboard since last sync" });
-      ctx.drift.push({ product: a.slug, detail: `app ${changed.join(", ")} would overwrite a dashboard edit` });
-      if (prev) ctx.lock.apps[a.slug] = prev; // keep flagged
-    } else {
-      ctx.actions.push({ action: "update", resource: "app", ref: a.slug, detail: changed.join(", ") });
-      const updated = !ctx.plan && match.id ? await infi.apps.update(match.id, patch) : { ...match, ...patch };
-      ctx.lock.apps[a.slug] = { state: appFingerprint(updated), syncedAt: ctx.now };
-    }
-  }
 }
 
 /** Reconcile webhooks by url: create missing, patch changed events/active. Never deletes/rotates; drift-guarded. */
@@ -651,10 +575,9 @@ export async function syncBilling(
     }
   }
 
-  // Platform config — apps + webhooks (create + update, never delete). Tenant-level,
+  // Platform config — webhooks (create + update, never delete). Tenant-level,
   // drift-guarded against the lock like products.
   const ctx: ReconcileCtx = { plan, force, now, prevLock, lock, actions, drift };
-  if (config.apps?.length) await reconcileApps(infi, config.apps, ctx);
   if (config.webhooks?.length) await reconcileWebhooks(infi, config.webhooks, ctx);
 
   return { planned: plan, actions, drift, lock: plan ? (prevLock ?? lock) : lock };
@@ -680,14 +603,6 @@ export async function buildLock(
     lock.products[p.key] = await snapshotProduct(infi, existing.id, existing, t);
   }
 
-  if (config.apps?.length) {
-    const apps = await infi.apps.list();
-    lock.apps = {};
-    for (const a of config.apps) {
-      const m = apps.find((x) => x.slug === a.slug);
-      if (m) lock.apps[a.slug] = { state: appFingerprint(m), syncedAt: t };
-    }
-  }
   if (config.webhooks?.length) {
     const whs = await infi.webhooks.list();
     lock.webhooks = {};

@@ -10,18 +10,10 @@ export {
 export { extractTokens, resolveUsageValue, type MeterOptions, type MeterMode } from "./meter.js";
 export { MeteringSession } from "./meter-session.js";
 export {
-  buildHostedLoginUrl,
-  extractCodeFromUrl,
-  extractTokenFromUrl,
-  startHostedLogin,
-} from "./hosted.js";
-export { clearSessionCookie, setSessionCookie } from "./session.js";
-export {
   buildLock,
   defineBilling,
   syncBilling,
   cycleGrantAmount,
-  type BillingApp,
   type BillingConfig,
   type BillingGrant,
   type BillingMeter,
@@ -39,7 +31,6 @@ export {
 export {
   defineCompany,
   companyFromIntent,
-  withAppUrl,
   COMPANY_INTENTS,
   type CompanyConfig,
   type CompanyIntent,
@@ -47,11 +38,11 @@ export {
 } from "./company.js";
 export {
   bindWallet,
-  walletFromSession,
+  walletForCustomer,
   type BoundWallet,
+  type WalletForCustomerOptions,
   type MeterBalance,
   type Wallet,
-  type WalletFromSessionOptions,
   type WalletGrantOn,
   type WalletOpOptions,
 } from "./wallet.js";
@@ -70,6 +61,11 @@ export {
 export type { UsageQuery } from "./resources/usage.js";
 export type { FromUsageInput } from "./resources/invoices.js";
 export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
+export {
+  ProvidersResource,
+  type ProviderConnection,
+  type ProviderList,
+} from "./resources/providers.js";
 export type { CreateApiKeyInput } from "./resources/api-keys.js";
 export type {
   CreateWebhookInput,
@@ -89,14 +85,9 @@ export type {
   SubscriptionWithPeriod,
 } from "./resources/subscriptions.js";
 export type {
-  App,
-  AppIdentity,
   ApiKey,
-  AuthResult,
   CheckoutSession,
-  CLITokenResponse,
   Coupon,
-  CreateAppRequest,
   CreateCouponRequest,
   CreateCustomerRequest,
   CreateInvoiceRequest,
@@ -106,6 +97,7 @@ export type {
   CreateProductRequest,
   CreatedApiKey,
   CreditSummary,
+  CLITokenResponse,
   Customer,
   CustomerState,
   CustomerSummary,
@@ -113,14 +105,8 @@ export type {
   PresignDeliverableRequest,
   PresignDeliverableResponse,
   PutDeliverableRequest,
-  EmailCodeRequest,
-  ExchangeCodeOptions,
-  ExchangeRequest,
   GrantCreditInput,
-  HostedAppConfig,
   InfiConfig,
-  InfiRequestLike,
-  InfiResponseLike,
   IngestResult,
   Invoice,
   Meter,
@@ -131,20 +117,12 @@ export type {
   Product,
   ProductCustomer,
   RateCard,
-  SendEmailCodeOptions,
-  SessionIntrospection,
-  SessionMode,
-  SessionPayload,
-  StartHostedLoginOptions,
   Subscription,
   SubscriptionPeriod,
-  UpdateAppRequest,
   UsageEvent,
   UsageReport,
   Version,
   VersionInput,
-  VerifyCodeRequest,
-  VerifyEmailCodeOptions,
   WebhookDelivery,
   WebhookEndpoint,
 } from "./types.js";

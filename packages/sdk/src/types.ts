@@ -1,20 +1,9 @@
 import type { components } from "./generated/openapi.js";
 
-export type SessionMode = "infi" | "byo";
 
 /** Backend schema aliases — single source of truth via OpenAPI codegen. */
-export type EmailCodeRequest = components["schemas"]["EmailCodeRequest"];
-export type VerifyCodeRequest = components["schemas"]["VerifyCodeRequest"];
-export type HostedAppConfig = components["schemas"]["HostedAppConfig"];
-export type ExchangeRequest = components["schemas"]["ExchangeRequest"];
-export type AuthResult = components["schemas"]["AuthResult"];
-export type AppIdentity = components["schemas"]["AppIdentity"];
-export type App = components["schemas"]["App"];
-export type CreateAppRequest = components["schemas"]["CreateAppRequest"];
-export type UpdateAppRequest = components["schemas"]["UpdateAppRequest"];
 export type UsageEvent = components["schemas"]["UsageEvent"];
 export type IngestResult = components["schemas"]["IngestResult"];
-export type SessionIntrospection = components["schemas"]["SessionIntrospection"];
 
 // ── Catalog / billing surface ──────────────────────────────────────────────
 export type Product = components["schemas"]["Product"];
@@ -84,67 +73,14 @@ export interface InfiConfig {
   mode?: InfiMode;
   /** Override the API host (local dev / self-host / tests). Defaults per mode. */
   apiUrl?: string;
-  /** Override the app host that serves hosted checkout/login. Default app.beinfi.com. */
+  /** Override the app host that serves hosted checkout. Default app.beinfi.com. */
   appUrl?: string;
-}
-
-export interface SendEmailCodeOptions {
-  /** App slug the login is scoped to. */
-  slug: string;
-  email: string;
-  /** Where to land after the auth code is verified (must be in the app allowlist). */
-  redirectTo?: string;
-  /** Opaque value echoed back on the redirect URL. */
-  state?: string;
-}
-
-export interface VerifyEmailCodeOptions {
-  /** App slug the login is scoped to. */
-  slug: string;
-  email: string;
-  /** The 6-digit code from the email. */
-  code: string;
-}
-
-export interface ExchangeCodeOptions {
-  sessionMode?: SessionMode;
 }
 
 export interface CustomerSummary {
   id: string;
   externalId?: string;
-  identityId?: string | null;
   email?: string | null;
-}
-
-/** Session payload as returned by the backend (`AuthResult.session`). */
-export type SessionPayload = NonNullable<AuthResult["session"]>;
-
-/** Minimal request shape for framework adapters (Next.js, Express, etc.). */
-export interface InfiRequestLike {
-  url: string;
-  method?: string;
-  headers?: Record<string, string | string[] | undefined>;
-  json?: () => Promise<unknown>;
-}
-
-/** Minimal response shape for cookie helpers. */
-export interface InfiResponseLike {
-  headers: {
-    append(name: string, value: string): void;
-  };
-}
-
-export interface StartHostedLoginOptions {
-  slug: string;
-  redirectTo: string;
-  state?: string;
-  /**
-   * Host that serves the hosted-login page (`/identity/{slug}/login`) — the
-   * frontend app. Defaults to {@link DEFAULT_APP_BASE}. Point it at your local
-   * frontend in dev (e.g. `http://localhost:3000`).
-   */
-  appUrl?: string;
 }
 
 // API hosts, picked by mode. Sandbox and live are separate deployments (ADR 0014);

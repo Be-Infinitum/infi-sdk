@@ -4,7 +4,7 @@
 
 ## Steps
 
-1. Copy `templates/ai-chat` or add dependencies: `@beinfi/sdk`, `@beinfi/auth`, `ai`, `@ai-sdk/anthropic`.
+1. Add dependencies: `@beinfi/sdk`, `ai`, `@ai-sdk/anthropic`.
 2. Create `infi.billing.ts`:
 
 ```ts
@@ -21,21 +21,14 @@ export default defineBilling({
     meters: [{ key: "tokens", unit: "token", aggregation: "sum" }],
     prices: [{ meter: "tokens", model: "prepaid_credits", unitAmount: "0.01" }],
   }],
-  apps: [{
-    slug: process.env.INFI_SLUG!,
-    name: "AI Chat",
-    allowedOrigins: [process.env.APP_URL!],
-    redirectUris: [`${process.env.APP_URL}/callback`],
-  }],
 });
 ```
 
 3. `infi sync infi.billing.ts && infi doctor`
-4. Auth routes with `@beinfi/auth`:
+4. Resolve the payer from **your own** auth — Beinfi does not do login:
 
 ```ts
-app.get("/api/auth/login", (c) => c.redirect(createLoginHandler({...})(c.req.raw)));
-// Prefer: mount handlers directly on fetch routes
+const wallet = await infi.wallet.forCustomer(myUserId, { productKey: "ai-chat" });
 ```
 
 5. Chat route — **streaming meter**:
@@ -51,5 +44,4 @@ await infi.meter({ customerId: enrollmentId, meter: "tokens", mode: "streaming" 
 ## Gotchas
 
 - Gate with `mode: "streaming"` — do not use default meter with `streamText`
-- Enroll on first login: `products.enroll()` → wallet id
-- See `examples/ai-chat/FINDINGS.md`
+- `wallet.forCustomer(externalId, …)` enrolls on first call and returns the wallet

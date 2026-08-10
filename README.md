@@ -11,7 +11,6 @@ checkout, metering, and prepaid AI credits.
 |---------|-------------|
 | [`@beinfi/sdk`](./packages/sdk) | Core API client + `defineBilling()` + React UI |
 | [`@beinfi/cli`](./packages/cli) | `infi` — init, sync, doctor, claim, deploy |
-| [`@beinfi/auth`](./packages/auth) | Framework-agnostic auth (`Request`/`Response`) |
 | [`@beinfi/nextjs`](./packages/nextjs) | Next.js App Router handlers |
 | [`@beinfi/mcp`](./packages/mcp) | MCP server for Cursor / Claude |
 | [`create-infi-app`](./packages/create-infi-app) | `npm create infi-app` |
@@ -31,7 +30,7 @@ infi doctor --json
 
 ## Company as code
 
-Declare the company (products, apps, webhooks) in TypeScript — app can be any language:
+Declare the company (products, webhooks) in TypeScript — app can be any language:
 
 ```ts
 import { defineCompany } from "@beinfi/sdk";
@@ -47,10 +46,10 @@ Hosts (API / auth / pay) are inferred from `INFI_SECRET_KEY`. Go-live (claim →
 
 | Example | Use case |
 |---------|----------|
-| `examples/ai-chat` | Prepaid AI chat (`@beinfi/auth` + Hono) |
-| `examples/ebook-sale` | One-time checkout + deliverable |
-| `examples/marketplace-billing` | Usage SaaS + per-org rate cards |
-| `examples/crm` | Metered CRM (`@beinfi/nextjs`) |
+| `examples/ai-agent-billing` | Script: company-as-code → AI calls → usage invoice → webhooks |
+
+The Next.js example apps and the `templates/` scaffolds were removed along with
+auth-as-a-service; they will be rebuilt around the billing-only surface.
 
 ## Development
 

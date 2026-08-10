@@ -4,14 +4,13 @@
   "workspaces": [
     "packages/sdk",
     "packages/nextjs",
-    "packages/auth",
     "packages/cli",
     "packages/mcp",
     "packages/create-infi-app",
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/auth' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter '@beinfi/mcp' build && bun run --filter 'create-infi-app' build",
+    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter '@beinfi/mcp' build && bun run --filter 'create-infi-app' build",
     "test": "bun run --filter '@beinfi/*' test",
     "typecheck": "bun run --filter '@beinfi/*' typecheck && bun run --filter 'create-infi-app' typecheck",
     "codegen": "bash scripts/codegen.sh",

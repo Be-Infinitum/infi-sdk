@@ -1,5 +1,5 @@
 import type { Infi } from "./client.js";
-import type { CreditSummary, ProductCustomer, SessionIntrospection } from "./types.js";
+import type { CreditSummary, ProductCustomer } from "./types.js";
 import { InfiError } from "./errors.js";
 
 export type WalletGrantOn = "cycle" | "payment";
@@ -46,9 +46,11 @@ export interface BoundWallet {
   balance(meter?: string): Promise<MeterBalance>;
 }
 
-export interface WalletFromSessionOptions {
+export interface WalletForCustomerOptions {
   /** Product natural key (e.g. "crm", "ai-chat"). */
   productKey: string;
+  /** Optional email carried onto the customer record. */
+  email?: string;
   /**
    * Grant this many units on first enroll (shim: credits.grant).
    * Prefer plan `grants[]` once the backend applies them.
@@ -59,14 +61,13 @@ export interface WalletFromSessionOptions {
 }
 
 export interface Wallet extends BoundWallet {
-  /** Tenant customer id from the session (identity-linked). */
-  customerId: string;
+  /** Your own user id, as passed to `walletForCustomer`. */
+  externalId: string;
   email?: string;
   productId: string;
   productKey: string;
   enrollment: ProductCustomer;
-  session: SessionIntrospection;
-  /** Snapshot taken at fromSession; prefer `balance(meter)`. */
+  /** Snapshot taken at resolve time; prefer `balance(meter)`. */
   summary?: CreditSummary;
 }
 
@@ -150,33 +151,28 @@ export function bindWallet(
 }
 
 /**
- * Resolve (or create) the billing wallet for a signed-in session.
+ * Resolve (or create) the billing wallet for one of your users.
  *
- * Hides the customer vs enrollment id footgun: agents pass a session token +
- * product key and get back a wallet with `debit` / `credit` / `balance`.
+ * Hides the customer-vs-enrollment id footgun: pass your own user id
+ * (`externalId`) plus a product key and get back a wallet with
+ * `debit` / `credit` / `balance`.
+ *
+ * This used to be `walletFromSession(infi, sessionToken, …)`, which resolved the
+ * customer from an Infi login session. Pulse no longer sells login, so the caller
+ * supplies the identity from their own auth.
  */
-export async function walletFromSession(
+export async function walletForCustomer(
   infi: Infi,
-  sessionToken: string,
-  options: WalletFromSessionOptions,
+  externalId: string,
+  options: WalletForCustomerOptions,
 ): Promise<Wallet> {
-  const session = await infi.getSession(sessionToken);
-  const customerId = session.customer?.id;
-  if (!customerId) {
-    throw new InfiError(
-      "Session has no customer — sync a product (company as code) before login.",
-      401,
-      "no_products_for_login",
-    );
-  }
-
   const products = await infi.products.list();
   const product = products.find((p) => p.key === options.productKey);
   if (!product?.id) {
     throw new InfiError(
       `Product "${options.productKey}" not found — run infi sync / bootstrap.`,
       404,
-      "no_products_for_login",
+      "no_products_for_customer",
       {
         command: "infi bootstrap --intent prepaid-ai-chat --json",
         hint: `Declare product key "${options.productKey}" in infi.company.ts and sync.`,
@@ -184,10 +180,9 @@ export async function walletFromSession(
     );
   }
 
-  const email = session.customer?.email ?? session.identity?.email ?? undefined;
   const enrollment = await infi.products.enroll(product.id, {
-    externalId: customerId,
-    email: email ?? undefined,
+    externalId,
+    email: options.email,
   });
   const enrollmentId = enrollment.id!;
   const defaultMeter = options.defaultMeter ?? "tokens";
@@ -213,12 +208,11 @@ export async function walletFromSession(
 
   return {
     ...bound,
-    customerId,
-    email: email ?? undefined,
+    externalId,
+    email: options.email,
     productId: product.id,
     productKey: options.productKey,
     enrollment,
-    session,
     summary,
   };
 }

@@ -7,11 +7,10 @@ MCP server for Cursor / Claude agents. Built on `@beinfi/sdk` + CLI libs (compan
 | Tool | Description |
 |------|-------------|
 | `infi_bootstrap` | Claim + `infi.company.ts` from intent + sync + doctor |
-| `infi_claim_create` | Sandbox tenant (`ref`, optional `intent`, `appUrl`) |
+| `infi_claim_create` | Sandbox tenant (`ref`, optional `intent`) |
 | `infi_doctor` | Setup diagnostics |
 | `infi_go_live_status` | Claim → account → KYC guidance (never invents `sk_live_`) |
 | `infi_sync_plan` / `infi_sync_apply` | Company-as-code reconcile |
-| `infi_set_app_url` | Patch origins + sync |
 | `infi_pull` | Read backend catalog |
 
 ## Cursor config

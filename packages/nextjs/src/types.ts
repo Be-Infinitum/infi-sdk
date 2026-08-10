@@ -1,4 +1,4 @@
-import type { AuthResult, InsufficientCreditError, SessionMode } from "@beinfi/sdk";
+import type { InsufficientCreditError } from "@beinfi/sdk";
 import type { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -7,57 +7,6 @@ import type { NextRequest, NextResponse } from "next/server";
  * `"postpaid"` records only, `"streaming"` gates only.
  */
 export type MeterMode = "prepaid" | "postpaid" | "streaming";
-
-/** Forwarded to `setSessionCookie` from `@beinfi/sdk`. */
-export interface CookieOptions {
-  /** Cookie max-age in seconds. Defaults to 7 days. */
-  maxAgeSeconds?: number;
-  /** Force the Secure flag (default: true in production). */
-  secure?: boolean;
-  /** Cookie path. Default: / */
-  path?: string;
-}
-
-export interface LoginOptions {
-  /** App slug the hosted login is scoped to. */
-  slug: string;
-  /** Where the hosted flow lands after the code is verified. Relative paths are resolved against the request origin. */
-  redirectTo: string;
-  /** Hosted login base URL. Defaults to the mode-derived host. */
-  appUrl?: string;
-  /** Opaque value echoed back on the redirect. A function receives the incoming request. */
-  state?: string | ((req: NextRequest) => string | undefined);
-}
-
-export interface CallbackOptions {
-  /** Secret key (`sk_...`) used to exchange the auth code server-side. */
-  secretKey: string;
-  /** Where to send the browser after a successful exchange. Relative paths are resolved against the request origin. */
-  successUrl: string;
-  /** Infi API base URL. Defaults to the mode-derived host. */
-  apiUrl?: string;
-  /** Session mode passed to `exchangeCode` ("infi" | "byo"). */
-  sessionMode?: SessionMode;
-  /** Cookie options forwarded to `setSessionCookie`. */
-  cookie?: CookieOptions;
-  /**
-   * Runs after a successful exchange, before the default redirect. Return a
-   * `NextResponse` to take over the response entirely (e.g. persist a BYO session).
-   */
-  onAuth?: (
-    result: AuthResult,
-    req: NextRequest,
-  ) => void | NextResponse | Promise<void | NextResponse>;
-  /**
-   * Where to send the browser after a FAILED exchange (e.g. your login page).
-   * Relative paths resolve against the request origin. The failure is appended as
-   * `?error=<code>&message=<msg>` so the page can show it. Ignored when `onError`
-   * is set. Without either, a failed exchange returns a JSON error.
-   */
-  errorUrl?: string;
-  /** Handle a failed exchange. Defaults to `errorUrl` redirect, else a JSON error response. */
-  onError?: (error: unknown, req: NextRequest) => NextResponse;
-}
 
 export interface UsageOptions {
   /** Secret key (`sk_...`) used to ingest events server-side. */

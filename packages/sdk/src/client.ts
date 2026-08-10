@@ -1,10 +1,8 @@
 import { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
-import { extractCodeFromUrl } from "./hosted.js";
 import { Transport, newIdempotencyKey } from "./http.js";
 import { resolveUsageValue, resolveMeterMode, resolveCustomerId, type MeterOptions } from "./meter.js";
 import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
-import { AppsResource } from "./resources/apps.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
 import { CouponsResource } from "./resources/coupons.js";
@@ -12,6 +10,7 @@ import { SubscriptionsResource } from "./resources/subscriptions.js";
 import { WebhooksResource } from "./resources/webhooks-resource.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
 import { PayResource } from "./resources/pay.js";
+import { ProvidersResource } from "./resources/providers.js";
 import { MeteringSession } from "./meter-session.js";
 import { verifyWebhook, type WebhookEvent, type WebhookInput } from "./webhooks.js";
 import {
@@ -22,26 +21,19 @@ import {
 } from "./billing-as-code.js";
 import {
   bindWallet,
-  walletFromSession,
+  walletForCustomer,
   type BoundWallet,
   type Wallet,
-  type WalletFromSessionOptions,
+  type WalletForCustomerOptions,
 } from "./wallet.js";
 import type {
-  AuthResult,
   CreateInvoiceRequest,
   CreditSummary,
-  ExchangeCodeOptions,
-  HostedAppConfig,
   InfiConfig,
   InfiMode,
-  InfiRequestLike,
   IngestResult,
   Invoice,
-  SendEmailCodeOptions,
-  SessionIntrospection,
   UsageEvent,
-  VerifyEmailCodeOptions,
 } from "./types.js";
 import { DEFAULT_APP_BASE, modeFromKey, resolveApiBase } from "./types.js";
 
@@ -90,8 +82,6 @@ export class Infi {
   readonly products: ProductsResource;
   /** Customers: rate-cards (per-org pricing) and credits. */
   readonly customers: CustomersResource;
-  /** Apps: register + configure identity apps (slug, origins, redirect URIs). */
-  readonly apps: AppsResource;
   /** Usage totals per meter for a customer window. */
   readonly usage: UsageResource;
   /** Invoices: create, send, void, charge, generate-from-subscription. */
@@ -106,6 +96,8 @@ export class Infi {
   readonly webhooks: WebhooksResource;
   /** Pay: public, slug-based checkout (pix QR + card charge). Browser-safe, no secret key. */
   readonly pay: PayResource;
+  /** BYOP connections: the merchant's own Stripe / Asaas account (read + verify). */
+  readonly providers: ProvidersResource;
 
   constructor(config: InfiConfig | string) {
     // No key is required for the public endpoints (email-code login, pay). The
@@ -123,7 +115,6 @@ export class Infi {
     const transport = new Transport(this.#apiBase, this.#secretKey);
     this.products = new ProductsResource(transport);
     this.customers = new CustomersResource(transport);
-    this.apps = new AppsResource(transport);
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
     this.coupons = new CouponsResource(transport);
@@ -131,6 +122,7 @@ export class Infi {
     this.apiKeys = new ApiKeysResource(transport);
     this.webhooks = new WebhooksResource(transport);
     this.pay = new PayResource(this.#apiBase);
+    this.providers = new ProvidersResource(transport);
   }
 
   /** `"sandbox"` or `"live"` — the resolved mode. */
@@ -143,115 +135,9 @@ export class Infi {
     return this.#apiBase;
   }
 
-  /** The app host serving hosted checkout/login. */
+  /** The app host serving hosted checkout. */
   get appBase(): string {
     return this.#appBase;
-  }
-
-  // ── Identity: email-code login (public, slug-scoped) ───────────────────────
-
-  /**
-   * Send a 6-digit email verification code for the given app slug.
-   * Public endpoint — always resolves on success (no account enumeration).
-   */
-  async sendEmailCode(options: SendEmailCodeOptions): Promise<{ status: "sent" }> {
-    const res = await fetch(this.#appUrl(options.slug, "email-code"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: options.email,
-        redirectTo: options.redirectTo,
-        state: options.state,
-      }),
-    });
-
-    if (res.status === 202) {
-      return { status: "sent" };
-    }
-    throw await parseErrorResponse(res);
-  }
-
-  /**
-   * Verify an email code and obtain the redirect URL carrying a single-use auth code.
-   * Navigate the browser to `redirectUrl` to complete the hosted flow.
-   */
-  async verifyEmailCode(options: VerifyEmailCodeOptions): Promise<{ redirectUrl: string }> {
-    const res = await fetch(this.#appUrl(options.slug, "verify-code"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: options.email, code: options.code }),
-    });
-
-    if (!res.ok) {
-      throw await parseErrorResponse(res);
-    }
-    return (await res.json()) as { redirectUrl: string };
-  }
-
-  /** Fetch public branding/config for an app's hosted login page. */
-  async getAppConfig(slug: string): Promise<HostedAppConfig> {
-    const res = await fetch(this.#appUrl(slug, "config"), {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) {
-      throw await parseErrorResponse(res);
-    }
-    return (await res.json()) as HostedAppConfig;
-  }
-
-  // ── Identity: auth-code exchange (server-side, secret key) ─────────────────
-
-  /** Exchange a single-use auth code for a verified identity and optional session. */
-  async exchangeCode(code: string, options: ExchangeCodeOptions = {}): Promise<AuthResult> {
-    this.#requireSecretKey("exchangeCode");
-    const res = await fetch(`${this.#apiBase}/identity/exchange`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.#secretKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        code,
-        sessionMode: options.sessionMode,
-      }),
-    });
-
-    if (!res.ok) {
-      throw await parseErrorResponse(res);
-    }
-    return (await res.json()) as AuthResult;
-  }
-
-  /**
-   * Resolve a session token (from the infi_session cookie) back to its identity
-   * and customer. Server-side — requires the secret key.
-   */
-  async getSession(token: string): Promise<SessionIntrospection> {
-    this.#requireSecretKey("getSession");
-    const res = await fetch(`${this.#apiBase}/identity/session`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${this.#secretKey}`,
-        "X-Infi-Session": token,
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw await parseErrorResponse(res);
-    }
-    return (await res.json()) as SessionIntrospection;
-  }
-
-  /** Extract auth code from a hosted callback request and exchange it. */
-  async exchangeCodeFromRequest(req: InfiRequestLike): Promise<AuthResult> {
-    const code = extractCodeFromUrl(req.url);
-    if (!code) {
-      throw new InfiError("Missing auth code in request", 400, "missing_code");
-    }
-    return this.exchangeCode(code);
   }
 
   // ── Metering: usage ingestion (server-side, secret key) ────────────────────
@@ -438,25 +324,26 @@ export class Infi {
   /**
    * Meter wallet helpers (ADR 0005) — debit/credit/balance by meter key.
    *
+   * Bind to an enrollment id — the `customerId` returned by
+   * `customers.create({ externalId })`. There used to also be a `fromSession`
+   * variant that resolved the enrollment from an Infi login session; Pulse no
+   * longer sells login, so the caller supplies the enrollment from their own auth.
+   *
    * @example
    * ```ts
-   * const wallet = await infi.wallet.fromSession(token, { productKey: "ai-chat" });
-   * await wallet.debit("tokens", "120");
-   * // or with an enrollment you already have:
-   * const w = infi.wallet.bind(enrollmentId);
+   * const w = await infi.wallet.forCustomer(myUserId, { productKey: "ai-chat" });
+   * // or, with an enrollment you already have:
+   * const w2 = infi.wallet.bind(enrollmentId);
+   * await w.debit("tokens", "120");
    * await w.credit({ meter: "tokens", amount: "50000" });
    * ```
    */
   readonly wallet = {
-    fromSession: (sessionToken: string, options: WalletFromSessionOptions): Promise<Wallet> =>
-      walletFromSession(this, sessionToken, options),
+    forCustomer: (externalId: string, options: WalletForCustomerOptions): Promise<Wallet> =>
+      walletForCustomer(this, externalId, options),
     bind: (enrollmentId: string, options?: { defaultMeter?: string }): BoundWallet =>
       bindWallet(this, enrollmentId, options),
   };
-
-  #appUrl(slug: string, action: string): string {
-    return `${this.#apiBase}/identity/apps/${encodeURIComponent(slug)}/${action}`;
-  }
 
   #requireSecretKey(method: string): void {
     if (!this.#secretKey) {

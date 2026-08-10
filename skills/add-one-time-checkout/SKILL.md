@@ -24,7 +24,7 @@ export default defineBilling({
 
 ```ts
 const { invoice, url } = await infi.checkout({
-  slug: process.env.INFI_SLUG!,
+  slug: process.env.INFI_TENANT_SLUG!,
   productId,
   customer: { externalId: email, email },
 });
@@ -32,8 +32,4 @@ const { invoice, url } = await infi.checkout({
 
 4. Fulfill on `payment.confirmed` (webhook or poll `infi.invoices.get`).
 
-## No apps provisioning
 
-One-time checkout without login does **not** need `apps[]` in billing config.
-
-See `examples/ebook-sale/`.

@@ -55,8 +55,7 @@ export function writeEnvFile(options: EnvOptions, claimable: ClaimableTenantCrea
     `DATABASE_URL="${dbUrl}"`,
     "",
     `INFI_SECRET_KEY=${claimable.apiKeySecret}`,
-    `INFI_SLUG=${claimable.appSlug || options.appSlug}`,
-    `NEXT_PUBLIC_INFI_APP_SLUG=${claimable.appSlug || options.appSlug}`,
+    `INFI_TENANT_SLUG=${claimable.tenantSlug}`,
     `INFI_CLAIM_ID=${claimable.id}`,
     `INFI_CLAIM_URL=${claimable.claimUrl}`,
     `APP_URL=${origin}`,
@@ -72,14 +71,12 @@ export function writeEnvFile(options: EnvOptions, claimable: ClaimableTenantCrea
   fs.writeFileSync(path.join(options.targetDir, ".env.local"), `${lines.join("\n")}\n`);
 }
 
-export function writeEnvExample(targetDir: string, appName: string, appSlug: string, port: number): void {
+export function writeEnvExample(targetDir: string, appName: string, port: number): void {
   const example = `# PostgreSQL
 DATABASE_URL="postgresql://app:app@localhost:5432/app"
 
 # Required — hosts (API / auth / pay) are inferred from the key prefix
 INFI_SECRET_KEY=sk_test_replace_me
-INFI_SLUG=${appSlug}
-NEXT_PUBLIC_INFI_APP_SLUG=${appSlug}
 INFI_CLAIM_ID=
 INFI_CLAIM_URL=
 APP_URL=http://localhost:${port}

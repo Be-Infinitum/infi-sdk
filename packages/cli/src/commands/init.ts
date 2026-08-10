@@ -224,12 +224,12 @@ export async function initCommand(argv: string[]): Promise<void> {
       s.stop("Claimable tenant provisioned");
     } catch (err) {
       s.stop(pc.yellow("Provisioning failed — writing .env.example"));
-      writeEnvExample(targetDir, options.projectName, appSlug, options.port);
+      writeEnvExample(targetDir, options.projectName, options.port);
       p.log.warn(err instanceof Error ? err.message : String(err));
       p.log.info("Fill INFI_SECRET_KEY manually, then run `bun run setup`.");
     }
   } else {
-    writeEnvExample(targetDir, options.projectName, appSlug, options.port);
+    writeEnvExample(targetDir, options.projectName, options.port);
   }
 
   if (!options.skipInstall) {

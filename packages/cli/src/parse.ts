@@ -5,15 +5,16 @@ export function printHelp(): void {
 ${pc.bold("infi")} — Infi operator CLI (company as code)
 
 ${pc.dim("Usage:")}
-  infi init [project-name] [--template <id>] [--port <n>] [--local] [--ref <channel>] [-y]
-  infi bootstrap --intent <crm|prepaid-ai-chat|one-time|usage-saas> [--ref <channel>] [--app-url <url>] [--json]
+  infi bootstrap --intent <crm|prepaid-ai-chat|one-time|usage-saas> [--ref <channel>] [--json]
   infi login [--token <session>] [--tenant <slug>] [--profile name]
   infi keys list|create|revoke [--key sk_...] [--json]
-  infi claim create|get <id> [--ref cli] [--intent <id>] [--app-url <url>] [--local] [--json]
-  infi sync [file] [--plan] [--force] [--app-url <url>] [--key sk_...] [--local] [--json]
+  infi providers [list] [--json]                # BYOP connection status
+  infi providers verify <stripe|asaas> [--json] # re-check a stored credential
+  infi claim create|get <id> [--ref cli] [--intent <id>] [--local] [--json]
+  infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
   infi pull [file] [--force]   # generate infi.company.ts + lock from the backend
   infi doctor [--key sk_...] [--local] [--json]
-  infi go-live [--claim-id <id>] [--json]
+  infi go-live [--claim-id <id>] [--json]       # claim → connect provider → webhook
   infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
   infi deploy vercel [--prod]   # deploy + sync env + register webhook
 
@@ -25,19 +26,17 @@ ${pc.dim("Global flags:")}
   -h, --help           Show help
 
 ${pc.dim("Examples:")}
-  infi bootstrap --intent crm --ref lovable --app-url https://x.lovable.app --json
+  infi bootstrap --intent crm --ref lovable --json
   infi claim create --ref cursor --json
   infi sync infi.company.ts --plan
-  infi sync --app-url https://my-app.vercel.app
   infi doctor --json
+  infi providers list
   infi go-live --json
 
-${pc.dim("Scaffold a new app:")}
-  npm create infi-app my-app
-
 ${pc.dim("Note:")}
-  API / hosted auth / pay hosts are inferred from the key (sk_test_ → sandbox).
-  No INFI_AUTH_BASE_URL / INFI_PAY_BASE_URL needed in app env.
+  API / pay hosts are inferred from the key (sk_test_ → sandbox). No base URLs in app env.
+  Beinfi does not do end-user login — bring your own auth and pass your own user id.
+  Connecting a provider needs fresh MFA, so it is a dashboard action, not a CLI one.
 `);
 }
 

@@ -17,39 +17,13 @@ INFI_API_URL=https://api.beinfi.com
 INFI_AUTH_BASE_URL=https://auth.beinfi.com
 ```
 
-## Auth
+## Identity
 
-Redirect to the hosted login:
-
-```ts
-// app/api/auth/login/route.ts
-import { Login } from "@beinfi/nextjs";
-
-export const GET = Login({
-  slug: process.env.INFI_APP_SLUG!,
-  redirectTo: "/api/auth/callback",
-});
-```
-
-Exchange the returned code for a session and set the cookie:
+Beinfi does not handle login — bring your own auth. Every handler here takes a
+`resolveCustomerId` so you stamp **your** authed user onto the call:
 
 ```ts
-// app/api/auth/callback/route.ts
-import { Callback } from "@beinfi/nextjs";
-
-export const GET = Callback({
-  secretKey: process.env.INFI_SECRET_KEY!,
-  successUrl: "/dashboard",
-});
-```
-
-Read the session anywhere on the server:
-
-```ts
-import { getSessionToken } from "@beinfi/nextjs";
-
-const token = await getSessionToken();
-if (!token) redirect("/api/auth/login");
+resolveCustomerId: async (req) => (await mySession(req)).enrollmentId,
 ```
 
 ## Usage metering
@@ -63,7 +37,7 @@ import { Usage } from "@beinfi/nextjs";
 export const POST = Usage({
   secretKey: process.env.INFI_SECRET_KEY!,
   // stamp the authed customer onto every event
-  resolveCustomerId: async (req) => (await getSessionCustomer(req)).id,
+  resolveCustomerId: async (req) => (await mySession(req)).enrollmentId,
 });
 ```
 
@@ -86,7 +60,7 @@ export const POST = withMeter(
   {
     secretKey: process.env.INFI_SECRET_KEY!,
     meter: "tokens",
-    resolveCustomerId: async (req) => (await getSessionCustomer(req)).id,
+    resolveCustomerId: async (req) => (await mySession(req)).enrollmentId,
   },
   async (req, { customerId }) => {
     const { messages } = await req.json();
@@ -140,17 +114,11 @@ import { State } from "@beinfi/nextjs";
 
 export const GET = State({
   secretKey: process.env.INFI_SECRET_KEY!,
-  resolveCustomerId: async (req) => (await getSessionCustomer(req)).id,
+  resolveCustomerId: async (req) => (await mySession(req)).enrollmentId,
 });
 ```
 
 ## Options
-
-`Login` — `slug`, `redirectTo` (relative resolved against the request origin), `authBaseUrl?`,
-`state?` (string or `(req) => string`).
-
-`Callback` — `secretKey`, `successUrl`, `baseUrl?`, `sessionMode?` (`"infi" | "byo"`), `cookie?`
-(`{ maxAgeSeconds, secure, path }`), `onAuth?` (return a `NextResponse` to take over), `onError?`.
 
 `Usage` — `secretKey`, `baseUrl?`, `resolveCustomerId?`.
 

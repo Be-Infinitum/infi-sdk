@@ -20,14 +20,14 @@ describe("getGoLiveStatus", () => {
             id: "abc",
             status: "UNCLAIMED",
             tenantSlug: "t",
-            appSlug: "a",
-            ref: "cli",
+                ref: "cli",
             expiresAt: "2099-01-01T00:00:00Z",
           }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
       )
-      .mockResolvedValueOnce(new Response("{}", { status: 404 }));
+      .mockResolvedValueOnce(new Response("{}", { status: 404 }))
+      .mockResolvedValue(new Response("{}", { status: 404 }));
 
     vi.stubGlobal("fetch", fetchMock);
 
@@ -38,7 +38,7 @@ describe("getGoLiveStatus", () => {
       claimId: "abc",
     });
     expect(status.stage).toBe("sandbox_unclaimed");
-    expect(status.urls.kyc).toContain("kyc");
+    expect(status.urls.connect).toContain("go-live");
     expect(status.next.toLowerCase()).toContain("claim");
   });
 });

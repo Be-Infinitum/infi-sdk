@@ -25,4 +25,3 @@ export default defineBilling({
 3. Track usage: `infi.track({ meter: "api_calls", value: "1", customerId: enrollmentId })`
 4. Per-org pricing: `infi.customers.rateCards.set(enrollmentId, { ... })`
 
-See `examples/marketplace-billing/`.

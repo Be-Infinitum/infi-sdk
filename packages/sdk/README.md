@@ -24,27 +24,16 @@ Passing just a key uses the production defaults:
 const infi = new Infi(process.env.INFI_SECRET_KEY!);
 ```
 
-## Email-code login (public — no secret key needed)
+## Identify the payer
+
+Beinfi does not handle your end-user login — bring your own auth and pass your own user id:
 
 ```ts
-// 1. send the 6-digit code
-await infi.sendEmailCode({ slug: "your-app", email: "user@acme.com", redirectTo: "/callback" });
-
-// 2. verify it → get the redirect URL carrying a single-use auth code
-const { redirectUrl } = await infi.verifyEmailCode({ slug: "your-app", email: "user@acme.com", code: "123456" });
-// navigate the browser to redirectUrl to finish the hosted flow
-```
-
-## Exchange the auth code (server-side — secret key)
-
-```ts
-const result = await infi.exchangeCode(code);         // from ?code= on your callback
-// or straight from a request:
-const result = await infi.exchangeCodeFromRequest({ url: req.url });
-
-result.identity; // AppIdentity
-result.customer; // { id, externalId, email, ... }
-result.session;  // { token, expiresAt } | undefined
+const enrollment = await infi.customers.create(productId, {
+  externalId: myUserId,
+  email: "user@acme.com",
+});
+// enrollment.id is what every billing call references
 ```
 
 ## Metering (server-side — secret key)
@@ -132,12 +121,6 @@ const lastMonth = await infi.customers.state("enr_123", { from: "2026-06-01", to
 
 ## React
 
-```tsx
-import { InfiLogin } from "@beinfi/sdk/react";
-
-<InfiLogin slug="your-app" redirectTo="/callback" />;
-```
-
 `UsagePanel` renders a customer's credit balance, usage per meter (with rated amount when
 priced), the usage period, and subscriptions. It is presentational — fetch the state
 server-side (it needs the secret key; never fetch it from the browser) and pass it in:
@@ -158,7 +141,7 @@ Props: `hideCredit` (omit the balance section — for postpaid/no-credit models)
 
 ## Next.js
 
-For App Router route handlers (`Login`, `Callback`, `Usage`, `withMeter`), use
+For App Router route handlers (`Usage`, `State`, `withMeter`), use
 [`@beinfi/nextjs`](https://www.npmjs.com/package/@beinfi/nextjs).
 
 ## Config

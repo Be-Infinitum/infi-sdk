@@ -66,14 +66,12 @@ describe("cli claim", () => {
     await createClaimable(BASE, {
       ref: "lovable",
       intent: "crm",
-      appUrl: "https://x.lovable.app",
     });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(init.body as string)).toEqual({
       ref: "lovable",
       intent: "crm",
-      appUrl: "https://x.lovable.app",
     });
   });
 

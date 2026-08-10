@@ -26,7 +26,7 @@ export type CompanyConfig = BillingConfig;
  *
  * @example Intent
  * ```ts
- * export default defineCompany.fromIntent("crm", { appUrl: process.env.APP_URL });
+ * export default defineCompany.fromIntent("crm");
  * ```
  */
 function defineCompanyFn(config: CompanyConfig): CompanyConfig {
@@ -46,29 +46,3 @@ export {
   type CompanyIntentOptions,
 } from "./company-intents.js";
 
-/** Patch apps' origins/redirects for a public app URL (preview or prod). */
-export function withAppUrl(config: CompanyConfig, appUrl: string): CompanyConfig {
-  const origin = appUrl.replace(/\/$/, "");
-  const callback = `${origin}/callback`;
-  if (!config.apps?.length) {
-    return {
-      ...config,
-      apps: [
-        {
-          slug: "app",
-          name: "App",
-          allowedOrigins: [origin],
-          redirectUris: [callback],
-        },
-      ],
-    };
-  }
-  return {
-    ...config,
-    apps: config.apps.map((a) => ({
-      ...a,
-      allowedOrigins: [...new Set([...(a.allowedOrigins ?? []), origin])],
-      redirectUris: [...new Set([...(a.redirectUris ?? []), callback])],
-    })),
-  };
-}

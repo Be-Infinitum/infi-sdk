@@ -6,7 +6,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { Infi, COMPANY_INTENTS, type BillingConfig, withAppUrl } from "@beinfi/sdk";
+import { Infi, COMPANY_INTENTS, type BillingConfig } from "@beinfi/sdk";
 import { createClaimable, type ClaimRef } from "@beinfi/cli/claim";
 import { runDoctor } from "@beinfi/cli/doctor";
 import { getGoLiveStatus } from "@beinfi/cli/go-live";
@@ -32,17 +32,15 @@ const intentSchema = z.enum(["crm", "prepaid-ai-chat", "one-time", "usage-saas"]
 
 server.tool(
   "infi_claim_create",
-  "Provision a claimable sandbox tenant (sk_test_ + claim URL). Optional intent/appUrl for seed.",
+  "Provision a claimable sandbox tenant (sk_test_ + claim URL). Optional intent for the seed catalog.",
   {
     ref: z.enum(["cli", "cursor", "mcp", "lovable"]).optional(),
     intent: intentSchema.optional(),
-    appUrl: z.string().optional(),
   },
-  async ({ ref, intent, appUrl }) => {
+  async ({ ref, intent }) => {
     const claimable = await createClaimable(API_BASE, {
       ref: (ref ?? "mcp") as ClaimRef,
       intent,
-      appUrl,
     });
     return { content: [{ type: "text", text: JSON.stringify(claimable, null, 2) }] };
   },
@@ -54,14 +52,12 @@ server.tool(
   {
     intent: intentSchema,
     ref: z.enum(["cli", "cursor", "mcp", "lovable"]).optional(),
-    appUrl: z.string().optional(),
     cwd: z.string().optional(),
   },
-  async ({ intent, ref, appUrl, cwd }) => {
+  async ({ intent, ref, cwd }) => {
     const result = await runBootstrap({
       intent,
       ref: (ref ?? "mcp") as ClaimRef,
-      appUrl,
       cwd,
       local: API_BASE.includes("localhost"),
       json: true,
@@ -72,7 +68,7 @@ server.tool(
 
 server.tool(
   "infi_doctor",
-  "Diagnose tenant setup — products, apps, legacy env. Returns JSON checks with fix commands.",
+  "Diagnose tenant setup — products, legacy env. Returns JSON checks with fix commands.",
   {},
   async () => {
     const result = await runDoctor({
@@ -102,10 +98,9 @@ server.tool(
 server.tool(
   "infi_sync_plan",
   "Dry-run company-as-code sync. Pass CompanyConfig JSON (defineCompany shape).",
-  { config: z.record(z.unknown()), appUrl: z.string().optional() },
-  async ({ config, appUrl }) => {
-    let cfg = config as unknown as BillingConfig;
-    if (appUrl) cfg = withAppUrl(cfg, appUrl);
+  { config: z.record(z.unknown()) },
+  async ({ config }) => {
+    const cfg = config as unknown as BillingConfig;
     const result = await client().sync(cfg, { plan: true });
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   },
@@ -113,51 +108,14 @@ server.tool(
 
 server.tool(
   "infi_sync_apply",
-  "Apply company-as-code config. Optional appUrl patches apps origins/redirects.",
+  "Apply company-as-code config.",
   {
     config: z.record(z.unknown()),
     force: z.boolean().optional(),
-    appUrl: z.string().optional(),
   },
-  async ({ config, force, appUrl }) => {
-    let cfg = config as unknown as BillingConfig;
-    if (appUrl) cfg = withAppUrl(cfg, appUrl);
+  async ({ config, force }) => {
+    const cfg = config as unknown as BillingConfig;
     const result = await client().sync(cfg, { force: force ?? false });
-    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-  },
-);
-
-server.tool(
-  "infi_set_app_url",
-  "Patch company apps allowlist for a preview/prod URL and sync.",
-  { appUrl: z.string(), config: z.record(z.unknown()).optional() },
-  async ({ appUrl, config }) => {
-    const infi = client();
-    let cfg: BillingConfig;
-    if (config) {
-      cfg = withAppUrl(config as unknown as BillingConfig, appUrl);
-    } else {
-      const apps = await infi.apps.list();
-      const products = await infi.products.list();
-      cfg = withAppUrl(
-        {
-          products: products.map((p) => ({
-            key: p.key ?? p.id!,
-            type: (p.type as "agent" | "item") ?? "agent",
-            pricingModel:
-              (p.pricingModel as BillingConfig["products"][0]["pricingModel"]) ?? "usage",
-          })),
-          apps: apps.map((a) => ({
-            slug: a.slug!,
-            name: a.name ?? a.slug!,
-            allowedOrigins: a.allowedOrigins ?? [],
-            redirectUris: a.redirectUris ?? [],
-          })),
-        },
-        appUrl,
-      );
-    }
-    const result = await infi.sync(cfg);
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   },
 );
@@ -168,13 +126,12 @@ server.tool(
   {},
   async () => {
     const infi = client();
-    const [products, apps, webhooks] = await Promise.all([
+    const [products, webhooks] = await Promise.all([
       infi.products.list(),
-      infi.apps.list(),
       infi.webhooks.list(),
     ]);
     return {
-      content: [{ type: "text", text: JSON.stringify({ products, apps, webhooks }, null, 2) }],
+      content: [{ type: "text", text: JSON.stringify({ products, webhooks }, null, 2) }],
     };
   },
 );
