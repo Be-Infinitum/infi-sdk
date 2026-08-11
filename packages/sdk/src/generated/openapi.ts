@@ -871,7 +871,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List all payments for the tenant */
+        /**
+         * List all payments for the tenant
+         * @description Every charge attempt the tenant made, newest first, each carrying the provider it ran through and the payer it belongs to. Filters are applied in SQL, before pagination — filtering a page client-side would hide matching rows on the pages behind it.
+         */
         get: operations["listTenantPayments"];
         put?: never;
         post?: never;
@@ -1152,6 +1155,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/payments/{paymentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * Get one payment
+         * @description A payment belonging to another tenant answers 404: the read is scoped by tenant, so a wrong-tenant id is indistinguishable from one that never existed — and saying otherwise would confirm it does.
+         */
+        get: operations["getTenantPayment"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/payments/{paymentID}/refund": {
         parameters: {
             query?: never;
@@ -1247,27 +1272,6 @@ export interface paths {
          * @description Not authenticated by an API key — the PSP cannot present one. The gateway verifies the request signature/token. Payload shape is PSP-specific.
          */
         post: operations["pspWebhook"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/pulse/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Live pulse event stream (SSE)
-         * @description Server-sent events for usage, payment, and invoice activity on the
-         *     authenticated tenant. Each message is a JSON PulseEvent in the `data` field.
-         */
-        get: operations["pulseStream"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2112,13 +2116,15 @@ export interface components {
             currency?: string;
             /** @enum {string} */
             status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
-            /**
-             * @description The mode the charge runs under (ADR 0008). Selected by the API key: a test key (sk_test) charges in sandbox, a live key (sk_live) in live.
-             * @enum {string}
-             */
-            mode?: "sandbox" | "live";
             /** Format: date-time */
             createdAt?: string;
+            /** @description Who paid, resolved through the invoice (ad-hoc invoices name a tenant customer directly, subscription invoices name a product enrollment). Present only on the tenant-facing dashboard reads — GET /billing/payments and GET /billing/payments/{paymentID}. Null when the invoice has no resolvable customer. */
+            payer?: {
+                /** Format: uuid */
+                id?: string;
+                name?: string | null;
+                email?: string | null;
+            } | null;
             /** @description PSP hosted payment page. Transient — present only on the create-charge response, not on later reads. */
             invoiceUrl?: string;
             /** @description Pix copy-paste (EMV/brcode) string, set for pix charges. Render the QR client-side from this. Persisted, so a refresh/poll re-reads it. */
@@ -3977,7 +3983,10 @@ export interface operations {
     listTenantPayments: {
         parameters: {
             query?: {
-                status?: string;
+                status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
+                /** @description Provider tag, e.g. `asaas`, `stripe`, or `sandbox`. */
+                provider?: string;
+                method?: "pix" | "boleto" | "card";
                 limit?: number;
                 offset?: number;
             };
@@ -4514,6 +4523,30 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    getTenantPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     refundPayment: {
         parameters: {
             query?: never;
@@ -4730,27 +4763,6 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-        };
-    };
-    pulseStream: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Event stream */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/event-stream": string;
-                };
-            };
-            401: components["responses"]["Unauthorized"];
         };
     };
     getTenant: {
