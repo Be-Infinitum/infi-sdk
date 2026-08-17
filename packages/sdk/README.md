@@ -1,11 +1,19 @@
 # @beinfi/sdk
 
-Email-code auth and revenue infrastructure for technical founders. One SDK for
-login, usage metering and billing.
+Get paid for what your product does. Metering, billing and collection for
+technical founders — you keep your own auth and your own UI.
 
 ```bash
 npm install @beinfi/sdk
 ```
+
+Two ways in, depending on how much you want to build:
+
+- **Send a link.** `infi.links.create(...)` gives you a URL. The payer opens it
+  and pays; we handle checkout, the payment method and which provider takes the
+  money. Nothing to build on your side.
+- **Meter usage and bill it.** Record what your product consumed and turn it
+  into an invoice at the end of the cycle.
 
 ## Quick start
 
@@ -14,15 +22,33 @@ import { Infi } from "@beinfi/sdk";
 
 const infi = new Infi({
   secretKey: process.env.INFI_SECRET_KEY!, // sk_test_... / sk_live_...
-  baseUrl: process.env.INFI_API_URL,       // optional, defaults to https://api.beinfi.com
 });
 ```
 
-Passing just a key uses the production defaults:
+The host is resolved from the key: `sk_live_…` talks to production, anything
+else to sandbox. You never pass a base URL for prod. Passing just the key works
+too:
 
 ```ts
 const infi = new Infi(process.env.INFI_SECRET_KEY!);
 ```
+
+## Get paid with a link
+
+The shortest path from "I have a product" to "someone paid me". The link is
+reusable and revocable, and no payer is known when you create it — the customer
+and the invoice are materialized when someone actually submits:
+
+```ts
+const link = await infi.links.create(productId, { slug: "acme" });
+link.url; // https://app.beinfi.com/pay/acme/links/plink_… — send this
+
+await infi.links.list(productId, { slug: "acme" });
+await infi.links.revoke(productId, link.id); // permanent; invoices already created stay payable
+```
+
+No checkout page, no card input, no PCI scope, no provider SDK in your app.
+Which provider collects is decided by routing at payment time, not by you.
 
 ## Identify the payer
 
@@ -148,9 +174,10 @@ For App Router route handlers (`Usage`, `State`, `withMeter`), use
 
 | Option | Default | Notes |
 | --- | --- | --- |
-| `secretKey` | — | `sk_...` for server-side calls (exchange, metering). Public login needs no key. |
-| `baseUrl` | `https://api.beinfi.com` | Infi API base URL. |
-| `authBaseUrl` | `https://api.beinfi.com` | Hosted login base URL (served off the API host). |
+| `secretKey` | — | `sk_...` — required for every call in this README. Server-side only; never ship it to a browser. |
+| `mode` | inferred | `"sandbox"` \| `"live"`. Inferred from the key prefix; set it only to override. |
+| `apiUrl` | per mode | Override the API host (local dev / self-host / tests). |
+| `appUrl` | `https://app.beinfi.com` | Host serving hosted checkout — what `links.create` builds its URL from. |
 
 Types are generated from the Infi OpenAPI spec, so requests and responses stay
 in sync with the API.

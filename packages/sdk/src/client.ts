@@ -6,6 +6,7 @@ import { CustomersResource } from "./resources/customers.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
 import { CouponsResource } from "./resources/coupons.js";
+import { LinksResource } from "./resources/links.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
 import { WebhooksResource } from "./resources/webhooks-resource.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
@@ -88,6 +89,8 @@ export class Infi {
   readonly invoices: InvoicesResource;
   /** Coupons: tenant-wide merchant discounts for subscription invoices. */
   readonly coupons: CouponsResource;
+  /** Payment links: share a URL, get paid. */
+  readonly links: LinksResource;
   /** Subscriptions: create (with anchor), get, list per enrollment. */
   readonly subscriptions: SubscriptionsResource;
   /** API keys: list, create, revoke tenant keys. */
@@ -118,6 +121,7 @@ export class Infi {
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
     this.coupons = new CouponsResource(transport);
+    this.links = new LinksResource(transport, this.#appBase);
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
     this.webhooks = new WebhooksResource(transport);
@@ -316,6 +320,12 @@ export class Infi {
   /**
    * Apply a `defineCompany(...)` / `defineBilling(...)` config idempotently
    * (pass `{ plan: true }` to dry-run).
+   *
+   * @internal Kept for the CLI (`infi sync` / `pull` / `bootstrap` / `doctor`)
+   * and the MCP server, which are the only intended callers. Deliberately left
+   * out of the README: company-as-code is our tooling, not part of the surface
+   * a merchant's app is meant to build against. Do not document or promote it
+   * until that decision is revisited.
    */
   sync(config: BillingConfig, opts?: SyncOptions): Promise<SyncResult> {
     return syncBilling(this, config, opts);

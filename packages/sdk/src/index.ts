@@ -14,6 +14,7 @@ export {
   defineBilling,
   syncBilling,
   cycleGrantAmount,
+  versionCycleGrant,
   type BillingConfig,
   type BillingGrant,
   type BillingMeter,
@@ -28,6 +29,11 @@ export {
   type SyncOptions,
   type SyncResult,
 } from "./billing-as-code.js";
+/**
+ * @internal Company-as-code + CLI auth. Exported because the CLI, the MCP
+ * server and the `create-infi-app` templates import them from the package root
+ * — NOT part of the documented merchant-facing surface. See Infi.sync.
+ */
 export {
   defineCompany,
   companyFromIntent,
@@ -58,8 +64,10 @@ export {
   type WebhookEventType,
   type WebhookInput,
 } from "./webhooks.js";
+export { LinksResource, type PaymentLinkWithUrl } from "./resources/links.js";
 export type { UsageQuery } from "./resources/usage.js";
 export type { FromUsageInput } from "./resources/invoices.js";
+/** @internal CLI login only (`infi login`) — not a merchant-facing feature. */
 export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
 export {
   ProvidersResource,

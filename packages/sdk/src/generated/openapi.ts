@@ -367,6 +367,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metering/products/{productID}/payment-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        /** List a product's payment links */
+        get: operations["listPaymentLinks"];
+        put?: never;
+        /**
+         * Create a payment link for a product
+         * @description Mints a reusable, revocable link bound to this product. The response carries an opaque `token`; the payer-facing URL is `{appBaseUrl}/pay/{tenantSlug}/links/{token}`, and the public checkout materializes the customer + invoice (or subscription) when they submit. No payer is known at creation time.
+         */
+        post: operations["createPaymentLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/products/{productID}/payment-links/{linkID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+                linkID: components["parameters"]["LinkID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Revoke a payment link
+         * @description Revocation is permanent and the token stops resolving immediately. Invoices already materialized from this link are untouched — a buyer mid-checkout keeps a payable invoice.
+         */
+        delete: operations["revokePaymentLink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metering/products/{productID}/meters/{meterID}": {
         parameters: {
             query?: never;
@@ -1196,6 +1242,100 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/customers/{customerID}/payment-methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant customer UUID (customers.id). */
+                customerID: components["parameters"]["CustomerID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * List a payer's stored payment methods
+         * @description Display fields only. The provider token that can charge the credential is never returned by any route. The default sorts first.
+         */
+        get: operations["listPaymentMethods"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/customers/{customerID}/payment-methods/{instrumentID}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant customer UUID (customers.id). */
+                customerID: components["parameters"]["CustomerID"];
+                /** @description Stored payment method UUID (payment_instruments.id). */
+                instrumentID: components["parameters"]["InstrumentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Make a stored payment method the payer's default
+         * @description The default is the credential automatic collection charges. Promoting demotes the previous default in the same transaction, so a payer always has at most one. An instrument whose status is not `active` is refused (409): no charge path would use it. Answers with the payer's whole refreshed list, since the promotion changes two rows.
+         */
+        post: operations["setDefaultPaymentMethod"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/customers/{customerID}/payment-methods/{instrumentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant customer UUID (customers.id). */
+                customerID: components["parameters"]["CustomerID"];
+                /** @description Stored payment method UUID (payment_instruments.id). */
+                instrumentID: components["parameters"]["InstrumentID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove a stored payment method
+         * @description Revoked at the provider and soft-deleted here: the instrument leaves the list and can never be charged again, but the row survives so every charge that cites it keeps its audit trail and the mandate stays available as evidence. The payer is left with no default rather than having another card promoted for them.
+         */
+        delete: operations["detachPaymentMethod"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the tenant's collection settings
+         * @description A tenant that never set them reads the compiled defaults, in which automatic charging is OFF.
+         */
+        get: operations["getBillingSettings"];
+        /** Update the tenant's collection settings */
+        put: operations["updateBillingSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/sandbox/charges/{paymentID}/{action}": {
         parameters: {
             query?: never;
@@ -1627,7 +1767,6 @@ export interface components {
             publishedAt?: string | null;
             commitmentAmount?: string | null;
             commitmentResets?: boolean;
-            creditsPerCycle?: string | null;
             grants?: components["schemas"]["VersionGrant"][];
         };
         VersionGrant: {
@@ -1674,6 +1813,20 @@ export interface components {
             aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
             valueProperty?: string | null;
             status?: string;
+        };
+        /** @description A product-bound, reusable, revocable payment link. `token` is a capability, not a credential — anyone holding it can open the checkout, which is the point. It is returned in full on every read because a link is meant to be copied and shared. */
+        PaymentLink: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            productId?: string;
+            /** @description Opaque public token; the payer URL is /pay/{tenantSlug}/links/{token}. */
+            token?: string;
+            active?: boolean;
+            /** Format: date-time */
+            revokedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
         };
         CreateMeterRequest: {
             name: string;
@@ -1738,7 +1891,7 @@ export interface components {
              */
             meterId?: string | null;
             /** @enum {string} */
-            model: "flat" | "per_unit" | "tiered" | "volume" | "package" | "prepaid_credits";
+            model: "flat" | "per_unit" | "tiered" | "volume" | "package";
             unitAmount?: string | null;
             /** @description Graduated/volume/package tier config. */
             tiers?: {
@@ -1755,7 +1908,7 @@ export interface components {
             /** Format: uuid */
             meterId?: string | null;
             /** @enum {string} */
-            model?: "flat" | "per_unit" | "tiered" | "volume" | "package" | "prepaid_credits";
+            model?: "flat" | "per_unit" | "tiered" | "volume" | "package";
             unitAmount?: string | null;
             tiers?: {
                 [key: string]: unknown;
@@ -1770,7 +1923,7 @@ export interface components {
             /** Format: uuid */
             meterId?: string | null;
             /** @enum {string} */
-            model?: "flat" | "per_unit" | "tiered" | "volume" | "package" | "prepaid_credits";
+            model?: "flat" | "per_unit" | "tiered" | "volume" | "package";
             unitAmount?: string | null;
             tiers?: {
                 [key: string]: unknown;
@@ -2134,6 +2287,53 @@ export interface components {
              * @description When the pix code expires (pix charges only).
              */
             pixExpiresAt?: string | null;
+            /** @description Whether this charge can still be released so the same invoice can be paid another way (ADR 0026) — true while it is pending, false once it confirmed or failed. Releasing cancels it at the provider where that is supported, and abandons it regardless where it is not. Transient: present on the create-charge response, not on later reads. The hosted checkout keeps the other payment methods clickable while it is true; treat a missing value as false. */
+            switchable?: boolean;
+        };
+        PaymentMethodList: {
+            paymentMethods?: components["schemas"]["PaymentMethod"][];
+        };
+        /** @description A credential the payer authorized us to charge again. Display fields only — the provider token, the provider customer reference and the connection are charge material and never appear in an API response. */
+        PaymentMethod: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            kind?: "card" | "pix_automatico";
+            /** @example stripe */
+            provider?: string;
+            /** @example visa */
+            brand?: string | null;
+            /** @example 4242 */
+            lastFour?: string | null;
+            expMonth?: number | null;
+            expYear?: number | null;
+            /**
+             * @description Only `active` is charged. `requires_action` is the cue to ask the customer to update their card (expired, re-branded, mandate revoked); while it is set, automatic collection does not run for that payer. Do not collapse this to a boolean.
+             * @enum {string}
+             */
+            status?: "active" | "requires_action" | "detached" | "failed";
+            /** @description The credential automatic collection charges. At most one per payer. */
+            isDefault?: boolean;
+            /**
+             * Format: date-time
+             * @description When the payer accepted the mandate. Never backfilled or edited — an edited mandate is not evidence in a dispute.
+             */
+            consentAt?: string;
+            /** Format: date-time */
+            lastUsedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        /** @description The tenant's collection switches. */
+        BillingSettings: {
+            /** @description Whether invoices may be collected from a stored credential with nobody present. Defaults to false, per tenant, deliberately. */
+            autoChargeEnabled?: boolean;
+            /** @description Decimal string. Per payer per day, across top-up policies. */
+            topupDailyCap?: string | null;
+            /** Format: date-time */
+            updatedAt?: string | null;
+            /** @description Whether a stored card could be charged off-session at all here. Card auto-charge is Stripe-only (storing an Asaas card token for reuse would require PCI level 1 on our side), so this is false wherever no card provider is configured — and autoChargeEnabled would then be a switch with nothing to charge. */
+            readonly cardAutoChargeAvailable?: boolean;
         };
         /** @description Raw card + holder fields for an embedded card charge (method=card). Sent over TLS to the checkout endpoint, which tokenizes them at the PSP and never persists the PAN/CVV. All fields are required by the PSP tokenizer. */
         CheckoutCardInput: {
@@ -2158,6 +2358,12 @@ export interface components {
             name?: string;
             /** @enum {string} */
             status?: "active" | "suspended" | "closed";
+            /**
+             * Format: uri
+             * @description The merchant's terms of use, quoted in the payment mandate a payer accepts before being charged off-session. null when unset.
+             * @example https://acme.ai/termos
+             */
+            termsUrl?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -2246,6 +2452,12 @@ export interface components {
                 name: string;
                 role: string;
             }[];
+            /** @description Whether the primary tenant can actually collect money. Not an onboarding step: a connection regresses (a revoked key flips it to needs_reconnect) long after onboarding completes, so this is re-read on every sync. Absent when the connection store could not be read — a provider lookup must never fail a login. */
+            liveReadiness?: {
+                providerConnected: boolean;
+                /** @description Providers in the `connected` state, the same set charges route on. */
+                providers: string[];
+            };
         };
         WebhookEndpoint: {
             /** Format: uuid */
@@ -2365,6 +2577,7 @@ export interface components {
         ProductID: string;
         VersionID: string;
         MeterID: string;
+        LinkID: string;
         /** @description Tenant customer UUID (customers.id). */
         CustomerID: string;
         /** @description Product enrollment UUID (product_customers.id). */
@@ -2376,6 +2589,8 @@ export interface components {
         LegacyEnrollmentID: string;
         SubscriptionID: string;
         InvoiceID: string;
+        /** @description Stored payment method UUID (payment_instruments.id). */
+        InstrumentID: string;
     };
     requestBodies: never;
     headers: never;
@@ -2877,8 +3092,6 @@ export interface operations {
                     billingCycle?: "weekly" | "monthly" | "annual" | null;
                     /** @description Decimal string. */
                     basePrice?: string | null;
-                    /** @description Legacy prepaid credit allowance granted each period to the default credits (CRD) pool. Prefer grants[] with meter keys (ADR 0021). NULL grants nothing via this shim. */
-                    creditsPerCycle?: string | null;
                     /** @description Plan meter grants for this version. One entry per meter; on is cycle (period open) or payment (payment.confirmed). */
                     grants?: components["schemas"]["VersionGrant"][];
                 };
@@ -3091,6 +3304,79 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listPaymentLinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment links */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        links?: components["schemas"]["PaymentLink"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createPaymentLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment link created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    revokePaymentLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+                linkID: components["parameters"]["LinkID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
         };
     };
     updateMeter: {
@@ -4583,6 +4869,147 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listPaymentMethods: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant customer UUID (customers.id). */
+                customerID: components["parameters"]["CustomerID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stored payment methods */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    setDefaultPaymentMethod: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description Tenant customer UUID (customers.id). */
+                customerID: components["parameters"]["CustomerID"];
+                /** @description Stored payment method UUID (payment_instruments.id). */
+                instrumentID: components["parameters"]["InstrumentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stored payment methods, after the promotion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentMethodList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    detachPaymentMethod: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description Tenant customer UUID (customers.id). */
+                customerID: components["parameters"]["CustomerID"];
+                /** @description Stored payment method UUID (payment_instruments.id). */
+                instrumentID: components["parameters"]["InstrumentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getBillingSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Collection settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingSettings"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    updateBillingSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    autoChargeEnabled: boolean;
+                    /** @description Decimal string. Null or omitted clears the cap. */
+                    topupDailyCap?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Updated collection settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BillingSettings"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
     sandboxControlCharge: {
         parameters: {
             query?: never;
@@ -4803,6 +5230,12 @@ export interface operations {
                     name?: string | null;
                     /** @enum {string|null} */
                     status?: "active" | "suspended" | "closed" | null;
+                    /**
+                     * Format: uri
+                     * @description Absolute https:// URL of the merchant's terms of use, quoted in the payment mandate. An empty string clears it; null leaves it unchanged.
+                     * @example https://acme.ai/termos
+                     */
+                    termsUrl?: string | null;
                 };
             };
         };

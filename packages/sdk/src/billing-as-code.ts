@@ -75,6 +75,19 @@ export function cycleGrantAmount(p: BillingProduct): string | null {
   return p.creditsPerCycle ?? null;
 }
 
+/**
+ * The cycle grant a PUBLISHED version actually carries.
+ *
+ * The backend dropped `product_versions.credits_per_cycle` (migration 000098) in
+ * favour of per-meter grants, so the remote side of a drift comparison has to be
+ * derived from `grants[]` — reading the old field silently compared undefined to
+ * a real amount and reported drift on every sync.
+ */
+export function versionCycleGrant(v: Version | undefined): string | null {
+  const grant = (v?.grants ?? []).find((g) => g.on === "cycle");
+  return grant?.amount ?? null;
+}
+
 export interface BillingWebhook {
   /** Stable natural key — the delivery URL. */
   url: string;
@@ -195,7 +208,7 @@ function pricesEqual(current: Price[], desired: DesiredPrice[]): boolean {
 function versionFieldsEqual(v: Version, p: BillingProduct): boolean {
   return (
     normNum(v.basePrice) === normNum(p.basePrice) &&
-    normNum(v.creditsPerCycle) === normNum(cycleGrantAmount(p)) &&
+    normNum(versionCycleGrant(v)) === normNum(cycleGrantAmount(p)) &&
     (v.billingCycle ?? null) === (p.billingCycle ?? null)
   );
 }
@@ -242,7 +255,7 @@ function productFingerprint(
     currency: prod.currency ?? null,
     billingCycle: version?.billingCycle ?? null,
     basePrice: normNum(version?.basePrice),
-    creditsPerCycle: normNum(version?.creditsPerCycle),
+    cycleGrant: normNum(versionCycleGrant(version)),
     prices: prices
       .map((pr) => ({
         meter: pr.meterId ? (idToKey.get(pr.meterId) ?? pr.meterId) : null,

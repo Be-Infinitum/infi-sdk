@@ -72,7 +72,9 @@ export function companyFromIntent(
             currency,
             basePrice: options.price ?? "19.90",
             meters: [{ key: "tokens", unit: "token", aggregation: "sum" }],
-            prices: [{ meter: "tokens", model: "prepaid_credits", unitAmount: "0.01" }],
+            // per_unit: `prepaid_credits` was a literal alias of it and was removed
+            // from the API (migration 000098). Same rating branch, one less name.
+            prices: [{ meter: "tokens", model: "per_unit", unitAmount: "0.01" }],
             grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],
           },
         ],

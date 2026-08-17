@@ -1,8 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
 import pc from "picocolors";
-import { buildLock, type BillingConfig } from "@beinfi/sdk";
+import { buildLock, versionCycleGrant, type BillingConfig } from "@beinfi/sdk";
 import type { GlobalFlags } from "../lib/client.js";
+
+/**
+ * The version's cycle grant, in the `grants[]` shape defineCompany writes.
+ * Reads grants[] rather than the dropped product_versions.credits_per_cycle
+ * column (backend migration 000098) — pulling the old field wrote `undefined`
+ * into every generated config and silently lost the allowance.
+ */
+function cycleGrantFor(version: Parameters<typeof versionCycleGrant>[0]) {
+  const amount = versionCycleGrant(version);
+  return amount ? [{ meter: "credits", amount, on: "cycle" as const }] : undefined;
+}
 import { infiClient } from "../lib/client.js";
 import { die, ok } from "../lib/output.js";
 import { lockPathFor, writeLock } from "../lib/company-file.js";
@@ -50,7 +61,7 @@ async function pullConfig(infi: ReturnType<typeof infiClient>): Promise<BillingC
         currency: prod.currency,
         billingCycle: current?.billingCycle,
         basePrice: current?.basePrice,
-        creditsPerCycle: current?.creditsPerCycle,
+        grants: cycleGrantFor(current),
         meters: meters.length
           ? meters.map((m) =>
               compact({ key: m.name, displayName: m.displayName, unit: m.unit, aggregation: m.aggregation }),
