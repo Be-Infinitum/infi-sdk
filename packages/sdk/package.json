@@ -1,7 +1,7 @@
 {
   "name": "@beinfi/sdk",
-  "version": "0.8.1",
-  "description": "Infi SDK — email-code auth and revenue infrastructure for technical founders",
+  "version": "0.9.0",
+  "description": "Infi SDK \u2014 email-code auth and revenue infrastructure for technical founders",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -19,7 +19,11 @@
       "require": "./dist/react/index.cjs"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "publishConfig": {
     "access": "public"
   },

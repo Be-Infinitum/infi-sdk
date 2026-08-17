@@ -6,11 +6,6 @@ import { newIdempotencyKey } from "../http.js";
  *  expiry; `invoiceUrl` is the PSP hosted page. */
 export type Payment = components["schemas"]["Payment"];
 
-/** Raw card + holder fields for an embedded card charge. RISK ZONE: these are
- *  sent over TLS to the checkout endpoint, tokenized at the PSP, and never
- *  persisted. All fields are required by the PSP tokenizer. */
-export type CardInput = components["schemas"]["CheckoutCardInput"];
-
 /** Public checkout invoice read: merchant display + the invoice (with status). */
 export type CheckoutSession = components["schemas"]["CheckoutSession"];
 
@@ -35,8 +30,6 @@ export interface ChargeArgs {
   slug: string;
   invoiceId: string;
   method: ChargeMethod;
-  /** Required when method is "card" — runs the embedded tokenize-then-charge. */
-  card?: CardInput;
 }
 
 export interface WaitForPaidArgs extends GetInvoiceArgs {
@@ -53,8 +46,8 @@ export interface WaitForPaidArgs extends GetInvoiceArgs {
 /**
  * PayResource — browser-safe, slug-based public checkout. No secret key: it hits
  * the public `/pay/{slug}/*` endpoints (per-tenant CORS + rate limited), so it
- * can run in the tenant's end-customer browser. Powers `<InfiPixQr>` /
- * `<InfiCardForm>` and headless integrations.
+ * can run in the tenant's end-customer browser. For headless integrations and
+ * whatever UI you build on top.
  */
 export class PayResource {
   constructor(private readonly baseUrl: string) {}
@@ -77,10 +70,16 @@ export class PayResource {
 
   /**
    * Create a charge. For pix the returned Payment carries `pixPayload` +
-   * `pixExpiresAt`; for card, pass `card` and it is tokenized server-side then
-   * charged (the raw PAN never persists). Idempotency-Key is auto-generated.
+   * `pixExpiresAt`; for card it carries `clientSecret` + `publishableKey` of the
+   * provider routing picked, which the browser confirms directly with that
+   * provider. Idempotency-Key is auto-generated.
+   *
+   * It deliberately takes NO raw card fields. Accepting a PAN here put it in the
+   * merchant's DOM and then through our servers, which pulls both sides into PCI
+   * scope; the card capture UI is being rebuilt as an embed that keeps the PAN
+   * between the browser and the provider.
    */
-  async charge({ slug, invoiceId, method, card }: ChargeArgs): Promise<Payment> {
+  async charge({ slug, invoiceId, method }: ChargeArgs): Promise<Payment> {
     const res = await fetch(this.url(slug, `/invoices/${encodeURIComponent(invoiceId)}/charge`), {
       method: "POST",
       headers: {
@@ -88,7 +87,7 @@ export class PayResource {
         Accept: "application/json",
         "Idempotency-Key": newIdempotencyKey(),
       },
-      body: JSON.stringify({ method, ...(card ? { card } : {}) }),
+      body: JSON.stringify({ method }),
     });
     if (!res.ok) {
       const { parseErrorResponse } = await import("../errors.js");
@@ -124,7 +123,7 @@ export class PayResource {
 
   /**
    * Poll the invoice until it is paid (or timeout). Resolves true when paid,
-   * false on timeout. Used by `<InfiPixQr>` after showing the QR.
+   * false on timeout. For polling after showing a pix QR.
    */
   async waitForPaid(args: WaitForPaidArgs): Promise<boolean> {
     const { slug, invoiceId, intervalMs = 3000, timeoutMs = 600_000, onTick, signal } = args;

@@ -94,12 +94,26 @@ export class Infi {
   /** Subscriptions: create (with anchor), get, list per enrollment. */
   readonly subscriptions: SubscriptionsResource;
   /** API keys: list, create, revoke tenant keys. */
+  /**
+   * @internal Account administration, not app surface. Minting and revoking keys
+   * sits behind RequireStepUp, and a step-up token is only ever issued to a staff
+   * session — an API key can neither obtain nor replay one (internal/auth/stepup.go).
+   * So these methods can never succeed for an `sk_` caller; they exist for the CLI
+   * and the dashboard. Do not document or promote.
+   */
   readonly apiKeys: ApiKeysResource;
   /** Webhooks: register endpoints for payment/invoice events. */
   readonly webhooks: WebhooksResource;
   /** Pay: public, slug-based checkout (pix QR + card charge). Browser-safe, no secret key. */
   readonly pay: PayResource;
   /** BYOP connections: the merchant's own Stripe / Asaas account (read + verify). */
+  /**
+   * @internal Connecting a PSP is an account-owner action done once in the
+   * dashboard, with step-up auth — the same split gr4vy draws between its
+   * dashboard and the API a merchant's app integrates. `connect`/`disconnect` are
+   * unreachable by an API key at all, and the whole surface is live-only (404 in
+   * sandbox). Exists for the CLI (`providers`, `doctor`, `go-live`).
+   */
   readonly providers: ProvidersResource;
 
   constructor(config: InfiConfig | string) {

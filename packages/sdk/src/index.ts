@@ -82,7 +82,6 @@ export type {
 } from "./resources/webhooks-resource.js";
 export { PayResource } from "./resources/pay.js";
 export type {
-  CardInput,
   ChargeMethod,
   ChargeArgs,
   GetInvoiceArgs,
