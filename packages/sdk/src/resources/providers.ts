@@ -23,15 +23,13 @@ export type ProviderList = {
 };
 
 /**
- * Bring-your-own-provider connections — the merchant's own Stripe / Asaas account
- * (backend ADR 0012). The money lands in their account; Beinfi never holds it.
+ * Bring-your-own-provider connections — your own Stripe / Asaas account. The
+ * money lands in your account; Beinfi never holds it.
  *
- * Only the READ paths live here. Connecting, disconnecting and setting a webhook
- * secret are gated behind step-up auth (fresh MFA on a dashboard session), and a
- * step-up token "is only ever minted for a staff session, so an API key can
- * neither obtain nor replay one" (`internal/auth/stepup.go`). That is deliberate:
- * an API key must not be able to redirect where a merchant's money goes. Those
- * actions are dashboard-only, by design and not by omission.
+ * Only the READ paths live here, and they need `account:admin`. Connecting,
+ * disconnecting and setting a webhook secret are dashboard-only, behind fresh
+ * MFA — an API key must not be able to redirect where your money goes. The whole
+ * surface is live-only: it 404s in sandbox, where a built-in test provider charges.
  */
 export class ProvidersResource {
   constructor(private readonly t: Transport) {}

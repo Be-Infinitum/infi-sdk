@@ -1,10 +1,72 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
+
+Fixes from the 2026-08-17 cold-start audit: payment links now work in sandbox, and a
+rejected write tells you which field is wrong.
+
+### Fixed
+- **`InfiError` carries the API's field-level validation details.** A 422 answers
+  `errors: [{ field, description }]`; the SDK used to drop it, so callers got a status
+  and nothing else. It is now `err.errors` (always an array), it is in `toJSON()`, and
+  the first description is folded into `err.message` — the generic *"One or more fields
+  are invalid."* alone told you nothing. `parseErrorResponse` also reads the flat
+  `error_code` the live API sends, so `err.code` (and therefore `err.fix`) is populated
+  instead of `undefined`.
+- **The app host is mode-aware.** `resolveApiBase` switched hosts per mode but the app
+  base was the single constant `app.beinfi.com`, so every `sk_test_` caller got payment
+  link and `checkout()` URLs on the live host, which 404. Sandbox now resolves to
+  `app-sandbox.beinfi.com`. An explicit `appUrl` still wins.
+- **An empty `slug` throws instead of building a broken URL.** `checkout()` interpolated
+  a missing slug and handed back `…/pay/undefined/invoices/…`; untyped JS callers got no
+  signal. `checkout`, `links.create` and `links.urlFor` now throw `missing_slug` (400,
+  with a `fix` hint) — and `checkout` / `links.create` check before they create anything,
+  so a bad call costs nothing. `links.list` without a slug still returns `url: ""`.
+
+### Added
+- `resolveAppBase(mode, override?)`, `SANDBOX_APP_BASE`, `LIVE_APP_BASE` — the app-host
+  mirror of `resolveApiBase`.
+- `InfiFieldIssue` — the `{ field, description }` shape of `InfiError.errors`.
+- The `PaymentLink` type is exported. `PaymentLinkWithUrl` is defined in terms of it, so
+  it should have been reachable from 0.9.0.
+
+### Changed
+- JSDoc on the public surface rewritten for the people who read it in an editor tooltip:
+  no internal file paths, ADR numbers, competitor comparisons or product history. The
+  operational warnings stay — `apiKeys` and `providers` are account-owner surface that an
+  API key cannot reach, and `providers` is live-only.
+- `Infi.sync` and the company-as-code exports are no longer marked "do not document or
+  promote". Company as code is a documented, supported feature; the note was the stale part.
+- `Payment.pixPayload` now documents both cases: an EMV/brcode string in live (render the
+  QR from it), a simulator URL in sandbox (link to it, do not QR-encode it).
+- `DEFAULT_APP_BASE` is deprecated — an alias of `LIVE_APP_BASE`. Use `resolveAppBase`.
+- `CHANGELOG.md` now ships in the published tarball.
+
+### Notes
+- `@beinfi/nextjs`, `@beinfi/cli` and `@beinfi/mcp` widened their `@beinfi/sdk` range to
+  `>=0.9.0 <0.11.0`. A caret on a 0.x version pins the *minor*, so `^0.9.0` would not
+  resolve 0.10.0.
+
+## 0.9.0
+
+### Removed — BREAKING: the raw-PAN card path
+Card capture put the PAN in the merchant's DOM and then sent it through our servers to be
+tokenized, pulling both sides into PCI scope. Removed:
+- `InfiCardForm`, `InfiCheckout`, `InfiPixQr` (from `@beinfi/sdk/react`)
+- the `card` argument on `pay.charge()` and the `CardInput` type
+
+`pay.charge({ method: "card" })` **stays**: it returns the `clientSecret` +
+`publishableKey` of the provider routing picked, for the browser to confirm directly with
+that provider.
+
+### Added — payment links
+- `infi.links.create/list/revoke/urlFor` — mint a shareable URL bound to a product. The
+  payer fills in their own details; the customer and invoice are materialized on submit.
+  New type `PaymentLinkWithUrl`.
 
 ### Removed — BREAKING: auth is no longer part of Beinfi
 
-Beinfi is billing only; merchants bring their own auth (backend ADR 0025). Everything
+Beinfi is billing only; merchants bring their own auth. Everything
 that existed to log an end user in is gone:
 
 - `sendEmailCode`, `verifyEmailCode`, `getAppConfig`, `exchangeCode`,
@@ -59,7 +121,7 @@ that user's id as `externalId`. The enrollment id it returns is unchanged.
   `authBaseUrl` → `appUrl`. Constants `DEFAULT_API_BASE`/`DEFAULT_AUTH_BASE`/
   `DEFAULT_PAY_BASE` → `SANDBOX_API_BASE`/`LIVE_API_BASE`/`DEFAULT_APP_BASE`; new
   `modeFromKey`, `resolveApiBase`, and the `InfiMode` type.
-- **Rename sandbox → claim** (backend ADR 0005). "Sandbox" now means only
+- **Rename sandbox → claim**. "Sandbox" now means only
   test-vs-live mode; the provision-instant-creds-then-claim flow is a *claimable
   tenant*. CLI: `infi sandbox create|get` → `infi claim create|get`; `@beinfi/cli`
   helpers `createSandbox`/`getSandbox` → `createClaimable`/`getClaimable`, types
@@ -81,12 +143,12 @@ that user's id as `externalId`. The enrollment id it returns is unchanged.
   displayName / unit / aggregation (backend `PATCH …/meters/{id}`; `name` immutable).
   `infi.sync()` now reconciles meter metadata (create + update). New type
   `UpdateMeterRequest`.
-- Billing-as-code desired-state sync (ADR 0002, P1): `infi.sync()` now **updates**
+- Billing-as-code desired-state sync: `infi.sync()` now **updates**
   product metadata and **version-bumps** on price / base-price / credits / billing-cycle
   changes (a new version is published; prior versions stay immutable), instead of
   seed-only. `SyncAction.action` gains `"update"` and `"bump"` plus a `detail` reason;
   `infi sync --plan` prints them.
-- Billing-as-code platform config (ADR 0002, P2): `defineBilling()` accepts `apps`
+- Billing-as-code platform config: `defineBilling()` accepts `apps`
   (matched by slug) and `webhooks` (matched by url); `infi.sync()` reconciles them
   create + update, never deletes, never rotates a webhook secret. Drift-guarded like
   products (a dashboard edit blocks an update unless `--force`); the lock tracks
@@ -113,7 +175,7 @@ that user's id as `externalId`. The enrollment id it returns is unchanged.
 - `infi.sandbox.create/get` and the `SandboxRef` / `ClaimableSandbox*` /
   `CreateSandboxOptions` types. Sandbox provisioning is a dev-time concern and now
   lives in `@beinfi/cli` (`createSandbox`/`getSandbox`), re-exported from
-  `@beinfi/cli/lib/provision`. See ADR 0001. No app runtime called this.
+  `@beinfi/cli/lib/provision`. No app runtime called this.
 
 ## 0.8.1
 
@@ -123,7 +185,7 @@ that user's id as `externalId`. The enrollment id it returns is unchanged.
 - `infi.apiKeys.list/create/revoke` — tenant API key management.
 - `exchangeCliToken()` — exchange dashboard session for CLI API key (`POST /auth/cli/token`).
 
-## 0.9.0
+## 0.8.0
 
 Metered-LLM surface: a credit gate + usage recording in one call, plus a one-read customer view.
 

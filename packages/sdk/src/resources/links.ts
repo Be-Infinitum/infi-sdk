@@ -1,3 +1,4 @@
+import { requireSlug } from "../errors.js";
 import type { Transport } from "../http.js";
 import type { PaymentLink } from "../types.js";
 
@@ -26,30 +27,34 @@ export class LinksResource {
    * Create a link for a product and return it with its shareable `url`.
    *
    * `slug` is your tenant slug — it is part of the public URL, so the SDK cannot
-   * infer it from a secret key alone.
+   * infer it from a secret key alone. Throws `missing_slug` (400) when it is
+   * empty, checked before the link is created.
    */
   async create(
     productId: string,
     opts: { slug: string },
     idempotencyKey?: string,
   ): Promise<PaymentLinkWithUrl> {
+    const slug = requireSlug(opts?.slug, "links.create");
     const link = await this.t.request<PaymentLink>(
       "POST",
       `/metering/products/${enc(productId)}/payment-links`,
       { requireSecret: true, idempotencyKey },
     );
-    return { ...link, url: this.urlFor(opts.slug, link.token!) };
+    return { ...link, url: this.urlFor(slug, link.token!) };
   }
 
+  /** List a product's links. Without a `slug` each `url` is `""` — never a broken URL. */
   async list(productId: string, opts?: { slug?: string }): Promise<PaymentLinkWithUrl[]> {
     const res = await this.t.request<{ links?: PaymentLink[] }>(
       "GET",
       `/metering/products/${enc(productId)}/payment-links`,
       { requireSecret: true },
     );
+    const slug = opts?.slug?.trim();
     return (res.links ?? []).map((l) => ({
       ...l,
-      url: opts?.slug ? this.urlFor(opts.slug, l.token!) : "",
+      url: slug ? this.urlFor(slug, l.token!) : "",
     }));
   }
 
@@ -66,8 +71,8 @@ export class LinksResource {
     );
   }
 
-  /** The payer-facing URL for a token. */
+  /** The payer-facing URL for a token. Throws `missing_slug` (400) on an empty slug. */
   urlFor(slug: string, token: string): string {
-    return `${this.appBase}/pay/${enc(slug)}/links/${enc(token)}`;
+    return `${this.appBase}/pay/${enc(requireSlug(slug, "links.urlFor"))}/links/${enc(token)}`;
   }
 }

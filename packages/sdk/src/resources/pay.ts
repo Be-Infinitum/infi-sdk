@@ -1,9 +1,11 @@
 import type { components } from "../generated/openapi.js";
 import { newIdempotencyKey } from "../http.js";
 
-/** A charge attempt (mirrors the backend Payment). For pix, `pixPayload` is the
- *  copy-paste EMV string (render the QR client-side) and `pixExpiresAt` its
- *  expiry; `invoiceUrl` is the PSP hosted page. */
+/** A charge attempt (mirrors the backend Payment). For pix, `pixPayload` is what
+ *  the payer pays with and `pixExpiresAt` its expiry — in live it is the copy-paste
+ *  EMV/brcode string, so render the QR from it client-side; in sandbox it is a URL
+ *  to the payment simulator, so link to it instead of QR-encoding it. Detect with
+ *  `pixPayload.startsWith("http")`. `invoiceUrl` is the PSP hosted page. */
 export type Payment = components["schemas"]["Payment"];
 
 /** Public checkout invoice read: merchant display + the invoice (with status). */

@@ -4,6 +4,7 @@ export {
   InsufficientCreditError,
   parseErrorResponse,
   type InfiErrorFix,
+  type InfiFieldIssue,
   INFI_ERROR_FIXES,
   fixForCode,
 } from "./errors.js";
@@ -30,9 +31,8 @@ export {
   type SyncResult,
 } from "./billing-as-code.js";
 /**
- * @internal Company-as-code + CLI auth. Exported because the CLI, the MCP
- * server and the `create-infi-app` templates import them from the package root
- * — NOT part of the documented merchant-facing surface. See Infi.sync.
+ * Company as code: author your catalog and webhooks as a typed config file and
+ * apply it with `infi.sync()`. Also what the CLI and MCP server use.
  */
 export {
   defineCompany,
@@ -118,6 +118,7 @@ export type {
   Invoice,
   Meter,
   Payment,
+  PaymentLink,
   PaymentMethod,
   Price,
   PriceInput,
@@ -136,9 +137,12 @@ export type {
 export {
   SANDBOX_API_BASE,
   LIVE_API_BASE,
+  SANDBOX_APP_BASE,
+  LIVE_APP_BASE,
   DEFAULT_APP_BASE,
   SESSION_COOKIE_NAME,
   modeFromKey,
   resolveApiBase,
+  resolveAppBase,
 } from "./types.js";
 export type { InfiMode } from "./types.js";

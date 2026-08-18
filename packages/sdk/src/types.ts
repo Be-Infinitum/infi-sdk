@@ -74,7 +74,10 @@ export interface InfiConfig {
   mode?: InfiMode;
   /** Override the API host (local dev / self-host / tests). Defaults per mode. */
   apiUrl?: string;
-  /** Override the app host that serves hosted checkout. Default app.beinfi.com. */
+  /**
+   * Override the host serving hosted checkout and payment links. Defaults per
+   * mode (live → app.beinfi.com, sandbox → app-sandbox.beinfi.com).
+   */
   appUrl?: string;
 }
 
@@ -84,13 +87,15 @@ export interface CustomerSummary {
   email?: string | null;
 }
 
-// API hosts, picked by mode. Sandbox and live are separate deployments (ADR 0014);
-// the SDK selects the host from `mode` so callers never hand-pass a base.
+// Sandbox and live are separate deployments with separate hosts, for the app as
+// much as the API — a sandbox tenant does not exist on the live app, so a link
+// built on the wrong host 404s. The SDK picks both from `mode`.
 export const SANDBOX_API_BASE = "https://api-sandbox.beinfi.com";
 export const LIVE_API_BASE = "https://api.beinfi.com";
-// The frontend app renders the hosted-login page (`/identity/{slug}/login`) and
-// hosted checkout (`/pay/...`) for both modes — same host.
-export const DEFAULT_APP_BASE = "https://app.beinfi.com";
+export const SANDBOX_APP_BASE = "https://app-sandbox.beinfi.com";
+export const LIVE_APP_BASE = "https://app.beinfi.com";
+/** @deprecated The app host is mode-aware — use {@link resolveAppBase}. Alias of {@link LIVE_APP_BASE}. */
+export const DEFAULT_APP_BASE = LIVE_APP_BASE;
 export const SESSION_COOKIE_NAME = "infi_session";
 
 /** Infer the mode from a key prefix: `sk_live_` → live, anything else → sandbox. */
@@ -102,4 +107,13 @@ export function modeFromKey(secretKey?: string): InfiMode {
 export function resolveApiBase(mode: InfiMode, override?: string): string {
   if (override) return override.replace(/\/$/, "");
   return mode === "live" ? LIVE_API_BASE : SANDBOX_API_BASE;
+}
+
+/**
+ * Resolve the app host (hosted checkout, payment links) from mode, honoring an
+ * explicit override (local/tests). Mirrors {@link resolveApiBase}.
+ */
+export function resolveAppBase(mode: InfiMode, override?: string): string {
+  if (override) return override.replace(/\/$/, "");
+  return mode === "live" ? LIVE_APP_BASE : SANDBOX_APP_BASE;
 }

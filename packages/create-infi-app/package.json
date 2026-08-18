@@ -1,13 +1,15 @@
 {
   "name": "create-infi-app",
-  "version": "0.1.0",
-  "description": "Scaffold a billable Next.js app with Infi — thin shim over `infi init` (@beinfi/cli)",
+  "version": "0.1.1",
+  "description": "Scaffold a billable Next.js app with Infi \u2014 thin shim over `infi init` (@beinfi/cli)",
   "license": "MIT",
   "type": "module",
   "bin": {
     "create-infi-app": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -20,7 +22,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@beinfi/cli": "workspace:*"
+    "@beinfi/cli": "^0.1.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",

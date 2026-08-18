@@ -8,11 +8,11 @@ import {
 /** @deprecated Prefer {@link CompanyConfig} — same shape, clearer name. */
 export type { BillingConfig };
 
-/** Declarative company config (identity apps + revenue + webhooks). */
+/** Declarative company config (catalog + webhooks). */
 export type CompanyConfig = BillingConfig;
 
 /**
- * Author a typed company config (company as code — ADR 0004).
+ * Author a typed company config — company as code, applied with `infi.sync()`.
  *
  * Alias of `defineBilling`; prefer this name in new code.
  *
@@ -20,7 +20,7 @@ export type CompanyConfig = BillingConfig;
  * ```ts
  * export default defineCompany({
  *   products: [...],
- *   apps: [{ slug: "crm", name: "CRM", allowedOrigins: [...], redirectUris: [...] }],
+ *   webhooks: [{ url: "https://example.com/api/webhooks/infi", events: ["payment.confirmed"] }],
  * });
  * ```
  *

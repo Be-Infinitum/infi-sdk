@@ -30,6 +30,10 @@ export const INFI_ERROR_FIXES: Record<string, InfiErrorFix> = {
     hint: "Dashboard changed since last sync. Run --plan to inspect, --force to overwrite, or infi pull to adopt.",
     docs: "AGENTS.md#company-as-code",
   },
+  missing_slug: {
+    hint: "Pass your tenant slug (INFI_TENANT_SLUG) — it is part of the public /pay/{slug} URL and cannot be inferred from a secret key.",
+    docs: "AGENTS.md#credentials",
+  },
   insufficient_credit: {
     hint: "Customer wallet is empty. Return 402 and surface checkout to buy a credit pack.",
     docs: "skills/add-prepaid-ai-chat/SKILL.md",

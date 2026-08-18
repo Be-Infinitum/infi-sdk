@@ -1,4 +1,9 @@
-import { InfiError, InsufficientCreditError, parseErrorResponse } from "./errors.js";
+import {
+  InfiError,
+  InsufficientCreditError,
+  parseErrorResponse,
+  requireSlug,
+} from "./errors.js";
 import { Transport, newIdempotencyKey } from "./http.js";
 import { resolveUsageValue, resolveMeterMode, resolveCustomerId, type MeterOptions } from "./meter.js";
 import { ProductsResource } from "./resources/products.js";
@@ -36,7 +41,7 @@ import type {
   Invoice,
   UsageEvent,
 } from "./types.js";
-import { DEFAULT_APP_BASE, modeFromKey, resolveApiBase } from "./types.js";
+import { modeFromKey, resolveApiBase, resolveAppBase } from "./types.js";
 
 function isPublishableKey(key: string): boolean {
   return key.startsWith("pk_");
@@ -93,26 +98,26 @@ export class Infi {
   readonly links: LinksResource;
   /** Subscriptions: create (with anchor), get, list per enrollment. */
   readonly subscriptions: SubscriptionsResource;
-  /** API keys: list, create, revoke tenant keys. */
   /**
-   * @internal Account administration, not app surface. Minting and revoking keys
-   * sits behind RequireStepUp, and a step-up token is only ever issued to a staff
-   * session — an API key can neither obtain nor replay one (internal/auth/stepup.go).
-   * So these methods can never succeed for an `sk_` caller; they exist for the CLI
-   * and the dashboard. Do not document or promote.
+   * API keys: list, create, revoke tenant keys.
+   *
+   * Account-owner surface, not reachable with an API key: minting and revoking
+   * keys needs a dashboard session with fresh MFA, so these calls always fail for
+   * an `sk_` caller. Manage keys in the dashboard, or from the CLI after
+   * `infi login`.
    */
   readonly apiKeys: ApiKeysResource;
   /** Webhooks: register endpoints for payment/invoice events. */
   readonly webhooks: WebhooksResource;
   /** Pay: public, slug-based checkout (pix QR + card charge). Browser-safe, no secret key. */
   readonly pay: PayResource;
-  /** BYOP connections: the merchant's own Stripe / Asaas account (read + verify). */
   /**
-   * @internal Connecting a PSP is an account-owner action done once in the
-   * dashboard, with step-up auth — the same split gr4vy draws between its
-   * dashboard and the API a merchant's app integrates. `connect`/`disconnect` are
-   * unreachable by an API key at all, and the whole surface is live-only (404 in
-   * sandbox). Exists for the CLI (`providers`, `doctor`, `go-live`).
+   * Payment providers: your own Stripe / Asaas account (read + verify).
+   *
+   * Account-owner surface, not reachable with an API key: connecting or
+   * disconnecting a provider decides where your money goes, so it is a dashboard
+   * action behind fresh MFA. Live-only — it 404s in sandbox, where a built-in test
+   * provider does the charging.
    */
   readonly providers: ProvidersResource;
 
@@ -127,7 +132,8 @@ export class Infi {
     this.#secretKey = cfg.secretKey;
     this.#mode = cfg.mode ?? modeFromKey(cfg.secretKey);
     this.#apiBase = resolveApiBase(this.#mode, cfg.apiUrl);
-    this.#appBase = (cfg.appUrl ?? DEFAULT_APP_BASE).replace(/\/$/, "");
+    // Mode-aware like the API host: a sandbox tenant is not served by the live app.
+    this.#appBase = resolveAppBase(this.#mode, cfg.appUrl);
 
     const transport = new Transport(this.#apiBase, this.#secretKey);
     this.products = new ProductsResource(transport);
@@ -153,7 +159,7 @@ export class Infi {
     return this.#apiBase;
   }
 
-  /** The app host serving hosted checkout. */
+  /** The app host serving hosted checkout and payment links (resolved from mode). */
   get appBase(): string {
     return this.#appBase;
   }
@@ -217,8 +223,8 @@ export class Infi {
    * `"prepaid"`:
    * - `"prepaid"` — gate then record. The pre-flight gate reads the wallet
    *   balance and throws `InsufficientCreditError` (402) before `fn` runs when it
-   *   is exhausted, so you never do the work for free (ADR 0010: enforcement at
-   *   the request edge; prepaid drawdown settles async, so balance may lag).
+   *   is exhausted, so you never do the work for free. Drawdown settles
+   *   asynchronously, so the balance can lag a little behind recent calls.
    * - `"postpaid"` — record only, never gate (metered API / rate-card).
    * - `"streaming"` — gate only; does NOT record. Record the true value
    *   yourself with `infi.track(...)` once it settles (streaming LLM calls).
@@ -286,8 +292,12 @@ export class Infi {
    *  - purchase: `{ productId, customer }` — enroll + product-linked invoice, so
    *    deliverable fulfillment (email + download) fires on payment. Amount is
    *    auto-derived from the product's published price unless `amount` is given.
+   *
+   * Throws `missing_slug` (400) when `slug` is empty — checked before the invoice
+   * is created, so a bad call costs you nothing.
    */
   async checkout(opts: CheckoutOptions): Promise<{ invoice: Invoice; url: string }> {
+    const slug = requireSlug(opts.slug, "checkout");
     let invoice: Invoice;
     if ("productId" in opts) {
       invoice = await this.invoices.createForProduct(opts.productId, {
@@ -315,7 +325,7 @@ export class Infi {
         cancelUrl: opts.cancelUrl,
       });
     }
-    const url = `${this.#appBase}/pay/${encodeURIComponent(opts.slug)}/invoices/${invoice.id}`;
+    const url = `${this.#appBase}/pay/${encodeURIComponent(slug)}/invoices/${invoice.id}`;
     return { invoice, url };
   }
 
@@ -332,26 +342,24 @@ export class Infi {
   // ── Company as code: apply a declarative config idempotently ──────────────
 
   /**
-   * Apply a `defineCompany(...)` / `defineBilling(...)` config idempotently
-   * (pass `{ plan: true }` to dry-run).
+   * Apply a declarative catalog config — `defineCompany(...)` /
+   * `defineBilling(...)` — as desired state, idempotently. Products, versions,
+   * prices, meters and webhooks are created or updated to match it; nothing is
+   * ever deleted and a published version is never mutated. Safe to re-run.
    *
-   * @internal Kept for the CLI (`infi sync` / `pull` / `bootstrap` / `doctor`)
-   * and the MCP server, which are the only intended callers. Deliberately left
-   * out of the README: company-as-code is our tooling, not part of the surface
-   * a merchant's app is meant to build against. Do not document or promote it
-   * until that decision is revisited.
+   * Pass `{ plan: true }` to dry-run and inspect the actions first. This is also
+   * what the CLI runs for `infi sync` / `pull` / `bootstrap` / `doctor`.
    */
   sync(config: BillingConfig, opts?: SyncOptions): Promise<SyncResult> {
     return syncBilling(this, config, opts);
   }
 
   /**
-   * Meter wallet helpers (ADR 0005) — debit/credit/balance by meter key.
+   * Meter wallet helpers — debit/credit/balance by meter key.
    *
    * Bind to an enrollment id — the `customerId` returned by
-   * `customers.create({ externalId })`. There used to also be a `fromSession`
-   * variant that resolved the enrollment from an Infi login session; Pulse no
-   * longer sells login, so the caller supplies the enrollment from their own auth.
+   * `customers.create({ externalId })`. Beinfi does not handle end-user login, so
+   * identify the customer with your own user id and keep the enrollment it maps to.
    *
    * @example
    * ```ts

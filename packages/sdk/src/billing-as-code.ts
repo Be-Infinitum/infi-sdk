@@ -34,9 +34,9 @@ export interface BillingPrice {
 }
 
 /**
- * Declarative meter grant on the plan (ADR 0005).
- * `on: "cycle"` maps to today's `creditsPerCycle` until the backend stores grants[].
- * `on: "payment"` needs the meter-wallet backend (skipped at sync with a note).
+ * Declarative meter grant on the plan.
+ * `on: "cycle"` maps to today's `creditsPerCycle` and is applied.
+ * `on: "payment"` is not supported yet — `sync` skips it and reports why.
  */
 export interface BillingGrant {
   /** Catalog meter key (same as meters[].key). */
@@ -60,7 +60,7 @@ export interface BillingProduct {
    * Prepaid credit allowance granted each cycle (decimal string).
    */
   creditsPerCycle?: string | null;
-  /** Meter grants — cycle renew and/or payment.confirmed (ADR 0005). */
+  /** Meter grants — credited on cycle renewal and/or on `payment.confirmed`. */
   grants?: BillingGrant[];
   meters?: BillingMeter[];
   prices?: BillingPrice[];
@@ -376,7 +376,7 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
 }
 
 /**
- * Apply a billing config as desired state (ADR 0002). Products are matched by
+ * Apply a billing config as desired state. Products are matched by
  * their unique per-tenant `key` (falling back to `name` for older tenants), then:
  *
  * - **create** the product when missing (+ seed a first published version);
@@ -561,7 +561,7 @@ export async function syncBilling(
           action: "skip",
           resource: "grant",
           ref: `${name}/${g.meter}@payment`,
-          detail: "payment grants require meter-wallet backend (ADR 0005) — not applied yet",
+          detail: "grants on payment are not supported yet — not applied",
         });
       }
     }

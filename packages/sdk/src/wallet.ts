@@ -24,7 +24,7 @@ export interface MeterBalance {
 }
 
 /**
- * Bound meter wallet for one enrollment (ADR 0005).
+ * Bound meter wallet for one enrollment.
  *
  * Today the API is a single credit ledger — `debit`/`credit`/`balance` shim to
  * `credits.*` and tag the meter in `reference`. When the backend ships
@@ -157,9 +157,8 @@ export function bindWallet(
  * (`externalId`) plus a product key and get back a wallet with
  * `debit` / `credit` / `balance`.
  *
- * This used to be `walletFromSession(infi, sessionToken, …)`, which resolved the
- * customer from an Infi login session. Pulse no longer sells login, so the caller
- * supplies the identity from their own auth.
+ * Beinfi does not handle end-user login: the id you pass is the one from your own
+ * auth, and the enrollment it maps to is what every billing call references.
  */
 export async function walletForCustomer(
   infi: Infi,
