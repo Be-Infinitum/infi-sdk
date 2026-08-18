@@ -47,10 +47,17 @@ export type WebhookEndpoint = components["schemas"]["WebhookEndpoint"];
 export type WebhookDelivery = components["schemas"]["WebhookDelivery"];
 
 // Inline request bodies (no named schema in the OpenAPI spec).
+export type VersionGrant = components["schemas"]["VersionGrant"];
+
 export interface VersionInput {
   billingCycle?: "weekly" | "monthly" | "annual" | null;
   basePrice?: string | null;
-  /** Prepaid credit allowance granted each cycle (decimal string). Prepaid only. */
+  /** Per-meter allowances the version grants (cycle renewal / on payment). */
+  grants?: VersionGrant[];
+  /**
+   * @deprecated The backend dropped `credits_per_cycle` (migration 000098) and now
+   * rejects the field with a 422. Use `grants: [{ meter, amount, on: "cycle" }]`.
+   */
   creditsPerCycle?: string | null;
 }
 export interface GrantCreditInput {

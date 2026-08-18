@@ -1,9 +1,12 @@
 import pc from "picocolors";
 import type { GlobalFlags } from "../lib/client.js";
-import { infiClient } from "../lib/client.js";
-import { die, ok, printJson } from "../lib/output.js";
+import { appBase, infiClient } from "../lib/client.js";
+import { fail, ok, printJson } from "../lib/output.js";
 
-const DASHBOARD_CONNECT = "https://app.beinfi.com/go-live";
+/** Mode-aware: the sandbox dashboard is a different host from the live one. */
+function connectUrl(flags: GlobalFlags): string {
+  return `${appBase(flags)}/go-live`;
+}
 
 /**
  * Why there is no `infi providers connect`.
@@ -14,8 +17,8 @@ const DASHBOARD_CONNECT = "https://app.beinfi.com/go-live";
  * neither obtain nor replay one. So the CLI reports and verifies; connecting is
  * dashboard-only, by design.
  */
-function connectHint(): string {
-  return `Connecting needs fresh MFA, which an API key cannot obtain — do it in the dashboard: ${DASHBOARD_CONNECT}`;
+function connectHint(flags: GlobalFlags): string {
+  return `Connecting needs fresh MFA, which an API key cannot obtain — do it in the dashboard: ${connectUrl(flags)}`;
 }
 
 function statusColor(status: string): string {
@@ -35,14 +38,14 @@ export async function providersList(flags: GlobalFlags): Promise<void> {
   const { connections, supported } = await infiClient(flags).providers.list();
 
   if (flags.json) {
-    printJson({ connections, supported, connectUrl: DASHBOARD_CONNECT });
+    printJson({ connections, supported, connectUrl: connectUrl(flags) });
     return;
   }
 
   if (connections.length === 0) {
     ok("No provider connected");
     console.log(pc.dim(`  supported: ${supported.join(", ") || "none"}`));
-    console.log(pc.dim(`  ${connectHint()}`));
+    console.log(pc.dim(`  ${connectHint(flags)}`));
     return;
   }
 
@@ -65,7 +68,7 @@ export async function providersList(flags: GlobalFlags): Promise<void> {
 export async function providersVerify(
   flags: GlobalFlags & { provider?: string },
 ): Promise<void> {
-  if (!flags.provider) die("Usage: infi providers verify <stripe|asaas>");
+  if (!flags.provider) fail(new Error("Usage: infi providers verify <stripe|asaas>"), flags.json);
   const conn = await infiClient(flags).providers.verify(flags.provider);
 
   if (flags.json) {
@@ -74,6 +77,6 @@ export async function providersVerify(
   }
   ok(`${conn.provider}: ${conn.status}`);
   if (conn.status === "needs_reconnect") {
-    console.log(pc.dim(`  The stored key no longer works. ${connectHint()}`));
+    console.log(pc.dim(`  The stored key no longer works. ${connectHint(flags)}`));
   }
 }

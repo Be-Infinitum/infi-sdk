@@ -32,15 +32,13 @@ const intentSchema = z.enum(["crm", "prepaid-ai-chat", "one-time", "usage-saas"]
 
 server.tool(
   "infi_claim_create",
-  "Provision a claimable sandbox tenant (sk_test_ + claim URL). Optional intent for the seed catalog.",
+  "Provision a claimable sandbox tenant (sk_test_ + claim URL). Use infi_bootstrap to also seed a catalog from an intent.",
   {
     ref: z.enum(["cli", "cursor", "mcp", "lovable"]).optional(),
-    intent: intentSchema.optional(),
   },
-  async ({ ref, intent }) => {
+  async ({ ref }) => {
     const claimable = await createClaimable(API_BASE, {
       ref: (ref ?? "mcp") as ClaimRef,
-      intent,
     });
     return { content: [{ type: "text", text: JSON.stringify(claimable, null, 2) }] };
   },

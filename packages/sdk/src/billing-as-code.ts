@@ -70,9 +70,18 @@ export interface BillingProduct {
 
 /** Effective cycle grant amount: first `grants[{on:cycle}]`, else `creditsPerCycle`. */
 export function cycleGrantAmount(p: BillingProduct): string | null {
+  return cycleGrant(p)?.amount ?? null;
+}
+
+/**
+ * The cycle grant to send, meter key included. The deprecated `creditsPerCycle`
+ * had no meter, so it maps onto `credits` — the alias for the legacy pool.
+ */
+export function cycleGrant(p: BillingProduct): BillingGrant | null {
   const fromGrant = (p.grants ?? []).find((g) => g.on === "cycle");
-  if (fromGrant) return fromGrant.amount;
-  return p.creditsPerCycle ?? null;
+  if (fromGrant) return fromGrant;
+  if (p.creditsPerCycle) return { meter: "credits", amount: p.creditsPerCycle, on: "cycle" };
+  return null;
 }
 
 /**
@@ -174,7 +183,10 @@ function normNum(v?: string | null): string | null {
 }
 
 function tiersKey(t?: unknown): string {
-  return t ? JSON.stringify(t) : "";
+  // `[]` is truthy: the API returns `tiers: []` on a flat price while a config
+  // omits the field, so "[]" vs "" reported drift and bumped a version every sync.
+  if (!t || (Array.isArray(t) && t.length === 0)) return "";
+  return JSON.stringify(t);
 }
 
 type DesiredPrice = {
@@ -294,10 +306,14 @@ async function publishVersion(
   p: BillingProduct,
   meterIdByKey: Map<string, string | undefined>,
 ): Promise<void> {
+  // The backend dropped product_versions.credits_per_cycle (migration 000098) and
+  // now answers 422 "unrecognized field" for it, so the allowance goes over as a
+  // meter grant. Sending the old field failed every sync, and with it bootstrap.
+  const grant = cycleGrant(p);
   const version = await infi.products.versions.create(productId, {
     billingCycle: p.billingCycle ?? null,
     basePrice: p.basePrice ?? null,
-    creditsPerCycle: cycleGrantAmount(p),
+    ...(grant ? { grants: [grant] } : {}),
   });
   for (const pr of p.prices ?? []) {
     const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
@@ -503,7 +519,9 @@ export async function syncBilling(
           displayName: m.displayName ?? m.key,
           unit: m.unit,
           aggregation: m.aggregation,
-          ...(m.valueProperty != null ? { valueProperty: m.valueProperty } : {}),
+          // Any aggregation but `count` needs a field to read the number from, and
+          // the API 422s without one. `track({ value })` writes `value`.
+          ...(m.aggregation === "count" ? {} : { valueProperty: m.valueProperty ?? "value" }),
         });
         meterIdByKey.set(m.key, created.id);
       }
@@ -547,14 +565,14 @@ export async function syncBilling(
       }
     }
 
-    // Grants — cycle → creditsPerCycle via publishVersion; payment needs backend ADR 0005.
+    // Grants — cycle rides on the version via publishVersion; payment needs backend ADR 0005.
     for (const g of p.grants ?? []) {
       if (g.on === "cycle") {
         actions.push({
           action: "skip",
           resource: "grant",
           ref: `${name}/${g.meter}@cycle`,
-          detail: `mapped to creditsPerCycle=${g.amount}`,
+          detail: `sent as a version grant (${g.amount})`,
         });
       } else {
         actions.push({

@@ -29,7 +29,7 @@ describe("cli claim", () => {
           productId: "prod_1",
           appSlug: "acme-app",
           apiKeySecret: "sk_test_abc",
-          claimUrl: "https://new.beinfi.com/claim/sb_1",
+          claimUrl: "https://app-sandbox.beinfi.com/claim/sb_1",
           expiresAt: "2026-08-01T00:00:00Z",
         },
         201,
@@ -46,7 +46,9 @@ describe("cli claim", () => {
     expect(JSON.parse(init.body as string)).toEqual({ ref: "cli" });
   });
 
-  it("createClaimable forwards intent and appUrl", async () => {
+  // The endpoint answers 422 "unrecognized field" for anything but `ref`, and
+  // company intent only shapes the generated infi.company.ts locally.
+  it("createClaimable sends ref only — never intent", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse(
         {
@@ -56,22 +58,28 @@ describe("cli claim", () => {
           productId: "prod_1",
           appSlug: "crm",
           apiKeySecret: "sk_test_abc",
-          claimUrl: "https://new.beinfi.com/claim/sb_2",
+          claimUrl: "https://app-sandbox.beinfi.com/claim/sb_2",
           expiresAt: "2026-08-01T00:00:00Z",
         },
         201,
       ),
     );
 
-    await createClaimable(BASE, {
-      ref: "lovable",
-      intent: "crm",
-    });
+    await createClaimable(BASE, { ref: "lovable" });
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(JSON.parse(init.body as string)).toEqual({
-      ref: "lovable",
-      intent: "crm",
+    expect(JSON.parse(init.body as string)).toEqual({ ref: "lovable" });
+    expect(init.body as string).not.toContain("intent");
+  });
+
+  it("turns a 404 into an explanation of the wrong host, not an empty message", async () => {
+    // HTTP/2 has no reason phrase, so the live host's plain-text 404 used to
+    // surface as the single word "Request failed".
+    fetchMock.mockResolvedValueOnce(new Response("404 page not found", { status: 404 }));
+
+    await expect(createClaimable("https://api.beinfi.com", "cli")).rejects.toMatchObject({
+      status: 404,
+      code: "claimable_endpoint_not_found",
     });
   });
 

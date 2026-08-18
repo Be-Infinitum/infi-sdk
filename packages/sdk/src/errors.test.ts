@@ -103,3 +103,27 @@ describe("requireSlug", () => {
     expect(requireSlug(" acme ", "checkout")).toBe("acme");
   });
 });
+
+// The API answers every error with a tracer_id and InfiError used to drop it, so a
+// user reporting a failure had nothing for support to search on. Both envelopes are
+// covered: flat handler responses carry `tracer_id`, middleware ones nest it.
+describe("InfiError tracerId", () => {
+  it("keeps the tracer_id from a flat error body", async () => {
+    const res = new Response(
+      JSON.stringify({ message: "Nope.", error_code: "unauthorized", tracer_id: "ce0a9ed6" }),
+      { status: 401, headers: { "Content-Type": "application/json" } },
+    );
+    const err = await parseErrorResponse(res);
+    expect(err.tracerId).toBe("ce0a9ed6");
+    expect(err.toJSON().tracerId).toBe("ce0a9ed6");
+  });
+
+  it("keeps the request_id from the nested middleware envelope", async () => {
+    const res = new Response(
+      JSON.stringify({ error: { code: "rate_limited", message: "Slow down.", request_id: "e0484f60" } }),
+      { status: 429, headers: { "Content-Type": "application/json" } },
+    );
+    const err = await parseErrorResponse(res);
+    expect(err.tracerId).toBe("e0484f60");
+  });
+});

@@ -25,6 +25,12 @@ export class InfiError extends Error {
    * (typically a 422) — that is where the reason a write was rejected lives.
    */
   readonly errors: InfiFieldIssue[];
+  /**
+   * The API's `tracer_id` for this response. It is the one handle support can use
+   * to find the request in our logs, so it is surfaced rather than dropped —
+   * without it a user reporting a 500 has nothing to hand over.
+   */
+  readonly tracerId?: string;
 
   constructor(
     message: string,
@@ -32,6 +38,7 @@ export class InfiError extends Error {
     code?: string,
     fix?: InfiErrorFix,
     errors?: InfiFieldIssue[],
+    tracerId?: string,
   ) {
     super(message);
     this.name = "InfiError";
@@ -39,6 +46,7 @@ export class InfiError extends Error {
     this.code = code;
     this.fix = fix ?? fixForCode(code);
     this.errors = errors ?? [];
+    this.tracerId = tracerId;
   }
 
   /** JSON shape for `--json` CLI output and MCP tools. */
@@ -50,6 +58,7 @@ export class InfiError extends Error {
       code: this.code,
       fix: this.fix,
       errors: this.errors,
+      tracerId: this.tracerId,
     };
   }
 }
@@ -107,6 +116,7 @@ export async function parseErrorResponse(res: Response): Promise<InfiError> {
   let message = res.statusText || "Request failed";
   let code: string | undefined;
   let errors: InfiFieldIssue[] = [];
+  let tracerId: string | undefined;
   try {
     const body = (await res.json()) as {
       message?: string;
@@ -114,15 +124,20 @@ export async function parseErrorResponse(res: Response): Promise<InfiError> {
       /** Live API field name; the OpenAPI contract nests under `error` instead. */
       error_code?: string;
       errors?: unknown;
-      error?: { message?: string; code?: string; details?: unknown };
+      tracer_id?: string;
+      error?: { message?: string; code?: string; details?: unknown; request_id?: string };
     };
     message = body.message ?? body.error?.message ?? message;
     code = body.code ?? body.error_code ?? body.error?.code;
     errors = normalizeIssues(body.errors ?? body.error?.details);
+    // Both envelopes carry it: flat handler responses use `tracer_id`, the
+    // middleware ones nest it as `error.request_id`.
+    tracerId = body.tracer_id ?? body.error?.request_id;
   } catch {
     // ignore JSON parse errors
   }
-  return new InfiError(withFieldDetail(message, errors), res.status, code, undefined, errors);
+  return new InfiError(
+    withFieldDetail(message, errors), res.status, code, undefined, errors, tracerId);
 }
 
 /**

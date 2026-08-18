@@ -10,7 +10,7 @@ ${pc.dim("Usage:")}
   infi keys list|create|revoke [--key sk_...] [--json]
   infi providers [list] [--json]                # BYOP connection status
   infi providers verify <stripe|asaas> [--json] # re-check a stored credential
-  infi claim create|get <id> [--ref cli] [--intent <id>] [--local] [--json]
+  infi claim create|get <id> [--ref cli] [--local] [--json]
   infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
   infi pull [file] [--force]   # generate infi.company.ts + lock from the backend
   infi doctor [--key sk_...] [--local] [--json]
@@ -34,7 +34,8 @@ ${pc.dim("Examples:")}
   infi go-live --json
 
 ${pc.dim("Note:")}
-  API / pay hosts are inferred from the key (sk_test_ → sandbox). No base URLs in app env.
+  API and app hosts are inferred from the key: sk_test_ → api-sandbox/app-sandbox.beinfi.com,
+  sk_live_ → api/app.beinfi.com. With no key at all, provisioning uses sandbox.
   Beinfi does not do end-user login — bring your own auth and pass your own user id.
   Connecting a provider needs fresh MFA, so it is a dashboard action, not a CLI one.
 `);

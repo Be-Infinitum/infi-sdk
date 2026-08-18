@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.10.1 — 2026-08-18
+
+### Fixed
+- **`sync` could not create a version at all.** `publishVersion` sent
+  `creditsPerCycle`, which the backend dropped (migration 000098) and now rejects with
+  `422 unrecognized field`, so every `syncBilling` / `infi bootstrap` run died on the
+  first product. The cycle allowance now goes over as `grants: [{ meter, amount, on:
+  "cycle" }]`, which is what the read path (`versionCycleGrant`, `infi pull`) already
+  expected. `creditsPerCycle` on a config product still works — it maps onto a `credits`
+  grant — but the field is deprecated on `VersionInput` because sending it to the API
+  fails.
+- **`sync` could not create a `sum` meter either.** Every aggregation but `count` needs a
+  `valueProperty` and the API answers `422 "is required unless aggregation is count"`
+  without one. It now defaults to `"value"`, which is the field `track({ value })` writes.
+  This broke three of the four `infi bootstrap` intents (crm, prepaid-ai-chat, usage-saas).
+- **`sync` was not idempotent.** The API echoes `tiers: []` on a flat price while a config
+  omits the field, and `[]` is truthy, so the drift check compared `"[]"` to `""` and
+  published a brand-new version on every run of a tenant that had not changed.
+- **The `usage-saas` intent could not publish.** It declared a monthly subscription with no
+  base price, which the API rejects (`basePrice must be greater than zero to publish a
+  subscription version`). It now defaults to a `49.90` platform fee; `companyFromIntent`
+  takes a `basePrice` option to override it, separate from the per-unit `price`.
+- **`InfiError.fix` is populated for the codes the API really sends.** `INFI_ERROR_FIXES`
+  only knew hand-written codes, so `fix` was `undefined` on every real `validation_failed`
+  / `auth_001` / `unauthorized` / `not_found` — which the docs tell agents to read.
+
 ## 0.10.0
 
 Fixes from the 2026-08-17 cold-start audit: payment links now work in sandbox, and a

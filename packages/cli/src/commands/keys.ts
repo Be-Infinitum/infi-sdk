@@ -1,6 +1,6 @@
 import type { GlobalFlags } from "../lib/client.js";
 import { infiClient } from "../lib/client.js";
-import { die, ok, printJson } from "../lib/output.js";
+import { fail, ok, printJson } from "../lib/output.js";
 
 export async function keysList(flags: GlobalFlags): Promise<void> {
   const infi = infiClient(flags);
@@ -24,7 +24,7 @@ export async function keysCreate(
 ): Promise<void> {
   const infi = infiClient(flags);
   const key = await infi.apiKeys.create({ kind: flags.kind ?? "secret" });
-  if (!key.secret) die("Key created but secret not returned.");
+  if (!key.secret) fail(new Error("Key created but secret not returned."), flags.json);
   if (flags.json) {
     printJson(key);
     return;
@@ -34,7 +34,7 @@ export async function keysCreate(
 }
 
 export async function keysRevoke(flags: GlobalFlags & { id: string }): Promise<void> {
-  if (!flags.id) die("Usage: infi keys revoke <key-id>");
+  if (!flags.id) fail(new Error("Usage: infi keys revoke <key-id>"), flags.json);
   const infi = infiClient(flags);
   const key = await infi.apiKeys.revoke(flags.id);
   if (flags.json) {

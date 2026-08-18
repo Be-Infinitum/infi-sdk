@@ -22,15 +22,65 @@ export function lockPathFor(configFile: string): string {
   return path.join(path.dirname(path.resolve(configFile)), lockFileNameFor(configFile));
 }
 
+type CompanyModule = {
+  default?: BillingConfig;
+  billing?: BillingConfig;
+  company?: BillingConfig;
+};
+
+/** Nearest package.json `type`. Node reads a bare `.ts` as CJS unless it is "module". */
+function projectIsEsm(fromDir: string): boolean {
+  let dir = fromDir;
+  for (;;) {
+    const pkg = path.join(dir, "package.json");
+    if (fs.existsSync(pkg)) {
+      try {
+        return (JSON.parse(fs.readFileSync(pkg, "utf8")) as { type?: string }).type === "module";
+      } catch {
+        return false;
+      }
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) return false;
+    dir = parent;
+  }
+}
+
+/**
+ * Import an ESM `.ts` config from a project that is not `"type": "module"`.
+ * Node picks the module format from the nearest package.json, so a generated
+ * `infi.company.ts` throws "Cannot use import statement outside a module" in any
+ * plain `npm init` project. `.mts` is unconditionally ESM, and a sibling keeps
+ * the file's own relative imports resolvable.
+ */
+async function importAsModule(abs: string): Promise<CompanyModule> {
+  const shim = path.join(path.dirname(abs), `.infi-company-${process.pid}.mts`);
+  fs.copyFileSync(abs, shim);
+  try {
+    return (await import(pathToFileURL(shim).href)) as CompanyModule;
+  } finally {
+    fs.rmSync(shim, { force: true });
+  }
+}
+
 export async function loadCompanyConfig(filePath: string): Promise<BillingConfig> {
   const abs = path.resolve(filePath);
   if (!fs.existsSync(abs)) die(`Company config not found: ${abs}`);
 
-  const mod = (await import(pathToFileURL(abs).href)) as {
-    default?: BillingConfig;
-    billing?: BillingConfig;
-    company?: BillingConfig;
-  };
+  // Check the project first: letting the plain import fail also prints a Node
+  // loader warning we cannot suppress, on the happy path of `infi sync`.
+  const needsShim = abs.endsWith(".ts") && !projectIsEsm(path.dirname(abs));
+  let mod: CompanyModule;
+  if (needsShim) {
+    mod = await importAsModule(abs);
+  } else {
+    try {
+      mod = (await import(pathToFileURL(abs).href)) as CompanyModule;
+    } catch (err) {
+      if (!/import statement outside a module|Unexpected token/i.test(String(err))) throw err;
+      mod = await importAsModule(abs);
+    }
+  }
 
   const config = mod.default ?? mod.company ?? mod.billing;
   if (!config?.products?.length) {

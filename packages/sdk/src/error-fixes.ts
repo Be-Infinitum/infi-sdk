@@ -34,6 +34,22 @@ export const INFI_ERROR_FIXES: Record<string, InfiErrorFix> = {
     hint: "Pass your tenant slug (INFI_TENANT_SLUG) — it is part of the public /pay/{slug} URL and cannot be inferred from a secret key.",
     docs: "AGENTS.md#credentials",
   },
+  // Codes the live API really returns. Without these `InfiError.fix` was undefined
+  // on every 401/404/422, while the docs tell agents to read it.
+  validation_failed: {
+    hint: "The rejected field and the reason are in err.errors[] — fix that field and retry.",
+  },
+  auth_001: {
+    command: "infi doctor --json",
+    hint: "The key was refused by this host. sk_test_ keys only work on api-sandbox.beinfi.com, sk_live_ only on api.beinfi.com.",
+  },
+  unauthorized: {
+    command: "infi doctor --json",
+    hint: "No usable credential reached the API. Pass a secretKey (or --key / INFI_SECRET_KEY).",
+  },
+  not_found: {
+    hint: "The id does not exist on this tenant, or the key points at the other environment (sandbox vs live).",
+  },
   insufficient_credit: {
     hint: "Customer wallet is empty. Return 402 and surface checkout to buy a credit pack.",
     docs: "skills/add-prepaid-ai-chat/SKILL.md",

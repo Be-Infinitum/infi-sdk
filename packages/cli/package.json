@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Infi CLI \u2014 init/scaffold, login, API keys, sandbox provisioning, and billing sync",
   "license": "MIT",
   "type": "module",
@@ -35,7 +35,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@beinfi/sdk": ">=0.9.0 <0.11.0",
+    "@beinfi/sdk": ">=0.10.1 <0.11.0",
     "@clack/prompts": "^0.10.1",
     "picocolors": "^1.1.1"
   },

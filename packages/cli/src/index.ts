@@ -1,7 +1,6 @@
-import { die } from "./lib/output.js";
+import { fail } from "./lib/output.js";
 import { globalFlags, parseArgs, printHelp } from "./parse.js";
 import type { ClaimRef } from "./lib/claim.js";
-import type { CompanyIntent } from "@beinfi/sdk";
 
 export { parseArgs, globalFlags, printHelp } from "./parse.js";
 
@@ -13,6 +12,8 @@ export async function run(argv: string[]): Promise<void> {
   }
 
   const gf = globalFlags(parsed.flags);
+  // Usage errors are failures too, so they follow --json like every other one.
+  const usage = (message: string): never => fail(new Error(message), gf.json);
 
   switch (parsed.command) {
     case "init":
@@ -60,12 +61,12 @@ export async function run(argv: string[]): Promise<void> {
           break;
         case "revoke": {
           const id = parsed.positional[0];
-          if (!id) die("Usage: infi keys revoke <key-id>");
+          if (!id) usage("Usage: infi keys revoke <key-id>");
           await keys.keysRevoke({ ...gf, id });
           break;
         }
         default:
-          die("Usage: infi keys list|create|revoke");
+          usage("Usage: infi keys list|create|revoke");
       }
       break;
     }
@@ -79,12 +80,12 @@ export async function run(argv: string[]): Promise<void> {
           break;
         case "verify": {
           const name = parsed.positional[0];
-          if (!name) die("Usage: infi providers verify <stripe|asaas>");
+          if (!name) usage("Usage: infi providers verify <stripe|asaas>");
           await providers.providersVerify({ ...gf, provider: name });
           break;
         }
         default:
-          die("Usage: infi providers [list|verify <provider>]");
+          usage("Usage: infi providers [list|verify <provider>]");
       }
       break;
     }
@@ -96,10 +97,6 @@ export async function run(argv: string[]): Promise<void> {
           await claim.claimCreate({
             ...gf,
             ref: (typeof parsed.flags.ref === "string" ? parsed.flags.ref : "cli") as ClaimRef,
-            intent:
-              typeof parsed.flags.intent === "string"
-                ? (parsed.flags.intent as CompanyIntent)
-                : undefined,
           });
           break;
         case "get":
@@ -109,7 +106,7 @@ export async function run(argv: string[]): Promise<void> {
           });
           break;
         default:
-          die("Usage: infi claim create|get <id>");
+          usage("Usage: infi claim create|get <id>");
       }
       break;
     }
@@ -167,11 +164,12 @@ export async function run(argv: string[]): Promise<void> {
       break;
 
     default:
-      die(`Unknown command: ${parsed.command}. Run \`infi --help\`.`);
+      usage(`Unknown command: ${parsed.command}. Run \`infi --help\`.`);
   }
 }
 
 run(process.argv.slice(2)).catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
+  // Re-parse rather than thread the flag through: whether the caller asked for
+  // JSON decides the shape of the error, and it has to hold on this path too.
+  fail(err, process.argv.includes("--json"));
 });

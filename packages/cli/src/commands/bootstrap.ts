@@ -1,18 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import pc from "picocolors";
-import { COMPANY_INTENTS, type CompanyIntent } from "@beinfi/sdk";
+import { COMPANY_INTENTS, companyFromIntent, type CompanyIntent } from "@beinfi/sdk";
 import type { GlobalFlags } from "../lib/client.js";
-import { apiBase, infiClient } from "../lib/client.js";
+import { infiClient, provisioningApiBase } from "../lib/client.js";
 import { createClaimable, type ClaimRef } from "../lib/claim.js";
-import {
-  loadCompanyConfig,
-  lockPathFor,
-  writeCompanyFile,
-  writeLock,
-} from "../lib/company-file.js";
+import { lockPathFor, writeCompanyFile, writeLock } from "../lib/company-file.js";
 import { runDoctor } from "./doctor.js";
-import { die, ok, printJson } from "../lib/output.js";
+import { fail, ok, printJson } from "../lib/output.js";
 
 export type BootstrapFlags = GlobalFlags & {
   intent?: string;
@@ -37,6 +32,8 @@ export type BootstrapResult = {
     INFI_SECRET_KEY: string;
   };
   files: { env: string; company: string };
+  /** Host the run actually talked to — inferred from the key, not hardcoded. */
+  apiBase: string;
   sync: { actions: number; drift: number } | null;
   doctor: Awaited<ReturnType<typeof runDoctor>>;
   next: string[];
@@ -74,9 +71,11 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
   const intent = intentRaw;
   const cwd = flags.cwd ?? process.cwd();
   const ref = flags.ref ?? "cli";
-  const base = apiBase(flags);
+  const base = provisioningApiBase(flags);
 
-  const claimable = await createClaimable(base, { ref, intent });
+  // `intent` is deliberately not sent: /public/v1/claimables answers 422
+  // "unrecognized field" for it, and it only shapes infi.company.ts below.
+  const claimable = await createClaimable(base, { ref });
 
   const envFile = writeMinimalEnv(cwd, {
     secretKey: claimable.apiKeySecret,
@@ -90,8 +89,10 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
   let syncResult: BootstrapResult["sync"] = null;
   if (!flags.skipSync) {
     const infi = infiClient({ ...flags, key: claimable.apiKeySecret });
-    const config = await loadCompanyConfig(companyFile);
-    const sync = await infi.sync(config);
+    // Build the config in memory instead of importing the .ts we just wrote:
+    // in a plain `npm init` project Node reads .ts as CJS and the ESM file it
+    // generates throws "Cannot use import statement outside a module".
+    const sync = await infi.sync(companyFromIntent(intent));
     writeLock(lockPathFor(companyFile), sync.lock);
     syncResult = { actions: sync.actions.length, drift: sync.drift.length };
   }
@@ -116,12 +117,13 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
       env: path.relative(cwd, envFile),
       company: path.relative(cwd, companyFile),
     },
+    apiBase: base,
     sync: syncResult,
     doctor,
     next: [
       "Identify the payer from your own auth: infi.customers.create({ externalId })",
       "Use infi.wallet.forCustomer(externalId, { productKey }) for credits/meter",
-      "When ready for real money: infi go-live --json (claim → account → KYC)",
+      "When ready for real money: infi go-live --json (claim → connect provider → webhook)",
     ],
   };
 }
@@ -131,7 +133,7 @@ export async function bootstrapCommand(flags: BootstrapFlags): Promise<void> {
   try {
     result = await runBootstrap(flags);
   } catch (err) {
-    die(err instanceof Error ? err.message : String(err));
+    fail(err, flags.json);
   }
 
   if (flags.json) {
@@ -141,11 +143,21 @@ export async function bootstrapCommand(flags: BootstrapFlags): Promise<void> {
   }
 
   ok(`Bootstrapped company intent "${result.intent}"`);
+  console.log(`  api:     ${result.apiBase}`);
   console.log(`  key:     ${result.claimable.apiKeySecret.slice(0, 12)}…`);
   console.log(`  company: ${result.files.company}`);
   console.log(`  env:     ${result.files.env}`);
   console.log(`  claim:   ${result.claimable.claimUrl}`);
   if (result.sync) console.log(`  sync:    ${result.sync.actions} actions`);
-  console.log(pc.dim("\nHosts (API / auth / pay) are inferred from the key — no INFI_*_URL needed."));
+  console.log(pc.dim("\nHosts (API / app) are inferred from the key — no INFI_*_URL needed."));
   for (const step of result.next) console.log(pc.dim(`  → ${step}`));
+
+  // The human path used to print success and exit 0 even when doctor failed.
+  if (!result.ok) {
+    console.error("");
+    for (const check of result.doctor.checks.filter((c) => c.status === "fail")) {
+      console.error(pc.red(`✗ ${check.message}`));
+    }
+    process.exitCode = 1;
+  }
 }

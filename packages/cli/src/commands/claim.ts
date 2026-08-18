@@ -1,14 +1,10 @@
-import type { CompanyIntent } from "@beinfi/sdk";
-import { apiBase, type GlobalFlags } from "../lib/client.js";
+import { provisioningApiBase, type GlobalFlags } from "../lib/client.js";
 import { createClaimable, getClaimable, type ClaimRef } from "../lib/claim.js";
-import { die, ok, printJson } from "../lib/output.js";
+import { fail, ok, printJson } from "../lib/output.js";
 
-export async function claimCreate(
-  flags: GlobalFlags & { ref?: ClaimRef; intent?: CompanyIntent; appUrl?: string },
-): Promise<void> {
-  const claimable = await createClaimable(apiBase(flags), {
+export async function claimCreate(flags: GlobalFlags & { ref?: ClaimRef }): Promise<void> {
+  const claimable = await createClaimable(provisioningApiBase(flags), {
     ref: flags.ref ?? "cli",
-    intent: flags.intent,
   });
   if (flags.json) {
     printJson(claimable);
@@ -22,8 +18,8 @@ export async function claimCreate(
 }
 
 export async function claimGet(flags: GlobalFlags & { id?: string }): Promise<void> {
-  if (!flags.id) die("Usage: infi claim get <claimable-id>");
-  const view = await getClaimable(apiBase(flags), flags.id);
+  if (!flags.id) fail(new Error("Usage: infi claim get <claimable-id>"), flags.json);
+  const view = await getClaimable(provisioningApiBase(flags), flags.id);
   if (flags.json) {
     printJson(view);
     return;

@@ -8,8 +8,10 @@ export interface CompanyIntentOptions {
   name?: string;
   /** ISO currency. Default BRL. */
   currency?: string;
-  /** One-time / pack price as decimal string. */
+  /** One-time / pack price, or the per-unit rate on metered intents. */
   price?: string;
+  /** Recurring platform fee for the subscription intents. */
+  basePrice?: string;
   /** Deliverable URL for one-time intent. */
   deliverableUrl?: string;
 }
@@ -70,7 +72,7 @@ export function companyFromIntent(
             pricingModel: "prepaid",
             billingCycle: "monthly",
             currency,
-            basePrice: options.price ?? "19.90",
+            basePrice: options.basePrice ?? options.price ?? "19.90",
             meters: [{ key: "tokens", unit: "token", aggregation: "sum" }],
             // per_unit: `prepaid_credits` was a literal alias of it and was removed
             // from the API (migration 000098). Same rating branch, one less name.
@@ -108,6 +110,9 @@ export function companyFromIntent(
             pricingModel: "subscription",
             billingCycle: "monthly",
             currency,
+            // A subscription version will not publish with a zero base price
+            // (422 from the API), so the platform fee has to have a default.
+            basePrice: options.basePrice ?? "49.90",
             meters: [
               { key: "api_calls", displayName: "API calls", unit: "request", aggregation: "sum" },
             ],

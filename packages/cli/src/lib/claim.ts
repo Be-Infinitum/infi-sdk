@@ -1,4 +1,4 @@
-import { parseErrorResponse, type CompanyIntent } from "@beinfi/sdk";
+import { InfiError, parseErrorResponse } from "@beinfi/sdk";
 
 export type ClaimRef = "lovable" | "mcp" | "cursor" | "cli";
 
@@ -24,9 +24,32 @@ export type ClaimableTenantPublicView = {
 
 export type CreateClaimableOptions = {
   ref?: ClaimRef;
-  /** Seed catalog from a company intent (backend may ignore until API ships). */
-  intent?: CompanyIntent;
 };
+
+/**
+ * `ref` is the only field POST /public/v1/claimables accepts; anything else comes
+ * back 422 "unrecognized field". Company intent shapes the generated
+ * infi.company.ts locally (see writeCompanyFile) and is never sent.
+ */
+function claimableBody(opts: CreateClaimableOptions): Record<string, string> {
+  return { ref: opts.ref ?? "cli" };
+}
+
+/** A 404 here is the wrong host, not a missing record — say so. */
+async function claimableError(res: Response, url: string): Promise<InfiError> {
+  const err = await parseErrorResponse(res);
+  if (res.status !== 404) return err;
+  return new InfiError(
+    `POST ${url} → 404. Claimable tenants exist on the sandbox host only; the live API does not serve this endpoint.`,
+    404,
+    err.code ?? "claimable_endpoint_not_found",
+    {
+      command: "infi doctor --json",
+      hint: "Drop INFI_API_URL (or point it at https://api-sandbox.beinfi.com) and retry — the CLI picks the host from the key prefix.",
+    },
+    err.errors,
+  );
+}
 
 /**
  * Provision a claimable tenant — instant credentials the user can start with
@@ -38,17 +61,15 @@ export async function createClaimable(
 ): Promise<ClaimableTenantCreateResponse> {
   const opts: CreateClaimableOptions =
     typeof refOrOpts === "string" ? { ref: refOrOpts } : refOrOpts;
-  const base = baseUrl.replace(/\/$/, "");
-  const body: Record<string, string> = { ref: opts.ref ?? "cli" };
-  if (opts.intent) body.intent = opts.intent;
+  const url = `${baseUrl.replace(/\/$/, "")}/public/v1/claimables`;
 
-  const res = await fetch(`${base}/public/v1/claimables`, {
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(claimableBody(opts)),
   });
   if (!res.ok) {
-    throw await parseErrorResponse(res);
+    throw await claimableError(res, url);
   }
   return (await res.json()) as ClaimableTenantCreateResponse;
 }

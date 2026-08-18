@@ -150,6 +150,110 @@ describe("syncBilling", () => {
     expect(calls.priceAdd).toBe(1);
   });
 
+  // The deployed API answers 422 "unrecognized field" for creditsPerCycle
+  // (migration 000098 dropped the column), which failed every sync — and with it
+  // `infi bootstrap`.
+  it("sends the cycle allowance as grants[], never as creditsPerCycle", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "ai-chat",
+            name: "AI Chat",
+            type: "agent",
+            pricingModel: "prepaid",
+            currency: "BRL",
+            billingCycle: "monthly",
+            grants: [{ meter: "credits", amount: "100", on: "cycle" }],
+          },
+        ],
+      }),
+    );
+
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body).not.toHaveProperty("creditsPerCycle");
+    expect(body.grants).toEqual([{ meter: "credits", amount: "100", on: "cycle" }]);
+  });
+
+  it("maps the deprecated creditsPerCycle onto a credits grant", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "ai-chat",
+            type: "agent",
+            pricingModel: "prepaid",
+            currency: "BRL",
+            billingCycle: "monthly",
+            creditsPerCycle: "50",
+          },
+        ],
+      }),
+    );
+
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body).not.toHaveProperty("creditsPerCycle");
+    expect(body.grants).toEqual([{ meter: "credits", amount: "50", on: "cycle" }]);
+  });
+
+  it("omits grants entirely when the product has none", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(infi, CONFIG);
+
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body).not.toHaveProperty("grants");
+    expect(body).not.toHaveProperty("creditsPerCycle");
+  });
+
+  // `sum` without a valueProperty is a 422 ("is required unless aggregation is
+  // count"), which failed three of the four bootstrap intents.
+  it("defaults valueProperty for a non-count meter, and omits it for count", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "crm",
+            type: "agent",
+            pricingModel: "usage",
+            currency: "BRL",
+            meters: [
+              { key: "leads", unit: "unit", aggregation: "sum" },
+              { key: "hits", unit: "request", aggregation: "count" },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const bodies = (infi.products.meters.create as any).mock.calls.map((c: any[]) => c[1]);
+    expect(bodies[0].valueProperty).toBe("value");
+    expect(bodies[1]).not.toHaveProperty("valueProperty");
+  });
+
+  // The API echoes `tiers: []` on a flat price, the config omits the field, and
+  // `[]` is truthy — so a freshly synced tenant reported price drift and published
+  // a new version on every run.
+  it("is idempotent when the API echoes an empty tiers array", async () => {
+    const state: FakeState = {
+      products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens" }] },
+      versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null }] },
+      prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.00200000", currency: "BRL", tiers: [] }] },
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    const res = await syncBilling(infi, CONFIG);
+
+    expect(res.actions.find((a) => a.resource === "version")?.action).toBe("skip");
+    expect(calls.versionCreate).toBe(0);
+  });
+
   it("skips when the published version already matches", async () => {
     const state: FakeState = {
       products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],

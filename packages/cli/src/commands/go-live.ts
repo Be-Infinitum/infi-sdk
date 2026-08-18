@@ -1,5 +1,12 @@
 import type { GlobalFlags } from "../lib/client.js";
-import { apiBase, infiClient, resolveSecretKey } from "../lib/client.js";
+import {
+  apiBase,
+  appBase,
+  infiClient,
+  provisioningApiBase,
+  resolveMode,
+  resolveSecretKey,
+} from "../lib/client.js";
 import { getClaimable } from "../lib/claim.js";
 import { die, ok, printJson } from "../lib/output.js";
 import pc from "picocolors";
@@ -36,8 +43,6 @@ export type GoLiveStatus = {
   backend?: unknown;
 };
 
-const DASHBOARD = "https://app.beinfi.com";
-const CONNECT_URL = `${DASHBOARD}/go-live`;
 
 async function tryBackendGoLive(api: string, secretKey: string): Promise<unknown | null> {
   try {
@@ -93,8 +98,11 @@ export async function getGoLiveStatus(
     secretKey = undefined;
   }
 
-  const mode: "sandbox" | "live" =
-    secretKey?.startsWith("sk_live_") ? "live" : "sandbox";
+  const mode = resolveMode(flags);
+  // Sandbox and live are separate dashboards — a sandbox tenant does not exist
+  // on app.beinfi.com, so a hardcoded live link sends the user to a 404.
+  const dashboard = appBase(flags);
+  const connectUrl = `${dashboard}/go-live`;
 
   const claimId = flags.claimId ?? process.env.INFI_CLAIM_ID;
   const claimUrlEnv = process.env.INFI_CLAIM_URL;
@@ -105,7 +113,8 @@ export async function getGoLiveStatus(
 
   if (claimId) {
     try {
-      const view = await getClaimable(api, claimId);
+      // Claimables are sandbox-only, wherever the account key now points.
+      const view = await getClaimable(provisioningApiBase(flags), claimId);
       claimable = {
         id: view.id,
         status: view.status,
@@ -130,7 +139,7 @@ export async function getGoLiveStatus(
       mode,
       next: b.next ?? "Follow the dashboard URL.",
       urls: {
-        dashboard: DASHBOARD,
+        dashboard,
         ...b.urls,
         claim: b.urls?.claim ?? claimUrl,
       },
@@ -154,24 +163,27 @@ export async function getGoLiveStatus(
     blockers.push({ code: "claim_required", message: "Tenant is still unclaimed.", url: claimUrl });
   } else if (provider === null) {
     stage = mode === "live" ? "live_ready" : stageFromClaim(claimStatus);
+    // The provider surface is live-only, so a sandbox null is expected, not a fault.
     next =
-      "Could not read provider connections (no key, or the API refused). Run infi providers list.";
+      mode === "sandbox"
+        ? "Sandbox charges through the built-in sandbox provider — connect your own Stripe/Asaas only when you switch to an sk_live_ key."
+        : "Could not read provider connections (no key, or the API refused). Run infi providers list.";
   } else if (!provider.connected) {
     stage = "provider_needed";
-    next = `Connect your own Stripe or Asaas account — that is where the money lands. ${CONNECT_URL}`;
+    next = `Connect your own Stripe or Asaas account — that is where the money lands. ${connectUrl}`;
     blockers.push({
       code: "provider_required",
       message:
         "No payment provider connected. Connecting needs fresh MFA, so it is a dashboard action.",
-      url: CONNECT_URL,
+      url: connectUrl,
     });
   } else if (!provider.webhookRegistered) {
     stage = "webhook_pending";
-    next = `${provider.name} is connected but its webhook is not registered — you would never learn a payment succeeded. Finish it at ${CONNECT_URL}`;
+    next = `${provider.name} is connected but its webhook is not registered — you would never learn a payment succeeded. Finish it at ${connectUrl}`;
     blockers.push({
       code: "webhook_required",
       message: `${provider.name} webhook not registered.`,
-      url: CONNECT_URL,
+      url: connectUrl,
     });
   } else if (mode === "live") {
     stage = "live_ready";
@@ -188,9 +200,9 @@ export async function getGoLiveStatus(
     next,
     urls: {
       claim: claimUrl,
-      dashboard: DASHBOARD,
-      account: `${DASHBOARD}/signup`,
-      connect: CONNECT_URL,
+      dashboard,
+      account: `${dashboard}/signup`,
+      connect: connectUrl,
     },
     blockers,
     claimable,
