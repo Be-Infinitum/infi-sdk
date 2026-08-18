@@ -123,3 +123,28 @@ describe("checkout", () => {
   });
 });
 
+
+// The purchase flow could not express a CPF/CNPJ: the customer type had no taxId
+// and checkout() rebuilt the body from three named fields, so a caller who passed
+// one had it silently dropped — and pix/boleto on Asaas refuse a customer without
+// one, making the documented "sell from your own page" path unpayable.
+it("checkout forwards the payer's taxId to the product invoice", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ id: "inv_1", status: "open" }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+  global.fetch = fetchMock as unknown as typeof fetch;
+
+  const infi = new Infi({ secretKey: "sk_test_x", apiUrl: "http://localhost:8088" });
+  await infi.checkout({
+    slug: "acme",
+    productId: "prd_1",
+    customer: { externalId: "buyer-1", email: "b@example.com", taxId: "52998224725" },
+  });
+
+  const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+  const body = JSON.parse(String(init.body)) as { customer: { taxId?: string } };
+  expect(body.customer.taxId).toBe("52998224725");
+});

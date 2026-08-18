@@ -168,6 +168,36 @@ samples across three pages.
 
 ---
 
+### 20. `checkout()` drops `taxId`, so it cannot produce a pix-payable customer on Asaas **[verified 2026-08-18]**
+
+Found while pre-flighting the third run, after sandbox moved to real Asaas test mode
+(ADR 0028). Asaas refuses to create a PSP customer without a CPF/CNPJ:
+
+```
+infi.checkout({ slug, productId, customer: { externalId, email, name, taxId: "52998224725" } })
+→ pay.charge(pix) → 422 "A CPF/CNPJ is required to process this payment."
+```
+
+`checkout()` builds the customer body by naming three fields explicitly —
+`externalId`, `email`, `name` — so a `taxId` passed by the caller is silently
+dropped, and `CheckoutOptions.customer` has no `taxId` on the type either. The
+result: the "sell from your own page" path **cannot complete a pix charge on
+Asaas at all**.
+
+This was invisible while sandbox ran the self-built simulator, which did not
+require a tax id. Moving to real Asaas bought exactly the fidelity ADR 0028 wanted
+and immediately surfaced a real gap.
+
+`products.enroll(productId, { …, taxId })` DOES accept it and returns an
+enrollment. But feeding that id to `checkout({ payerId })` answers 404, so the
+obvious workaround does not connect either — `payerId` appears to want a
+tenant-level customer id rather than the enrollment. Undocumented, and the two
+ids are indistinguishable UUIDs.
+
+- [ ] Add `taxId` to `CheckoutOptions.customer` and forward it
+- [ ] Document which id `payerId` takes, or make it accept either
+- [ ] Docs: say that pix on Asaas requires a CPF/CNPJ from the payer
+
 ## P1 — the sandbox loop is not closable
 
 ### 5. Nothing documents how to settle a sandbox payment, and the obvious route is a dead end

@@ -72,7 +72,12 @@ export type CheckoutOptions =
   | (CheckoutCommon & {
       /** Purchase: enroll the customer in this product and open a product-linked invoice. */
       productId: string;
-      customer: { externalId: string; email?: string; name?: string };
+      /**
+       * `taxId` is the payer's CPF/CNPJ. Optional here, but pix and boleto on Asaas
+       * REFUSE a customer without one ("A CPF/CNPJ is required to process this
+       * payment"), so a checkout that will be paid that way has to collect it.
+       */
+      customer: { externalId: string; email?: string; name?: string; taxId?: string };
       /** Override the auto-derived product price. */
       amount?: string;
       description?: string;
@@ -305,6 +310,7 @@ export class Infi {
           externalId: opts.customer.externalId,
           email: opts.customer.email,
           name: opts.customer.name,
+          taxId: opts.customer.taxId,
         },
         amount: opts.amount,
         description: opts.description,
