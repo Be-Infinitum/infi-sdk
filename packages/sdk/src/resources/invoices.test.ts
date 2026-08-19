@@ -71,3 +71,46 @@ describe("infi.session", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("infi.invoices.deliverable", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("GETs the invoice's grants with the secret key", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        grants: [
+          {
+            paymentId: "pay_1",
+            token: "tok_abc",
+            downloadUrl: "https://app.beinfi.com/pay/acme/download/tok_abc",
+            emailSentAt: "2026-08-19T17:00:00Z",
+            createdAt: "2026-08-19T17:00:00Z",
+          },
+        ],
+      }),
+    );
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+
+    const grants = await infi.invoices.deliverable("inv_1");
+
+    expect(grants).toHaveLength(1);
+    expect(grants[0]?.downloadUrl).toBe("https://app.beinfi.com/pay/acme/download/tok_abc");
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(String(url)).toBe(`${BASE}/billing/invoices/inv_1/deliverable`);
+    expect(init.method).toBe("GET");
+  });
+
+  // An unfulfilled invoice answers 200 {"grants":[]}, and a body with the key
+  // absent must not become undefined for the caller — this is polled in a loop.
+  it("returns [] when the invoice has no grants yet", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}));
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+
+    await expect(infi.invoices.deliverable("inv_1")).resolves.toEqual([]);
+  });
+});

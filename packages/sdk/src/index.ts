@@ -66,7 +66,7 @@ export {
 } from "./webhooks.js";
 export { LinksResource, type PaymentLinkWithUrl } from "./resources/links.js";
 export type { UsageQuery } from "./resources/usage.js";
-export type { FromUsageInput } from "./resources/invoices.js";
+export type { FromUsageInput, DeliverableGrant } from "./resources/invoices.js";
 /** @internal CLI login only (`infi login`) — not a merchant-facing feature. */
 export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
 export {

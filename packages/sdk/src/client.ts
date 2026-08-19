@@ -308,7 +308,7 @@ export class Infi {
    * Throws `missing_slug` (400) when `slug` is empty — checked before the invoice
    * is created, so a bad call costs you nothing.
    */
-  async checkout(opts: CheckoutOptions): Promise<{ invoice: Invoice; url: string }> {
+  async checkout(opts: CheckoutOptions): Promise<{ invoice: Invoice; invoiceId: string; url: string }> {
     const slug = requireSlug(opts.slug, "checkout");
     let invoice: Invoice;
     if ("productId" in opts) {
@@ -338,8 +338,18 @@ export class Infi {
         cancelUrl: opts.cancelUrl,
       }, opts.idempotencyKey);
     }
+    // `Invoice.id` is optional in the generated contract, so `invoice.id` is
+    // `string | undefined` and every caller needed a `!` to pass it on. Assert it
+    // once here and hand back a plainly-typed `invoiceId`.
+    if (!invoice.id) {
+      throw new InfiError(
+        "checkout: the API returned an invoice without an id.",
+        502,
+        "invalid_response",
+      );
+    }
     const url = `${this.#appBase}/pay/${encodeURIComponent(slug)}/invoices/${invoice.id}`;
-    return { invoice, url };
+    return { invoice, invoiceId: invoice.id, url };
   }
 
   // ── Webhooks: verify an inbound event server-side ─────────────────────────

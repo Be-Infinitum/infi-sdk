@@ -9,6 +9,26 @@ import type {
 
 const enc = encodeURIComponent;
 
+/**
+ * A download grant: what fulfillment mints when a payment on a deliverable
+ * product confirms. One per payment.
+ */
+export interface DeliverableGrant {
+  /** The payment that produced this grant. */
+  paymentId: string;
+  /**
+   * The capability token. Whoever holds it can download the paid product, with
+   * no further proof of purchase — so treat it like a password: don't log it,
+   * don't put it in a URL you share.
+   */
+  token: string;
+  /** Ready-to-use public URL; 302-redirects to the file or link. */
+  downloadUrl: string;
+  /** When the buyer's email went out. Absent if it hasn't — see `deliverable()`. */
+  emailSentAt?: string;
+  createdAt: string;
+}
+
 /** Generate an invoice from an enrollment's accrued usage over a window. */
 export interface FromUsageInput {
   /** Enrollment id (from `products.enroll`) — the id usage is keyed on. */
@@ -92,6 +112,27 @@ export class InvoicesResource {
       requireSecret: true,
       idempotencyKey,
     });
+  }
+
+  /**
+   * The download grants this invoice's payments produced — the tokenized links
+   * fulfillment minted for a deliverable product.
+   *
+   * Empty until a payment confirms, and empty forever if the product has no
+   * deliverable. Never a 404, so it is safe to poll: "not fulfilled yet" and
+   * "wrong id" would otherwise be indistinguishable.
+   *
+   * Use this to serve the download from your own thank-you page rather than
+   * depending on the buyer's inbox — the email can silently not happen (a buyer
+   * with no email address still gets a grant).
+   */
+  async deliverable(invoiceId: string): Promise<DeliverableGrant[]> {
+    const res = await this.t.request<{ grants?: DeliverableGrant[] }>(
+      "GET",
+      `/billing/invoices/${enc(invoiceId)}/deliverable`,
+      { requireSecret: true },
+    );
+    return res.grants ?? [];
   }
 
   /** Roll a subscription period's usage into an invoice. */

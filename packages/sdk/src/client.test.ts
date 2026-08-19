@@ -101,6 +101,33 @@ describe("checkout", () => {
     expect(url).toBe("https://app-sandbox.beinfi.com/pay/acme/invoices/inv_1");
   });
 
+  it("returns invoiceId as a plain string so callers need no non-null assertion", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "inv_1", status: "open" }, 201));
+
+    const { invoiceId, invoice } = await new Infi({ secretKey: "sk_test_x", apiUrl: BASE }).checkout({
+      slug: "acme",
+      payerId: "cus_1",
+      lineItems: [{ description: "Ebook", amount: "49.90" }],
+    });
+
+    expect(invoiceId).toBe("inv_1");
+    expect(invoice.id).toBe("inv_1");
+  });
+
+  // An invoice with no id would have produced a URL ending in "undefined" and a
+  // 404 for the buyer; fail loudly instead.
+  it("throws when the API returns an invoice without an id", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ status: "open" }, 201));
+
+    const call = new Infi({ secretKey: "sk_test_x", apiUrl: BASE }).checkout({
+      slug: "acme",
+      payerId: "cus_1",
+      lineItems: [],
+    });
+
+    await expect(call).rejects.toMatchObject({ status: 502, code: "invalid_response" });
+  });
+
   it("throws on a missing slug instead of interpolating `undefined`", async () => {
     const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 

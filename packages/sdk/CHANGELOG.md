@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.10.3 — 2026-08-19
+
+### Added
+- **`invoices.deliverable(invoiceId)`** — the download grants an invoice's payments
+  produced (`paymentId`, `token`, `downloadUrl`, `emailSentAt`). Fulfillment already
+  minted these and emailed them to the buyer, but nothing returned them, so a
+  merchant who wanted to serve the file from their own thank-you page had no way to
+  get the link and the buyer's inbox was the only delivery path. That matters more
+  than it sounds: a buyer with no email address still gets a grant, so the sale was
+  silently delivered only halfway. Returns `[]` (never 404) while the invoice is
+  unpaid, so it is safe to poll.
+- **`checkout()` returns `invoiceId: string`** alongside `invoice`. `Invoice.id` is
+  optional in the generated contract, so `invoice.id` was `string | undefined` and
+  every caller under `strict` needed a `!` to pass it to `pay.charge` /
+  `waitForPaid` — including the snippets in our own docs, which did not compile as
+  written. `checkout()` now asserts the id once and throws
+  `invalid_response` (502) if the API ever omits it, instead of building a
+  `/pay/.../invoices/undefined` URL that 404s for the buyer.
+
 ## 0.10.2 — 2026-08-19
 
 ### Added
