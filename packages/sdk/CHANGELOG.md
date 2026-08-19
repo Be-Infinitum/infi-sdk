@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.2 — 2026-08-19
+
+### Added
+- **`checkout()` and `pay.charge()` accept `idempotencyKey`.** They were the only
+  two mutating calls that did not, and they are the two the "first sale" guide
+  recommends — so its advice on collapsing a double-clicked Buy button was
+  unactionable. An auto-generated key is per-call: it covers a network retry, not a
+  second click, which is a second call. Resource methods (`products.create`,
+  `invoices.create`, `coupons.create`, …) already took the key as a last argument.
+
 ## 0.10.1 — 2026-08-18
 
 ### Fixed

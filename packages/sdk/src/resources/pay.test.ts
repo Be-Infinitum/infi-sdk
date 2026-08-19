@@ -38,3 +38,21 @@ describe("PayResource", () => {
     expect(pay.downloadUrl("acme", "tok_abc")).toBe(`${BASE}/pay/acme/download/tok_abc`);
   });
 });
+
+// Same reason as the checkout case: without this, a second click is a second
+// charge, and the docs' advice to derive a stable key is unactionable.
+it("charge forwards a caller-supplied idempotency key", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ id: "pay_1", status: "pending" }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+  global.fetch = fetchMock as unknown as typeof fetch;
+
+  const pay = new PayResource("http://localhost:8088");
+  await pay.charge({ slug: "acme", invoiceId: "inv_1", method: "pix", idempotencyKey: "compra-42" });
+
+  const [, init] = fetchMock.mock.calls[0] as [URL | string, RequestInit];
+  expect(new Headers(init.headers).get("Idempotency-Key")).toBe("compra-42");
+});

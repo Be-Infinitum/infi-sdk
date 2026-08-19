@@ -32,6 +32,13 @@ export interface ChargeArgs {
   slug: string;
   invoiceId: string;
   method: ChargeMethod;
+  /**
+   * Idempotency key for this charge. Omit and one is generated per call, which
+   * protects against a network retry but NOT against a buyer clicking Buy twice —
+   * a second click is a second call and gets a second key. To collapse the double
+   * click, derive this from something stable about the purchase intent.
+   */
+  idempotencyKey?: string;
 }
 
 export interface WaitForPaidArgs extends GetInvoiceArgs {
@@ -81,13 +88,13 @@ export class PayResource {
    * scope; the card capture UI is being rebuilt as an embed that keeps the PAN
    * between the browser and the provider.
    */
-  async charge({ slug, invoiceId, method }: ChargeArgs): Promise<Payment> {
+  async charge({ slug, invoiceId, method, idempotencyKey }: ChargeArgs): Promise<Payment> {
     const res = await fetch(this.url(slug, `/invoices/${encodeURIComponent(invoiceId)}/charge`), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "Idempotency-Key": newIdempotencyKey(),
+        "Idempotency-Key": idempotencyKey ?? newIdempotencyKey(),
       },
       body: JSON.stringify({ method }),
     });

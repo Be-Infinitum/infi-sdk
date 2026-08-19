@@ -61,6 +61,13 @@ type CheckoutCommon = {
   /** Where the hosted checkout returns the buyer after paying / cancelling. */
   successUrl?: string;
   cancelUrl?: string;
+  /**
+   * Idempotency key for the invoice this creates. Omit and one is generated per
+   * call — enough for a network retry, not for a buyer clicking Buy twice, since
+   * the second click is a second call with a fresh key. Derive it from the
+   * purchase intent (user + product + day) to collapse both into one invoice.
+   */
+  idempotencyKey?: string;
 };
 
 export type CheckoutOptions =
@@ -319,7 +326,7 @@ export class Infi {
         send: opts.send,
         successUrl: opts.successUrl,
         cancelUrl: opts.cancelUrl,
-      });
+      }, opts.idempotencyKey);
     } else {
       invoice = await this.invoices.create({
         payerId: opts.payerId,
@@ -329,7 +336,7 @@ export class Infi {
         lineItems: opts.lineItems,
         successUrl: opts.successUrl,
         cancelUrl: opts.cancelUrl,
-      });
+      }, opts.idempotencyKey);
     }
     const url = `${this.#appBase}/pay/${encodeURIComponent(slug)}/invoices/${invoice.id}`;
     return { invoice, url };

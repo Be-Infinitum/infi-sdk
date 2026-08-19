@@ -148,3 +148,28 @@ it("checkout forwards the payer's taxId to the product invoice", async () => {
   const body = JSON.parse(String(init.body)) as { customer: { taxId?: string } };
   expect(body.customer.taxId).toBe("52998224725");
 });
+
+// The double-click case the docs describe: two clicks are two calls, so an
+// auto-generated key cannot collapse them. The caller has to be able to supply a
+// stable one — and for a while the two calls the docs recommend for this were
+// exactly the two that did not accept it.
+it("checkout forwards a caller-supplied idempotency key", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    new Response(JSON.stringify({ id: "inv_1", status: "open" }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+  global.fetch = fetchMock as unknown as typeof fetch;
+
+  const infi = new Infi({ secretKey: "sk_test_x", apiUrl: "http://localhost:8088" });
+  await infi.checkout({
+    slug: "acme",
+    productId: "prd_1",
+    customer: { externalId: "buyer-1" },
+    idempotencyKey: "pedido-buyer1-prd1-2026-08-19",
+  });
+
+  const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+  expect(new Headers(init.headers).get("Idempotency-Key")).toBe("pedido-buyer1-prd1-2026-08-19");
+});
