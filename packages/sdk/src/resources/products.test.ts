@@ -48,7 +48,11 @@ describe("infi.products.deliverable.presign", () => {
     const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
     await expect(
-      infi.products.deliverable.presign("prd_1", { fileName: "g.pdf" }),
+      infi.products.deliverable.presign("prd_1", {
+        fileName: "g.pdf",
+        contentType: "application/pdf",
+        sizeBytes: 1,
+      }),
     ).rejects.toMatchObject({ status: 502, code: "invalid_response" });
   });
 });
