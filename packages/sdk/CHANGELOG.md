@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.4 — 2026-08-19
+
+### Fixed
+- **`deliverable.presign()` returns `uploadUrl`/`objectKey` as plain strings.** Both
+  are optional in the generated contract, so the documented three-step upload did
+  not compile under `strict` — `fetch(uploadUrl)` rejects `string | undefined`.
+  Same defect as `checkout().invoice.id`, found the same way: by compiling the
+  docs. Throws `invalid_response` (502) if the API ever omits them.
+- **0.10.3 shipped a stale `dist/`.** Its `package.json` said 0.10.3 but the bundle
+  was built before the source changes below, so `invoices.deliverable` and
+  `checkout().invoiceId` were missing from the published package while the docs
+  referenced them. Root cause: no package had a `prepublishOnly`, so `npm publish`
+  packed whatever `dist/` happened to be on disk. Every package in this repo now
+  builds, typechecks and tests as a precondition of publishing. Use this version;
+  0.10.3 is inert.
+
 ## 0.10.3 — 2026-08-19
 
 ### Added

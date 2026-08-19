@@ -1,3 +1,4 @@
+import { InfiError } from "../errors.js";
 import type { Transport } from "../http.js";
 import {
   SubscriptionsResource,
@@ -23,6 +24,24 @@ import type {
 } from "../types.js";
 
 const enc = encodeURIComponent;
+
+/**
+ * A presigned upload: where to PUT the bytes, and the key to echo back to
+ * `save({ kind: "file", objectKey })`.
+ *
+ * Both fields are optional in the generated contract, which made the documented
+ * three-step upload not compile under `strict` — `fetch(uploadUrl)` rejects
+ * `string | undefined`. `presign` asserts them instead, so callers get plain
+ * strings.
+ */
+export interface PresignedUpload {
+  /** PUT the bytes here. Valid for 15 minutes; carries its own signature. */
+  uploadUrl: string;
+  /** Pass this to `save` after the upload succeeds. */
+  objectKey: string;
+  /** When `uploadUrl` stops working (ISO 8601). */
+  expiresAt?: string;
+}
 
 class VersionsResource {
   constructor(private readonly t: Transport) {}
@@ -107,13 +126,25 @@ class MetersResource {
 class DeliverableResource {
   constructor(private readonly t: Transport) {}
 
-  /** Presign an R2 upload URL for a file deliverable (upload the bytes to it, then `save`). */
-  presign(productId: string, input: PresignDeliverableRequest, idempotencyKey?: string): Promise<PresignDeliverableResponse> {
-    return this.t.request("POST", `/metering/products/${enc(productId)}/deliverable/presign`, {
-      body: input,
-      requireSecret: true,
-      idempotencyKey,
-    });
+  /** Presign an upload URL for a file deliverable (PUT the bytes to it, then `save`). */
+  async presign(
+    productId: string,
+    input: PresignDeliverableRequest,
+    idempotencyKey?: string,
+  ): Promise<PresignedUpload> {
+    const res = await this.t.request<PresignDeliverableResponse>(
+      "POST",
+      `/metering/products/${enc(productId)}/deliverable/presign`,
+      { body: input, requireSecret: true, idempotencyKey },
+    );
+    if (!res.uploadUrl || !res.objectKey) {
+      throw new InfiError(
+        "presign: the API returned no uploadUrl/objectKey.",
+        502,
+        "invalid_response",
+      );
+    }
+    return { uploadUrl: res.uploadUrl, objectKey: res.objectKey, expiresAt: res.expiresAt };
   }
 
   /** Save (create/replace) the deliverable — kind `file` (with objectKey) or `link` (with url). */

@@ -1,7 +1,7 @@
 {
   "name": "create-infi-app",
   "version": "0.1.1",
-  "description": "Scaffold a billable Next.js app with Infi \u2014 thin shim over `infi init` (@beinfi/cli)",
+  "description": "Scaffold a billable Next.js app with Infi — thin shim over `infi init` (@beinfi/cli)",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -18,6 +18,7 @@
   },
   "scripts": {
     "build": "tsup",
+    "prepublishOnly": "npm run build && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "dev": "tsx src/index.ts"
   },

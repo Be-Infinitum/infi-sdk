@@ -1,7 +1,7 @@
 {
   "name": "@beinfi/cli",
   "version": "0.2.0",
-  "description": "Infi CLI \u2014 init/scaffold, login, API keys, sandbox provisioning, and billing sync",
+  "description": "Infi CLI — init/scaffold, login, API keys, sandbox provisioning, and billing sync",
   "license": "MIT",
   "type": "module",
   "bin": {
@@ -30,6 +30,7 @@
     "sync-templates": "node scripts/sync-templates.mjs",
     "prebuild": "node scripts/sync-templates.mjs",
     "build": "tsup",
+    "prepublishOnly": "npm run build && npm run typecheck && npm test",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "dev": "tsx src/index.ts"
