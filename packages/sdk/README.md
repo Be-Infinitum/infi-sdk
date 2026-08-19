@@ -62,6 +62,71 @@ const enrollment = await infi.customers.create(productId, {
 // enrollment.id is what every billing call references
 ```
 
+## Idempotency
+
+Every call that changes something sends an `Idempotency-Key`. The SDK generates
+one if you don't pass it, so retries of a failed request are safe by default.
+
+**That default does not protect a double-clicked Buy button.** The key is
+generated *per call*, and a second click is a second call — it gets a fresh key
+and creates a second invoice. To collapse both into one, derive the key from
+something stable about the intent and pass it in:
+
+```ts
+const chave = `pedido-${userId}-${productId}-${new Date().toISOString().slice(0, 10)}`;
+
+const { invoice } = await infi.checkout({ slug, productId, customer, idempotencyKey: chave });
+await infi.pay.charge({ slug, invoiceId: invoice.id, method: "pix", idempotencyKey: `${chave}-pix` });
+```
+
+Server behaviour:
+
+| | |
+| --- | --- |
+| Same key, same body | The original response, replayed. One invoice. |
+| Same key, **different** body | `409 idempotency_key_reused` — you reused a key for something else |
+| No key | `400 idempotency_key_required` |
+
+### Where to pass it
+
+Three shapes, depending on the call:
+
+```ts
+// Resource methods: trailing argument
+await infi.products.create(input, chave);
+await infi.invoices.send(invoiceId, chave);
+await infi.links.revoke(productId, linkId, chave);
+
+// The two shortcuts: an option, because their arguments are already objects
+await infi.checkout({ …, idempotencyKey: chave });
+await infi.pay.charge({ …, idempotencyKey: chave });
+
+// Usage events: NOT a header — and it takes TWO fields, see below
+await infi.track({
+  customerId, productId, meter: "tokens", value: "1200",
+  eventId: chave,
+  timestamp: quandoAconteceu,   // obrigatório para deduplicar
+});
+```
+
+### Usage events dedupe on `eventId` **and** `timestamp`
+
+This one costs money to get wrong, so it is worth stating exactly. Ingestion
+dedupes on `(customer, meter, eventId, timestamp)` — the event time is part of the
+key. Measured against the API:
+
+| What you send twice | Result |
+| --- | --- |
+| same `eventId`, no `timestamp` | **both stored** — `duplicate: false` twice, usage counted twice |
+| same `eventId` **and** same `timestamp` | second answers `duplicate: true`, counted once |
+| neither | both stored |
+
+Omitting `timestamp` lets the server stamp each call separately, so two calls are
+two different events no matter what `eventId` says. If you replay usage — a queue
+retry, a cron, a backfill — **pin both fields to the event, never to the call.**
+The SDK fills `eventId` with a random value when you omit it, which is fine for
+one-shot sends and useless for replays.
+
 ## Metering (server-side — secret key)
 
 ```ts

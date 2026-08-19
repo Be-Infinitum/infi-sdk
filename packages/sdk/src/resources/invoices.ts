@@ -71,32 +71,35 @@ export class InvoicesResource {
   }
 
   /** Finalize + email the invoice (fires invoice.sent). */
-  send(invoiceId: string): Promise<Invoice> {
+  send(invoiceId: string, idempotencyKey?: string): Promise<Invoice> {
     return this.t.request("POST", `/billing/invoices/${enc(invoiceId)}/send`, {
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
-  void(invoiceId: string): Promise<Invoice> {
+  void(invoiceId: string, idempotencyKey?: string): Promise<Invoice> {
     return this.t.request("POST", `/billing/invoices/${enc(invoiceId)}/void`, {
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
   /** Initiate payment on an open invoice (pix | boleto | card). */
-  charge(invoiceId: string, method: PaymentMethod): Promise<Payment> {
+  charge(invoiceId: string, method: PaymentMethod, idempotencyKey?: string): Promise<Payment> {
     return this.t.request("POST", `/billing/invoices/${enc(invoiceId)}/charge`, {
       body: { method },
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
   /** Roll a subscription period's usage into an invoice. */
-  generateFromSubscription(subscriptionId: string): Promise<Invoice> {
+  generateFromSubscription(subscriptionId: string, idempotencyKey?: string): Promise<Invoice> {
     return this.t.request(
       "POST",
       `/billing/subscriptions/${enc(subscriptionId)}/invoices`,
-      { requireSecret: true },
+      { requireSecret: true, idempotencyKey },
     );
   }
 }

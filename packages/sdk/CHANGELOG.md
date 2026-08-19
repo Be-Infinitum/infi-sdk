@@ -3,6 +3,15 @@
 ## 0.10.2 — 2026-08-19
 
 ### Added
+- **Every mutating call now accepts an idempotency key** — 33 of 35, consistently.
+  It was on roughly half the surface, which is worse than absent: a caller could not
+  tell where they were allowed to rely on it. The two exceptions are `track` /
+  `trackBatch`, which dedupe on the event's own `eventId` rather than a header.
+- **README section on idempotency**, including the part that costs money: usage
+  events dedupe on `eventId` **and** `timestamp` together. Sending the same
+  `eventId` twice without a `timestamp` stores BOTH events and bills the usage
+  twice — measured against the API, not assumed. Anything that replays usage must
+  pin both fields to the event, never to the call.
 - **`checkout()` and `pay.charge()` accept `idempotencyKey`.** They were the only
   two mutating calls that did not, and they are the two the "first sale" guide
   recommends — so its advice on collapsing a double-clicked Buy button was

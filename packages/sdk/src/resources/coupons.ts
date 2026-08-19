@@ -29,15 +29,19 @@ export class CouponsResource {
     return this.t.request("GET", `/billing/coupons/${enc(couponId)}`, { requireSecret: true });
   }
 
-  delete(couponId: string): Promise<void> {
-    return this.t.request("DELETE", `/billing/coupons/${enc(couponId)}`, { requireSecret: true });
+  delete(couponId: string, idempotencyKey?: string): Promise<void> {
+    return this.t.request("DELETE", `/billing/coupons/${enc(couponId)}`, {
+      requireSecret: true,
+      idempotencyKey,
+    });
   }
 
   /** Archive or re-activate a coupon (no destructive edit of terms). */
-  updateStatus(couponId: string, status: "active" | "archived"): Promise<Coupon> {
+  updateStatus(couponId: string, status: "active" | "archived", idempotencyKey?: string): Promise<Coupon> {
     return this.t.request("PATCH", `/billing/coupons/${enc(couponId)}`, {
       body: { status },
       requireSecret: true,
+      idempotencyKey,
     });
   }
 }

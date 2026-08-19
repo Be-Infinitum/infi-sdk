@@ -32,11 +32,11 @@ class RateCardsResource {
     return res.rateCards ?? [];
   }
 
-  delete(customerId: string, rateCardId: string): Promise<void> {
+  delete(customerId: string, rateCardId: string, idempotencyKey?: string): Promise<void> {
     return this.t.request(
       "DELETE",
       `/metering/customers/${enc(customerId)}/rate-cards/${enc(rateCardId)}`,
-      { requireSecret: true },
+      { requireSecret: true, idempotencyKey },
     );
   }
 }

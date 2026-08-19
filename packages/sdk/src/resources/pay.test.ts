@@ -56,3 +56,18 @@ it("charge forwards a caller-supplied idempotency key", async () => {
   const [, init] = fetchMock.mock.calls[0] as [URL | string, RequestInit];
   expect(new Headers(init.headers).get("Idempotency-Key")).toBe("compra-42");
 });
+
+// Coverage for the shape the README documents: resource methods take the key as a
+// trailing argument. Picked revoke because it is a DELETE with no body — the case
+// where an options object is easiest to forget.
+it("links.revoke forwards a trailing idempotency key", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  global.fetch = fetchMock as unknown as typeof fetch;
+
+  const { Infi } = await import("../client.js");
+  const infi = new Infi({ secretKey: "sk_test_x", apiUrl: "http://localhost:8088" });
+  await infi.links.revoke("prd_1", "lnk_1", "chave-estavel");
+
+  const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+  expect(new Headers(init.headers).get("Idempotency-Key")).toBe("chave-estavel");
+});

@@ -43,16 +43,18 @@ export class WebhooksResource {
     });
   }
 
-  delete(endpointId: string): Promise<void> {
+  delete(endpointId: string, idempotencyKey?: string): Promise<void> {
     return this.t.request("DELETE", `/account/webhooks/${encodeURIComponent(endpointId)}`, {
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
-  patch(endpointId: string, input: PatchWebhookInput): Promise<WebhookEndpoint> {
+  patch(endpointId: string, input: PatchWebhookInput, idempotencyKey?: string): Promise<WebhookEndpoint> {
     return this.t.request("PATCH", `/account/webhooks/${encodeURIComponent(endpointId)}`, {
       body: input,
       requireSecret: true,
+      idempotencyKey,
     });
   }
 

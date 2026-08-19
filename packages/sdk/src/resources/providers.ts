@@ -43,9 +43,10 @@ export class ProvidersResource {
    * Re-check a stored credential against the provider. Use after the merchant
    * rotates a key, or when `status` is `needs_reconnect`.
    */
-  verify(provider: string): Promise<ProviderConnection> {
+  verify(provider: string, idempotencyKey?: string): Promise<ProviderConnection> {
     return this.t.request("POST", `/account/providers/${encodeURIComponent(provider)}/verify`, {
       requireSecret: true,
+      idempotencyKey,
     });
   }
 

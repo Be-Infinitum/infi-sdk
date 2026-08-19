@@ -63,11 +63,11 @@ export class LinksResource {
    * invoices already created from it stay payable, so a buyer who is mid-
    * checkout does not lose the charge they are holding.
    */
-  revoke(productId: string, linkId: string): Promise<void> {
+  revoke(productId: string, linkId: string, idempotencyKey?: string): Promise<void> {
     return this.t.request(
       "DELETE",
       `/metering/products/${enc(productId)}/payment-links/${enc(linkId)}`,
-      { requireSecret: true },
+      { requireSecret: true, idempotencyKey },
     );
   }
 

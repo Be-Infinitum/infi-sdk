@@ -44,7 +44,7 @@ class VersionsResource {
     return res.versions ?? [];
   }
 
-  publish(productId: string, versionId: string): Promise<Version> {
+  publish(productId: string, versionId: string, idempotencyKey?: string): Promise<Version> {
     return this.t.request(
       "POST",
       `/metering/products/${enc(productId)}/versions/${enc(versionId)}/publish`,
@@ -95,10 +95,11 @@ class MetersResource {
   }
 
   /** Update a meter's display name / unit / aggregation (the `name` slug is immutable). */
-  update(productId: string, meterId: string, patch: UpdateMeterRequest): Promise<Meter> {
+  update(productId: string, meterId: string, patch: UpdateMeterRequest, idempotencyKey?: string): Promise<Meter> {
     return this.t.request("PATCH", `/metering/products/${enc(productId)}/meters/${enc(meterId)}`, {
       body: patch,
       requireSecret: true,
+      idempotencyKey,
     });
   }
 }
@@ -107,18 +108,20 @@ class DeliverableResource {
   constructor(private readonly t: Transport) {}
 
   /** Presign an R2 upload URL for a file deliverable (upload the bytes to it, then `save`). */
-  presign(productId: string, input: PresignDeliverableRequest): Promise<PresignDeliverableResponse> {
+  presign(productId: string, input: PresignDeliverableRequest, idempotencyKey?: string): Promise<PresignDeliverableResponse> {
     return this.t.request("POST", `/metering/products/${enc(productId)}/deliverable/presign`, {
       body: input,
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
   /** Save (create/replace) the deliverable — kind `file` (with objectKey) or `link` (with url). */
-  save(productId: string, input: PutDeliverableRequest): Promise<Deliverable> {
+  save(productId: string, input: PutDeliverableRequest, idempotencyKey?: string): Promise<Deliverable> {
     return this.t.request("PUT", `/metering/products/${enc(productId)}/deliverable`, {
       body: input,
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
@@ -128,9 +131,10 @@ class DeliverableResource {
     });
   }
 
-  delete(productId: string): Promise<void> {
+  delete(productId: string, idempotencyKey?: string): Promise<void> {
     return this.t.request("DELETE", `/metering/products/${enc(productId)}/deliverable`, {
       requireSecret: true,
+      idempotencyKey,
     });
   }
 }
@@ -175,10 +179,11 @@ export class ProductsResource {
     return this.t.request("GET", `/metering/products/${enc(productId)}`, { requireSecret: true });
   }
 
-  update(productId: string, patch: Partial<CreateProductRequest>): Promise<Product> {
+  update(productId: string, patch: Partial<CreateProductRequest>, idempotencyKey?: string): Promise<Product> {
     return this.t.request("PATCH", `/metering/products/${enc(productId)}`, {
       body: patch,
       requireSecret: true,
+      idempotencyKey,
     });
   }
 
