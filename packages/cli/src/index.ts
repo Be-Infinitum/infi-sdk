@@ -90,6 +90,26 @@ export async function run(argv: string[]): Promise<void> {
       break;
     }
 
+    case "skills": {
+      const skills = await import("./commands/skills.js");
+      switch (parsed.sub) {
+        case undefined:
+        case "list":
+          skills.skillsList({ json: gf.json });
+          break;
+        case "install":
+          skills.skillsInstall({
+            which: parsed.positional,
+            force: Boolean(parsed.flags.force),
+            json: gf.json,
+          });
+          break;
+        default:
+          usage("Usage: infi skills [list|install [name...]] [--force] [--json]");
+      }
+      break;
+    }
+
     case "claim": {
       const claim = await import("./commands/claim.js");
       switch (parsed.sub) {

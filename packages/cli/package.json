@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/cli",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Infi CLI — init/scaffold, login, API keys, sandbox provisioning, and billing sync",
   "license": "MIT",
   "type": "module",
@@ -14,11 +14,13 @@
     "./doctor": "./dist/commands/doctor.js",
     "./claim": "./dist/lib/claim.js",
     "./go-live": "./dist/commands/go-live.js",
-    "./bootstrap": "./dist/commands/bootstrap.js"
+    "./bootstrap": "./dist/commands/bootstrap.js",
+    "./skills": "./dist/commands/skills.js"
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "skills"
   ],
   "publishConfig": {
     "access": "public"

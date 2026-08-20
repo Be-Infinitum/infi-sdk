@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.2 — 2026-08-20
+
+### Added
+- **`infi skills` — the integration recipes, packaged for agents.** `skills list`
+  shows what ships; `skills install [name…]` copies them into `./.claude/skills/`,
+  where Claude Code looks. Never overwrites without `--force`: a user may have
+  edited one, and silently reverting that is worse than refusing.
+- Five skills, all with real frontmatter and every trap the cold-start audits found
+  baked in: `sell-digital-product`, `send-payment-link`, `prepaid-ai-credits`,
+  `usage-based-subscription`, `test-payment-in-sandbox`.
+
+### Fixed
+- **The three skills that existed were unusable three ways.** No YAML frontmatter,
+  so nothing could discover them — they were markdown wearing a skill's name. They
+  told you to create `infi.billing.ts` with `defineBilling`, when `bootstrap`,
+  `sync`, `pull` and `doctor` all assume `infi.company.ts` / `defineCompany` —
+  an agent following one lands in a divergent state and cannot tell. And they were
+  never shipped: they sat in the repo, outside `files`, unreadable to anyone who
+  installed the package. `usage-based-saas` also declared `apps: [...]`, a config
+  key that no longer exists.
+- The asset-sync prebuild step now copies `skills` as well as `templates`, so the
+  CLI and the MCP server serve one canonical copy and cannot drift.
+
 ## 0.2.1 — 2026-08-20
 
 ### Fixed

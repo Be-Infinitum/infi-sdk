@@ -10,6 +10,7 @@ export default defineConfig({
     "src/commands/doctor.ts",
     "src/commands/go-live.ts",
     "src/commands/bootstrap.ts",
+    "src/commands/skills.ts",
   ],
   format: ["esm"],
   platform: "node",

@@ -13,6 +13,8 @@ ${pc.dim("Usage:")}
   infi claim create|get <id> [--ref cli] [--local] [--json]
   infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
   infi pull [file] [--force]   # generate infi.company.ts + lock from the backend
+  infi skills [list] [--json]                   # agent skills bundled with the CLI
+  infi skills install [name...] [--force]       # copy them into ./.claude/skills/
   infi doctor [--key sk_...] [--local] [--json]
   infi go-live [--claim-id <id>] [--json]       # claim → connect provider → webhook
   infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
@@ -30,6 +32,7 @@ ${pc.dim("Examples:")}
   infi claim create --ref cursor --json
   infi sync infi.company.ts --plan
   infi doctor --json
+  infi skills install
   infi providers list
   infi go-live --json
 

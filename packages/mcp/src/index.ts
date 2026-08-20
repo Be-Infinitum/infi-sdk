@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Infi MCP server — company as code + bootstrap + go-live guidance for agents.
  * Uses @beinfi/sdk and CLI libs underneath (ADR 0004).
@@ -11,6 +10,8 @@ import { createClaimable, type ClaimRef } from "@beinfi/cli/claim";
 import { runDoctor } from "@beinfi/cli/doctor";
 import { getGoLiveStatus } from "@beinfi/cli/go-live";
 import { runBootstrap } from "@beinfi/cli/bootstrap";
+import { listSkills } from "@beinfi/cli/skills";
+import { readFileSync } from "node:fs";
 
 const API_BASE = (process.env.INFI_API_URL ?? "https://api-sandbox.beinfi.com").replace(/\/$/, "");
 
@@ -132,6 +133,60 @@ server.tool(
       content: [{ type: "text", text: JSON.stringify({ products, webhooks }, null, 2) }],
     };
   },
+);
+
+// ── Skills as resources ─────────────────────────────────────────────────────
+//
+// The same integration recipes `infi skills install` copies into a project, served
+// to clients that read resources instead of files (Cursor, Lovable). They come from
+// @beinfi/cli, which already ships them, so there is exactly one copy of each and
+// no chance of the two surfaces drifting.
+//
+// Registered eagerly, one resource per skill, rather than behind a template: a
+// client that lists resources then sees the descriptions, which is how an agent
+// decides which one it wants.
+for (const skill of listSkills()) {
+  server.resource(
+    `skill-${skill.id}`,
+    `infi://skills/${skill.id}`,
+    { description: skill.description, mimeType: "text/markdown" },
+    async (uri) => ({
+      contents: [
+        {
+          uri: uri.href,
+          mimeType: "text/markdown",
+          text: readFileSync(skill.file, "utf8"),
+        },
+      ],
+    }),
+  );
+}
+
+// An index, so a client that wants one read instead of N gets the whole menu.
+server.resource(
+  "skills",
+  "infi://skills",
+  { description: "Index of Infi integration skills, with when-to-use for each.", mimeType: "application/json" },
+  async (uri) => ({
+    contents: [
+      {
+        uri: uri.href,
+        mimeType: "application/json",
+        text: JSON.stringify(
+          {
+            skills: listSkills().map((s) => ({
+              id: s.id,
+              name: s.name,
+              description: s.description,
+              uri: `infi://skills/${s.id}`,
+            })),
+          },
+          null,
+          2,
+        ),
+      },
+    ],
+  }),
 );
 
 async function main(): Promise<void> {
