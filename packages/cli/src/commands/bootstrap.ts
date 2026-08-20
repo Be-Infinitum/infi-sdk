@@ -121,7 +121,11 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
     sync: syncResult,
     doctor,
     next: [
-      "Identify the payer from your own auth: infi.customers.create({ externalId })",
+      // products.enroll, not customers.create: the enrollment id is what usage,
+      // credit and subscription calls take. customers.create makes a tenant-level
+      // customer whose id those calls reject with 422 unknown customer — the trap
+      // the docs spend a callout on, and this line used to point straight at it.
+      "Identify the payer from your own auth: infi.products.enroll(productId, { externalId }) — use the returned .id",
       "Use infi.wallet.forCustomer(externalId, { productKey }) for credits/meter",
       "When ready for real money: infi go-live --json (claim → connect provider → webhook)",
     ],

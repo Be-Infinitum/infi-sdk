@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { InfiError, parseErrorResponse, requireSlug } from "./errors.js";
+import { INFI_ERROR_FIXES, fixForCode } from "./error-fixes.js";
 
 function jsonResponse(body: unknown, status = 422): Response {
   return new Response(JSON.stringify(body), {
@@ -125,5 +126,35 @@ describe("InfiError tracerId", () => {
     );
     const err = await parseErrorResponse(res);
     expect(err.tracerId).toBe("e0484f60");
+  });
+});
+
+describe("err.fix", () => {
+  // A cold-start tester printed `${err.fix}` and got "[object Object]", then
+  // followed the `docs` pointer to AGENTS.md — a file that is not in the package
+  // and not on the web.
+  it("interpolates as one readable line", () => {
+    const fix = fixForCode("missing_secret_key");
+    expect(String(fix)).toContain("INFI_SECRET_KEY");
+    expect(String(fix)).toContain("Run: infi claim create --json");
+    expect(String(fix)).not.toBe("[object Object]");
+  });
+
+  it("still serializes as a plain object, for agents that parse it", () => {
+    const parsed = JSON.parse(JSON.stringify(fixForCode("missing_secret_key")));
+    expect(parsed).toEqual({
+      command: "infi claim create --json",
+      hint: expect.stringContaining("INFI_SECRET_KEY"),
+      docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
+    });
+    // Own property, not the one every object inherits: the toString we attach
+    // must not be enumerable, or it would land in --json output.
+    expect(Object.prototype.hasOwnProperty.call(parsed, "toString")).toBe(false);
+  });
+
+  it("every docs pointer is a public URL, never a repo path", () => {
+    for (const [code, fix] of Object.entries(INFI_ERROR_FIXES)) {
+      if (fix.docs) expect(fix.docs, code).toMatch(/^https:\/\/beinfi\.com\//);
+    }
   });
 });

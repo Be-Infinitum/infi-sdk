@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1 — 2026-08-20
+
+### Fixed
+- **`bootstrap`'s next step pointed at the wrong call.** It said
+  `infi.customers.create({ externalId })`, which makes a tenant-level customer
+  whose id usage/credit/subscription calls reject with `422 unknown customer` —
+  the exact trap our docs spend a callout on. It now says
+  `infi.products.enroll(productId, { externalId })` and tells you to use the
+  returned `.id`. Found by a cold-start test that followed the CLI's own advice
+  into the error.
+
 ## 0.2.0 — 2026-08-18
 
 The first command in the public docs could not succeed. Three defects, all in the cold-start path.

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.5 — 2026-08-20
+
+### Fixed
+- **`err.fix.docs` pointed at files nobody outside this repo can read.** Six
+  pointers went to `AGENTS.md#…` and one to `skills/…/SKILL.md`; neither ships in
+  the package. All seven are public beinfi.com docs URLs now, and a test fails the
+  build if a pointer stops being one.
+- **`${err.fix}` printed `[object Object]`.** A cold-start tester hit exactly that,
+  then followed the dead `docs` pointer. It renders one line now — hint, command,
+  docs URL — via a NON-enumerable `toString`, so `JSON.stringify` and
+  `InfiError.toJSON` keep emitting the plain object an agent parses.
+- **`InfiErrorFix` is documented**, field by field, with the interpolation example.
+  The shape was public API and had a one-line comment.
+
 ## 0.10.4 — 2026-08-19
 
 ### Fixed

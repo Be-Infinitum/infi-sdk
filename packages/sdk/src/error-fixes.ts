@@ -1,38 +1,72 @@
-/** Actionable hint agents and humans can run when an InfiError is thrown. */
+/**
+ * Actionable remediation attached to an `InfiError` as `err.fix`, for agents,
+ * CLIs and humans. Every field is optional — read the ones you want, or
+ * interpolate the whole thing:
+ *
+ * ```ts
+ * catch (err) {
+ *   if (err instanceof InfiError) console.error(`${err.message} — ${err.fix}`);
+ * }
+ * ```
+ *
+ * `${err.fix}` renders one line rather than `[object Object]`; `JSON.stringify`
+ * still gives you the plain fields.
+ */
 export interface InfiErrorFix {
+  /** A shell command that resolves it, ready to run. */
   command?: string;
+  /** Public URL explaining it. Always a beinfi.com docs page, never a repo path. */
   docs?: string;
+  /** One sentence on what to do, safe to show a user. */
   hint?: string;
 }
 
-/** Known error codes with agent-friendly remediation. */
-export const INFI_ERROR_FIXES: Record<string, InfiErrorFix> = {
+/** One line: hint, then the command, then the docs URL — whichever exist. */
+function describeFix(f: InfiErrorFix): string {
+  return [f.hint, f.command && `Run: ${f.command}`, f.docs && `Docs: ${f.docs}`]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/**
+ * Attaches a NON-enumerable toString, so string interpolation is useful while
+ * JSON.stringify (and InfiError.toJSON, which embeds this) keeps emitting the
+ * plain object an agent parses.
+ */
+function withDescription(f: InfiErrorFix): InfiErrorFix {
+  return Object.defineProperty({ ...f }, "toString", {
+    value: () => describeFix(f),
+    enumerable: false,
+  });
+}
+
+const FIXES: Record<string, InfiErrorFix> = {
   missing_secret_key: {
     command: "infi claim create --json",
     hint: "Set INFI_SECRET_KEY to a sk_test_... or sk_live_... key, or run infi login.",
-    docs: "AGENTS.md#credentials",
+    docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   invalid_key: {
     hint: "Secret keys start with sk_test_ or sk_live_. Publishable keys (pk_) cannot call server APIs.",
-    docs: "AGENTS.md#credentials",
+    docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   missing_code: {
     hint: "Auth codes expire in 60s. Start a fresh login — do not reload an old /callback?code= tab.",
-    docs: "AGENTS.md#auth-gotchas",
+    docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   no_products_for_login: {
     command: "infi bootstrap --intent crm --json",
     hint: "Hosted login requires at least one product. Bootstrap or sync infi.company.ts first.",
-    docs: "AGENTS.md#quick-start-preferred",
+    docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   sync_drift_blocked: {
     command: "infi sync infi.company.ts --plan",
     hint: "Dashboard changed since last sync. Run --plan to inspect, --force to overwrite, or infi pull to adopt.",
-    docs: "AGENTS.md#company-as-code",
+    docs: "https://beinfi.com/pt-br/docs/company-as-code",
   },
   missing_slug: {
     hint: "Pass your tenant slug (INFI_TENANT_SLUG) — it is part of the public /pay/{slug} URL and cannot be inferred from a secret key.",
-    docs: "AGENTS.md#credentials",
+    docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   // Codes the live API really returns. Without these `InfiError.fix` was undefined
   // on every 401/404/422, while the docs tell agents to read it.
@@ -52,9 +86,14 @@ export const INFI_ERROR_FIXES: Record<string, InfiErrorFix> = {
   },
   insufficient_credit: {
     hint: "Customer wallet is empty. Return 402 and surface checkout to buy a credit pack.",
-    docs: "skills/add-prepaid-ai-chat/SKILL.md",
+    docs: "https://beinfi.com/pt-br/docs/sdk",
   },
 };
+
+/** Known error codes with agent-friendly remediation. */
+export const INFI_ERROR_FIXES: Record<string, InfiErrorFix> = Object.fromEntries(
+  Object.entries(FIXES).map(([code, f]) => [code, withDescription(f)]),
+);
 
 export function fixForCode(code: string | undefined): InfiErrorFix | undefined {
   if (!code) return undefined;
