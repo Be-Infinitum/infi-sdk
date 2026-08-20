@@ -3,9 +3,14 @@ import { newIdempotencyKey } from "../http.js";
 
 /** A charge attempt (mirrors the backend Payment). For pix, `pixPayload` is what
  *  the payer pays with and `pixExpiresAt` its expiry — in live it is the copy-paste
- *  EMV/brcode string, so render the QR from it client-side; in sandbox it is a URL
- *  to the payment simulator, so link to it instead of QR-encoding it. Detect with
- *  `pixPayload.startsWith("http")`. `invoiceUrl` is the PSP hosted page. */
+ *  EMV/brcode string; in sandbox it is our confirmation URL. **Render it as a QR
+ *  either way** — a QR is a QR, so your rendering code does not change between
+ *  modes.
+ *
+ *  For a "confirm as if I paid" button in a test harness, branch on
+ *  `sandboxConfirmUrl`, which exists ONLY in sandbox. Never sniff
+ *  `pixPayload.startsWith("http")`: it passes every test you run and silently does
+ *  nothing for real buyers, since in live the payload is an EMV. `invoiceUrl` is the PSP hosted page. */
 export type Payment = components["schemas"]["Payment"];
 
 /** Public checkout invoice read: merchant display + the invoice (with status). */

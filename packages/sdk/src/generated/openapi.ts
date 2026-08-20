@@ -72,6 +72,137 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pay/{slug}/links/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Resolve a payment link for display (unauthenticated)
+         * @description Merchant + product display for the link's landing page. A missing, revoked or wrong-tenant link is a single 404 — the response never says which of slug/token was wrong.
+         */
+        get: operations["getPaymentLinkPublic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/links/{token}/checkout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Materialize an invoice from a payment link (unauthenticated, legacy)
+         * @description Creates the customer (idempotent on `email`) and either starts a subscription billed upfront, for a product with a billing cycle, or opens a one-off invoice. Then send the payer to `redirectUrl` to actually pay.
+         *     Arrears `usage` pricing has nothing to charge upfront and is rejected 400.
+         *     Legacy: prefer `POST .../sessions` + `.../sessions/{sessionID}/charge`, which enforces the `taxId` that pix on Asaas requires. This route accepts `taxId` but does not require it, so a pix charge on the resulting invoice can still fail with `customer_tax_id_required`.
+         */
+        post: operations["checkoutPaymentLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/links/{token}/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open (or reuse) a checkout session for a payment link (unauthenticated)
+         * @description Step 1 of two-step link checkout: record the payer's contact details. The invoice is NOT created here — it is materialized at charge time.
+         *     `taxId` is mandatory on this route (unlike `/checkout`) because Asaas refuses to create a payer without a CPF/CNPJ, and discovering that at charge time is worse.
+         *     Reuses a live session for the same payer instead of opening a second one.
+         */
+        post: operations["createLinkCheckoutSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/links/{token}/sessions/{sessionID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read a checkout session (unauthenticated)
+         * @description Poll for progress. NOTE the response is deliberately NOT `LinkCheckoutSession` — it is the same payload shape the `checkout_session.*` webhook carries, so the id field is `id`, not `sessionId`, and there is no `product`/`testMode`/`cardEnabled`.
+         */
+        get: operations["getLinkCheckoutSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/links/{token}/sessions/{sessionID}/charge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Materialize the invoice and charge a checkout session (unauthenticated)
+         * @description Step 2: creates the customer + invoice from the session, then charges it. Same request body and error surface as `POST /pay/{slug}/invoices/{invoiceID}/charge`.
+         */
+        post: operations["chargeLinkCheckoutSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pay/{slug}/download/{token}": {
         parameters: {
             query?: never;
@@ -262,7 +393,10 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Update product metadata */
+        /**
+         * Update product metadata (full replace, not a partial patch)
+         * @description Despite the verb this is a REPLACE: the UPDATE writes name, description and status unconditionally, so an omitted `description` becomes null and an omitted `status` is written as an empty string. Always send all three.
+         */
         patch: operations["updateProduct"];
         trace?: never;
     };
@@ -382,6 +516,7 @@ export interface paths {
         /**
          * Create a payment link for a product
          * @description Mints a reusable, revocable link bound to this product. The response carries an opaque `token`; the payer-facing URL is `{appBaseUrl}/pay/{tenantSlug}/links/{token}`, and the public checkout materializes the customer + invoice (or subscription) when they submit. No payer is known at creation time.
+         *     Requires a published version. `POST .../versions/{versionID}/publish` already mints the first link, so this is for issuing additional ones.
          */
         post: operations["createPaymentLink"];
         delete?: never;
@@ -396,6 +531,7 @@ export interface paths {
             header?: never;
             path: {
                 productID: components["parameters"]["ProductID"];
+                /** @description Payment link UUID. Revoke resolves the link by tenant + linkID only — the `productID` in the path is not used to scope it. */
                 linkID: components["parameters"]["LinkID"];
             };
             cookie?: never;
@@ -1336,29 +1472,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/billing/sandbox/charges/{paymentID}/{action}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                paymentID: string;
-                action: "pay" | "fail" | "expire";
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Drive a sandbox charge to a terminal state (ADR 0008)
-         * @description Deterministic sandbox-only control: transitions a pending sandbox charge to paid (pay), failed (fail), or expired (expire) and emits the same webhook/ledger/status flow production uses. Requires a test key (sk_test); a live key gets 404. The charge must be a pending sandbox charge or the call is rejected.
-         */
-        post: operations["sandboxControlCharge"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/billing/coupons": {
         parameters: {
             query?: never;
@@ -1398,7 +1511,7 @@ export interface paths {
         patch: operations["updateCouponStatus"];
         trace?: never;
     };
-    "/psp/payments/webhook": {
+    "/webhook/provider/payments/webhook": {
         parameters: {
             query?: never;
             header?: never;
@@ -1410,6 +1523,8 @@ export interface paths {
         /**
          * Inbound PSP webhook (authenticated by the gateway signature)
          * @description Not authenticated by an API key — the PSP cannot present one. The gateway verifies the request signature/token. Payload shape is PSP-specific.
+         *
+         *     The `/webhook/provider` prefix is the mount, not decoration: the routes are registered relative to it in cmd/api. Documenting the bare path is how a production Asaas account was pointed at a URL that 404s, silently leaving paid invoices open until someone read pod logs.
          */
         post: operations["pspWebhook"];
         delete?: never;
@@ -1623,6 +1738,18 @@ export interface components {
             };
             invoice: components["schemas"]["Invoice"];
             testMode: boolean;
+            /** @description Whether card is chargeable in this deployment's mode. Always present. */
+            cardEnabled?: boolean;
+            /**
+             * @description Method of the confirmed payment. Present only once the invoice is paid (it drives the shared receipt); absent otherwise.
+             * @enum {string}
+             */
+            paymentMethod?: "pix" | "boleto" | "card";
+            /** @description Card-on-file authorization the payer must accept. Present only when card is available and the invoice is still open. `version` is what the client must echo as `consentTextVersion` when charging with `saveInstrument`. */
+            mandate?: {
+                version: string;
+                text: string;
+            };
         };
         MoneyMetric: {
             value: string;
@@ -1669,11 +1796,17 @@ export interface components {
             /** @enum {string} */
             status: "UNCLAIMED" | "CLAIMED";
             tenantSlug: string;
-            /** Format: uuid */
+            /**
+             * Format: uuid
+             * @description The seeded "App usage" product. Provisioned unsellable on purpose — draft version 1, no key, no price — so publish a version and add a price before selling against it.
+             */
             productId: string;
-            appSlug: string;
+            /** @description `sk_test_*`, returned once and never again. */
             apiKeySecret: string;
-            /** Format: uri */
+            /**
+             * Format: uri
+             * @description `{PULSE_APP_BASE_URL}/claim/{id}` — `https://app-sandbox.beinfi.com/claim/{id}` on the deployed sandbox.
+             */
             claimUrl: string;
             /** Format: date-time */
             expiresAt: string;
@@ -1686,8 +1819,8 @@ export interface components {
             tenantSlug: string;
             /** Format: uuid */
             productId?: string;
-            appSlug: string;
-            ref: string;
+            /** @enum {string} */
+            ref: "lovable" | "mcp" | "cursor";
             /** Format: date-time */
             expiresAt: string;
             /** Format: date-time */
@@ -1702,19 +1835,69 @@ export interface components {
             appSlug: string;
             onboardingStep: string;
         };
+        /**
+         * @description Stable internal domain code, append-only and never repurposed. NOT a closed set: alongside the generic codes below, packages define their own (`coupon_expired`, `insufficient_balance`, `version_not_draft`, `secret_store_unavailable`, `idempotency_key_reused`, and opaque ids such as `auth_001`). Treat an unrecognized code as its HTTP status and show `message`; never fail parsing on it.
+         * @example internal_error
+         * @example validation_failed
+         * @example bad_request
+         * @example unauthorized
+         * @example forbidden
+         * @example not_found
+         * @example conflict
+         * @example rate_limited
+         */
+        ErrorCode: string;
+        /** @description The standard error body for anything a handler raises. Flat — there is no `error` wrapper — and the correlation id is `tracer_id`, not `request_id`. */
         Error: {
+            /** @description Customer-safe sentence. Never contains internal detail. */
+            message: string;
+            error_code: components["schemas"]["ErrorCode"];
+            /** @description Request correlation id; quote it in a support request. Logged server-side as `request_id` against the line that explains the failure. */
+            tracer_id: string;
+        };
+        /** @description 422 body. Same flat shape as Error plus `errors[]`, the per-field detail — this array is where the actionable sentence lives (e.g. "product has no published version"), so a client that ignores it discards the fix. */
+        ValidationError: {
+            message: string;
+            error_code: components["schemas"]["ErrorCode"];
+            tracer_id: string;
+            /** @description Always present on a 422; may be empty. */
+            errors: {
+                /** @description Request field (JSON name) at fault. Can name a logical input rather than a body key — e.g. `productId` for a path parameter. */
+                field: string;
+                /** @description Echoed offending value; empty string when not captured. */
+                value: string;
+                /** @description The rule that failed; currently mirrors `error_code`. */
+                constraint: string;
+                /** @description Customer-safe explanation of this field's problem. */
+                description: string;
+            }[];
+        };
+        /** @description 404 body — Error plus the `resource` the lookup was for. */
+        NotFoundError: {
+            message: string;
+            error_code: components["schemas"]["ErrorCode"];
+            tracer_id: string;
+            /** @description Identifier of the missing resource, or an empty string when the handler did not attach one (common — do not depend on it). */
+            resource: string;
+        };
+        /** @description 409 body from a handler — Error plus `resource` and `metadata`. */
+        ConflictError: {
+            message: string;
+            error_code: components["schemas"]["ErrorCode"];
+            tracer_id: string;
+            /** @description From `metadata.resource`; empty string when unset. */
+            resource: string;
+            /** @description Structured conflict context. `null` when the exception carried none. */
+            metadata: {
+                [key: string]: string;
+            } | null;
+        };
+        /** @description The middleware envelope — nested under `error`, correlation id named `request_id`. Emitted by 429 rate limiting, the Idempotency-Key 409, and a transaction-wrapper 500. A client parsing only the flat Error shape will read no message at all from these. */
+        MiddlewareError: {
             error: {
-                /**
-                 * @description Stable internal domain code.
-                 * @enum {string}
-                 */
-                code: "internal_error" | "validation_failed" | "bad_request" | "unauthorized" | "forbidden" | "not_found" | "conflict" | "rate_limited" | "secret_store_unavailable";
+                code: components["schemas"]["ErrorCode"];
                 message: string;
-                details?: {
-                    field?: string;
-                    message?: string;
-                }[];
-                request_id?: string;
+                request_id: string;
             };
         };
         Product: {
@@ -1887,18 +2070,22 @@ export interface components {
         PriceInput: {
             /**
              * Format: uuid
-             * @description Null for a flat recurring fee.
+             * @description The meter this price rates. Required and non-null — a price IS a meter rate. A flat recurring amount is not a price: it lives on the version's `basePrice` (ADR 0017 removed meterless prices). Must name a meter on the same product.
              */
-            meterId?: string | null;
+            meterId: string;
             /** @enum {string} */
             model: "flat" | "per_unit" | "tiered" | "volume" | "package";
             unitAmount?: string | null;
-            /** @description Graduated/volume/package tier config. */
-            tiers?: {
-                [key: string]: unknown;
-            }[];
-            /** @example BRL */
-            currency: string;
+            /**
+             * @description Graduated/volume/package tier config. Only checked for being valid JSON server-side, so an object is accepted as well as an array.
+             * @default []
+             */
+            tiers: unknown;
+            /**
+             * @description Optional — defaults to the product's currency.
+             * @example BRL
+             */
+            currency?: string;
         };
         Price: {
             /** Format: uuid */
@@ -2282,11 +2469,21 @@ export interface components {
             invoiceUrl?: string;
             /** @description Pix copy-paste (EMV/brcode) string, set for pix charges. Render the QR client-side from this. Persisted, so a refresh/poll re-reads it. */
             pixPayload?: string;
+            /** @description Base64 PNG of the pix QR (no data: prefix), returned alongside pixPayload for clients that would rather not render the code themselves. */
+            pixQrImage?: string;
+            /** @description The provider's own EMV/brcode. Present only on a sandbox deployment, where `pixPayload` carries our confirmation URL instead (ADR 0031). Useful for inspecting what production would return; not payable, since it belongs to a test account. */
+            providerPixPayload?: string;
+            /** @description Confirmation page for this charge, so a sandbox payment can be driven to paid with no provider credential (ADR 0031). Present ONLY on a sandbox deployment, and it is the explicit marker: branch on whether this field exists, never on whether `pixPayload` looks like a URL — in live it is an EMV, and sniffing its shape is how a sandbox-only affordance reaches a production checkout. Rendering does not need it: `pixPayload` is a QR in both modes. */
+            sandboxConfirmUrl?: string;
             /**
              * Format: date-time
              * @description When the pix code expires (pix charges only).
              */
             pixExpiresAt?: string | null;
+            /** @description Provider client secret for a card charge confirmed in the browser (Stripe Payment Element). Transient — create-charge response only. */
+            clientSecret?: string;
+            /** @description The merchant's provider publishable key, paired with `clientSecret`. Transient — create-charge response only. */
+            publishableKey?: string;
             /** @description Whether this charge can still be released so the same invoice can be paid another way (ADR 0026) — true while it is pending, false once it confirmed or failed. Releasing cancels it at the provider where that is supported, and abandons it regardless where it is not. Transient: present on the create-charge response, not on later reads. The hosted checkout keeps the other payment methods clickable while it is true; treat a missing value as false. */
             switchable?: boolean;
         };
@@ -2334,6 +2531,71 @@ export interface components {
             updatedAt?: string | null;
             /** @description Whether a stored card could be charged off-session at all here. Card auto-charge is Stripe-only (storing an Asaas card token for reuse would require PCI level 1 on our side), so this is false wherever no card provider is configured — and autoChargeEnabled would then be a switch with nothing to charge. */
             readonly cardAutoChargeAvailable?: boolean;
+        };
+        /** @description Public display payload for a payment link's landing page. */
+        PaymentLinkView: {
+            merchant: {
+                slug: string;
+                name: string;
+            };
+            product: components["schemas"]["PaymentLinkProduct"];
+            testMode: boolean;
+            cardEnabled: boolean;
+        };
+        PaymentLinkProduct: {
+            name: string;
+            /** @enum {string} */
+            type: "agent" | "item";
+            /** @enum {string} */
+            pricingModel: "subscription" | "one_time" | "usage" | "prepaid";
+            /** @description Version base price as a decimal string. Absent when the version carries none (pure usage pricing). */
+            price?: string;
+            /** @example BRL */
+            currency: string;
+        };
+        /** @description Response to creating/reusing a link checkout session (step 1). */
+        LinkCheckoutSession: {
+            /** Format: uuid */
+            sessionId: string;
+            product: components["schemas"]["PaymentLinkProduct"];
+            /** @enum {string} */
+            status: "open" | "completed" | "expired";
+            /** Format: date-time */
+            expiresAt: string;
+            testMode: boolean;
+            cardEnabled: boolean;
+        };
+        /** @description Session read shape — also the `checkout_session.*` webhook payload, which is why it differs from LinkCheckoutSession (`id`, not `sessionId`). */
+        LinkCheckoutSessionState: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "open" | "completed" | "expired";
+            /** Format: email */
+            email: string;
+            name?: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /**
+             * Format: uuid
+             * @description Set once the charge step has materialized the invoice.
+             */
+            invoiceId?: string;
+            /**
+             * Format: uuid
+             * @description Set once a charge has been created.
+             */
+            paymentId?: string;
+        };
+        /** @description `method` is validated server-side and answers **422** (not 400) when missing or outside the enum. */
+        CheckoutChargeRequest: {
+            /** @enum {string} */
+            method: "pix" | "boleto" | "card";
+            card?: components["schemas"]["CheckoutCardInput"];
+            /** @description Payer opted to store the card for future automatic charges. Requires `consentTextVersion`; a save without it is refused (422) rather than stored as an unprovable authorization. */
+            saveInstrument?: boolean;
+            /** @description The mandate wording the payer actually saw — echo `CheckoutSession.mandate.version`. Required when `saveInstrument` is true, and must name a known version. */
+            consentTextVersion?: string;
         };
         /** @description Raw card + holder fields for an embedded card charge (method=card). Sent over TLS to the checkout endpoint, which tokenizes them at the PSP and never persists the PAN/CVV. All fields are required by the PSP tokenizer. */
         CheckoutCardInput: {
@@ -2538,25 +2800,25 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Error"];
+                "application/json": components["schemas"]["NotFoundError"];
             };
         };
-        /** @description Conflicting state */
+        /** @description Conflicting state. Two shapes: a handler conflict (ConflictError) or the Idempotency-Key replay guard, which is written by middleware and uses the nested envelope (MiddlewareError, `code: idempotency_key_reused`). */
         Conflict: {
             headers: {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Error"];
+                "application/json": components["schemas"]["ConflictError"] | components["schemas"]["MiddlewareError"];
             };
         };
-        /** @description One or more fields are invalid */
+        /** @description One or more fields are invalid. The per-field detail is in `errors[]`; read it, the top-level `message` is often generic. */
         ValidationFailed: {
             headers: {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["Error"];
+                "application/json": components["schemas"]["ValidationError"];
             };
         };
         /** @description A required dependency (e.g. object storage) is not configured */
@@ -2568,15 +2830,32 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
+        /** @description Rate limit exceeded. Uses the nested middleware envelope, not the flat one. `Retry-After` gives the wait in seconds. */
+        RateLimited: {
+            headers: {
+                /** @description Seconds to wait before retrying. */
+                "Retry-After"?: number;
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["MiddlewareError"];
+            };
+        };
     };
     parameters: {
         /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
         IdempotencyKey: string;
         Limit: number;
         Offset: number;
+        /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+        PaySlug: string;
+        /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+        LinkToken: string;
+        SessionID: string;
         ProductID: string;
         VersionID: string;
         MeterID: string;
+        /** @description Payment link UUID. Revoke resolves the link by tenant + linkID only — the `productID` in the path is not used to scope it. */
         LinkID: string;
         /** @description Tenant customer UUID (customers.id). */
         CustomerID: string;
@@ -2642,7 +2921,9 @@ export interface operations {
                     "application/json": components["schemas"]["CheckoutSession"];
                 };
             };
+            400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
         };
     };
     chargeCheckoutInvoice: {
@@ -2657,11 +2938,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    /** @enum {string} */
-                    method: "pix" | "boleto" | "card";
-                    card?: components["schemas"]["CheckoutCardInput"];
-                };
+                "application/json": components["schemas"]["CheckoutChargeRequest"];
             };
         };
         responses: {
@@ -2676,6 +2953,27 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
+            /** @description The invoice is not open, or a charge is already in flight on it (`invoice_not_open`, `charge_in_progress`, `charge_already_processing`, `client_key_missing`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            /** @description Every routable provider failed, routing is unavailable, or releasing the in-flight charge to switch method failed. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     applyCheckoutCoupon: {
@@ -2708,6 +3006,229 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getPaymentLinkPublic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment link display */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLinkView"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    checkoutPaymentLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    name?: string;
+                    /** @description Payer CPF (11 digits) or CNPJ (14). Optional here but needed before a pix charge can succeed on Asaas — punctuation is stripped. */
+                    taxId?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Invoice materialized */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        invoiceId: string;
+                        /** @description Site-relative path to the hosted checkout, `/pay/{slug}/invoices/{invoiceId}` — not an absolute URL. */
+                        redirectUrl: string;
+                    };
+                };
+            };
+            /** @description `email` missing, or the product is arrears `usage` pricing (nothing to charge upfront). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    createLinkCheckoutSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    name?: string;
+                    /** @description CPF (11 digits) or CNPJ (14) — required. Punctuation is stripped; anything that does not normalize to 11 or 14 digits is a 400. */
+                    taxId: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Existing live session reused */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCheckoutSession"];
+                };
+            };
+            /** @description Session created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCheckoutSession"];
+                };
+            };
+            /** @description `email` missing, `taxId` missing or not a valid CPF/CNPJ length, or the product is arrears `usage` pricing. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getLinkCheckoutSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCheckoutSessionState"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    chargeLinkCheckoutSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutChargeRequest"];
+            };
+        };
+        responses: {
+            /** @description An already-pending pix charge on this session, returned as-is. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            /** @description Payment created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payment"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            /** @description The session is already `completed` or `expired`, or a charge is in flight on the invoice. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            /** @description Every routable provider failed, or routing is unavailable. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
         };
     };
     downloadDeliverable: {
@@ -3025,10 +3546,10 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    name?: string;
+                    name: string;
                     description?: string | null;
-                    /** @example active */
-                    status?: string;
+                    /** @enum {string} */
+                    status?: "active" | "archived";
                 };
             };
         };
@@ -3354,6 +3875,15 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            /** @description The product has no published version — publish one first (`errors[0].field` is `productId`). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
         };
     };
     revokePaymentLink: {
@@ -3362,6 +3892,7 @@ export interface operations {
             header?: never;
             path: {
                 productID: components["parameters"]["ProductID"];
+                /** @description Payment link UUID. Revoke resolves the link by tenant + linkID only — the `productID` in the path is not used to scope it. */
                 linkID: components["parameters"]["LinkID"];
             };
             cookie?: never;
@@ -5008,32 +5539,6 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
-        };
-    };
-    sandboxControlCharge: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                paymentID: string;
-                action: "pay" | "fail" | "expire";
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Updated sandbox payment */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Payment"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
         };
     };
     listCoupons: {

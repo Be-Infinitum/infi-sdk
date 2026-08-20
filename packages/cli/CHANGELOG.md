@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.3 — 2026-08-20
+
+### Fixed
+- **`sell-digital-product` told you to hang for ten minutes.** Its thank-you-page
+  snippet passed `intervalMs` to `waitForPaid` without `timeoutMs`, which defaults
+  to 600000 — so on an unpaid invoice, the normal case and the exact branch the
+  snippet serves, the handler blocks instead of rendering. Found by running it.
+- The same skill now says a customer needs a **real email** to be charged:
+  `checkout()` accepts one without, mints a finalized numbered invoice, and then
+  `pay.charge` answers `500` with an empty `errors[]` on an invoice that can never
+  be paid.
+- And that **replacing a deliverable rewrites history** — a token minted for the old
+  file redirects to the new one, so an earlier buyer gets today's product.
+
 ## 0.2.2 — 2026-08-20
 
 ### Added

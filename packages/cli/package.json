@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/cli",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Infi CLI — init/scaffold, login, API keys, sandbox provisioning, and billing sync",
   "license": "MIT",
   "type": "module",

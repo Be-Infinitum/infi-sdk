@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.10.6 — 2026-08-20
+
+### Fixed
+- **`Payment` was missing three fields the API returns.** `sandboxConfirmUrl`,
+  `providerPixPayload` and `pixQrImage` appeared ZERO times in 0.10.5's types while
+  the API returned all three: two were added to the Go struct and never to the
+  OpenAPI contract, and `pixQrImage` was in the contract but the generated types
+  were stale. A cold-start test following our own documented snippet collected four
+  `TS2339` errors on live fields. Contract updated, types regenerated.
+- **`pay`'s docstring recommended the anti-pattern our docs forbid.** It said to
+  detect sandbox with `pixPayload.startsWith("http")` — which passes every test you
+  run and silently does nothing for real buyers, because in live the payload is an
+  EMV. It now says to branch on `sandboxConfirmUrl` and to render the payload as a
+  QR in both modes, which is the whole point: the merchant's rendering code does not
+  change. The documentation was right and lost the argument to its own SDK.
+
 ## 0.10.5 — 2026-08-20
 
 ### Fixed
