@@ -6,9 +6,9 @@
  * could never run. Our own docs tell people to run it. Nothing caught it because
  * nothing ever executed the built artifact.
  *
- * Deliberately dependency-free: adding a test runner here means `npm install` on
- * this monorepo, which does not currently work (packages/nextjs and examples/ use
- * the pnpm-only `workspace:*` protocol).
+ * Deliberately dependency-free: this repo installs with bun/pnpm (it uses the
+ * `workspace:*` protocol), and a gate that only runs under one package manager is
+ * a gate that gets skipped.
  */
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -47,4 +47,28 @@ try {
 if (reply?.result?.serverInfo?.name !== "infi") fail(`unexpected initialize reply: ${JSON.stringify(reply)}`);
 if (!reply?.result?.capabilities?.resources) fail("resources capability missing — skills are served as resources");
 
-console.log("smoke: bundle starts, speaks MCP, advertises resources");
+// The check that would have caught the second failure. Locally, @beinfi/cli
+// resolves to the workspace copy, so anything we import exists. Published, it
+// resolves from the registry through the declared range — and `^0.1.1` pins the
+// MINOR on a 0.x version, so this package shipped against cli 0.1.1 while
+// importing `@beinfi/cli/skills`, added in 0.2.2. It failed for users with
+// ERR_PACKAGE_PATH_NOT_EXPORTED and passed every local test.
+//
+// So: the declared range must admit the version we actually test against.
+const pkg = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../package.json"), "utf8"));
+const cliRange = pkg.dependencies?.["@beinfi/cli"] ?? "";
+const cliVersion = JSON.parse(
+  fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../cli/package.json"), "utf8"),
+).version;
+const floor = /(\d+)\.(\d+)\.(\d+)/.exec(cliRange);
+if (!floor) fail(`cannot read a version floor out of "@beinfi/cli": "${cliRange}"`);
+const [rMajor, rMinor] = [Number(floor[1]), Number(floor[2])];
+const [wMajor, wMinor] = cliVersion.split(".").map(Number);
+if (cliRange.startsWith("^") && rMajor === 0) {
+  fail(`"@beinfi/cli": "${cliRange}" — a caret on 0.x pins the minor, so this can never install ${cliVersion}. Use an explicit range.`);
+}
+if (rMajor !== wMajor || rMinor > wMinor) {
+  fail(`"@beinfi/cli": "${cliRange}" does not admit the workspace version ${cliVersion} this was tested against`);
+}
+
+console.log(`smoke: bundle starts, speaks MCP, advertises resources; cli range ${cliRange} admits ${cliVersion}`);

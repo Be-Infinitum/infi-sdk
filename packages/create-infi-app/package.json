@@ -23,7 +23,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@beinfi/cli": "^0.1.1"
+    "@beinfi/cli": ">=0.2.2 <0.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
