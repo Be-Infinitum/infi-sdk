@@ -13,7 +13,6 @@ checkout, metering, and prepaid AI credits.
 | [`@beinfi/cli`](./packages/cli) | `infi` — init, sync, doctor, claim, deploy |
 | [`@beinfi/nextjs`](./packages/nextjs) | Next.js App Router handlers |
 | [`@beinfi/mcp`](./packages/mcp) | MCP server for Cursor / Claude |
-| [`create-infi-app`](./packages/create-infi-app) | `npm create infi-app` |
 
 ## Quick start
 

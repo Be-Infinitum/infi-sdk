@@ -1,6 +1,13 @@
 # ADR 0003 — Scaffolding folds into the CLI (`infi init`); create-infi-app is a shim
 
-**Status:** Accepted (2026-07)
+**Status:** Accepted (2026-07) · Shim removed (2026-08)
+
+> **Update (2026-08).** The shim is gone. `create-infi-app` was never published to
+> npm, so `npm create infi-app` never worked in the first place and nothing outside
+> this repo could depend on it — the whole reason the shim existed. `infi init`
+> (aliases `create` / `new`) is the single entry point. Deleting it also removes a
+> package that had been pinned at `"@beinfi/cli": "^0.1.1"`: a caret on a 0.x
+> version pins the minor, so it could never see any 0.2.x CLI.
 
 ## Context
 
