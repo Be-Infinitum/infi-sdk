@@ -68,6 +68,7 @@ export { LinksResource, type PaymentLinkWithUrl } from "./resources/links.js";
 export type { UsageQuery } from "./resources/usage.js";
 export type { FromUsageInput, DeliverableGrant } from "./resources/invoices.js";
 export type { PresignedUpload } from "./resources/products.js";
+export type { UpdateAccountInput } from "./resources/account.js";
 /** @internal CLI login only (`infi login`) — not a merchant-facing feature. */
 export { exchangeCliToken, type ExchangeCliTokenOptions } from "./resources/auth.js";
 export {

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.10.7 — 2026-08-20
+
+### Added
+- **`infi.account`** — `get()` and `update({ name, termsUrl })`. A tenant starts with
+  a placeholder name, so an un-renamed store shows the buyer a checkout that says
+  **"New app"**. A cold-start test shipped a whole shop like that, found nothing in
+  the docs or the SDK to change it, and had to guess `PATCH /account/tenant` from the
+  HTTP route table. The route existed in the contract and nothing exposed it.
+  Measured: the rename shows up on an already-created payment link immediately.
+
+### Fixed
+- **`missing_secret_key`'s fix said `infi claim create`** — a command that
+  PROVISIONS A NEW TENANT. Two cold-start audits were told that while sitting in a
+  project that already had one, so following it would have abandoned the tenant
+  holding their product. A command that creates state is never the remedy for
+  "cannot find your existing state". It is `infi doctor --json` now, and the hint
+  spells out that `bootstrap` creates a tenant.
+
 ## 0.10.6 — 2026-08-20
 
 ### Fixed

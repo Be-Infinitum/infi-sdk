@@ -7,6 +7,7 @@ import {
   SANDBOX_API_BASE,
   type InfiMode,
 } from "@beinfi/sdk";
+import { readProjectEnv } from "./dotenv.js";
 import { getProfile, loadConfig } from "./config.js";
 
 export type GlobalFlags = {
@@ -18,11 +19,19 @@ export type GlobalFlags = {
 
 export const LOCAL_API_BASE = "http://localhost:8088";
 
-/** The key this invocation would use, or undefined. Non-throwing `resolveSecretKey`. */
+/**
+ * The key this invocation would use, or undefined. Non-throwing `resolveSecretKey`.
+ *
+ * The project's own `.env.local` sits between the real environment and the saved
+ * profile: it is more specific than a global login and less explicit than an env
+ * var the caller exported. Reading it at all is the fix for `bootstrap` writing a
+ * key that `sync` in the same directory could not find.
+ */
 export function findSecretKey(flags: GlobalFlags): string | undefined {
   return (
     flags.key ??
     process.env.INFI_SECRET_KEY ??
+    readProjectEnv().INFI_SECRET_KEY ??
     getProfile(loadConfig(), flags.profile)?.secretKey ??
     undefined
   );
@@ -38,6 +47,10 @@ export function apiBaseOverride(flags: GlobalFlags): { url: string; source: stri
   if (flags.local) return { url: LOCAL_API_BASE, source: "--local" };
   const fromEnv = process.env.INFI_API_URL;
   if (fromEnv) return { url: fromEnv.replace(/\/$/, ""), source: "INFI_API_URL" };
+  // `init --local` writes this into .env.local; honouring it is what makes a local
+  // project keep talking to localhost across commands.
+  const fromFile = readProjectEnv().INFI_API_URL;
+  if (fromFile) return { url: fromFile.replace(/\/$/, ""), source: ".env.local" };
   return undefined;
 }
 
@@ -51,7 +64,7 @@ export function apiBase(flags: GlobalFlags): string {
   if (override) return override.url;
   // A saved profile records the host its key came from (local / self-host logins),
   // but an explicit --key or INFI_SECRET_KEY outranks it.
-  if (!flags.key && !process.env.INFI_SECRET_KEY) {
+  if (!flags.key && !process.env.INFI_SECRET_KEY && !readProjectEnv().INFI_SECRET_KEY) {
     const saved = getProfile(loadConfig(), flags.profile)?.baseUrl;
     if (saved) return saved.replace(/\/$/, "");
   }
@@ -72,7 +85,7 @@ export function provisioningApiBase(flags: GlobalFlags): string {
  * same reason the API host is: a sandbox tenant does not exist on the live app.
  */
 export function appBase(flags: GlobalFlags): string {
-  const fromEnv = process.env.INFI_APP_URL;
+  const fromEnv = process.env.INFI_APP_URL ?? readProjectEnv().INFI_APP_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   return resolveAppBase(resolveMode(flags));
 }
@@ -82,7 +95,10 @@ export function resolveSecretKey(flags: GlobalFlags): string {
   const key = findSecretKey(flags);
   if (key) return key;
   throw new InfiError(
-    "No API key found. Run `infi bootstrap` or `infi login`, or pass --key / INFI_SECRET_KEY.",
+    "No API key found. Run `infi login`, pass --key / INFI_SECRET_KEY, or run this " +
+      "from a directory whose .env.local has one. If you have never provisioned, " +
+      "`infi bootstrap` creates a tenant — do NOT run it to fix this error in a " +
+      "project that already has one, it provisions a second.",
     400,
     "missing_secret_key",
   );

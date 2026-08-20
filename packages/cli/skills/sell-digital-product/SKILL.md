@@ -106,8 +106,11 @@ Traps, all of them real:
 ## 4. Thank-you page: two polls, not two reads
 
 ```ts
-const paid = await infi.pay.waitForPaid({ slug, invoiceId, intervalMs: 700 });
-if (!paid) return render("aguardando", { invoiceId });
+// ALWAYS pass timeoutMs. It defaults to 600000 — ten minutes — so on an unpaid
+// invoice, which is the normal case and the exact branch below serves, the handler
+// hangs instead of rendering. Measured: still blocked at 25s without it.
+const paid = await infi.pay.waitForPaid({ slug, invoiceId, intervalMs: 700, timeoutMs: 15000 });
+if (!paid) return render("aguardando", { invoiceId });   // let them reload
 
 // Fulfillment runs AFTER confirmation, so the grant is not there the instant the
 // invoice flips. One read returns [] and you show a thank-you page with no
@@ -127,6 +130,15 @@ like a password: do not log it, do not put it in a shared URL.
 Infi also emails the buyer that link. Do not rely on it: `emailSentAt` stays null
 when the send fails, and an address that does not really exist (`@example.com`) is
 the case that catches people testing. Serve the download yourself.
+
+**The customer needs a real email to be charged at all.** `checkout()` accepts one
+without it and mints a finalized, numbered invoice — then `pay.charge` answers
+`500` with an empty `errors[]`, and that invoice can never be paid. `email: ""`
+does the same. Collect the address before creating the invoice.
+
+**Replacing a deliverable rewrites history.** A token minted for the old file
+redirects to the new one, so yesterday's buyer gets today's product. Publish a new
+product for a new edition rather than swapping the file under a sold one.
 
 ## 5. Verify it end to end
 

@@ -42,8 +42,13 @@ function withDescription(f: InfiErrorFix): InfiErrorFix {
 
 const FIXES: Record<string, InfiErrorFix> = {
   missing_secret_key: {
-    command: "infi claim create --json",
-    hint: "Set INFI_SECRET_KEY to a sk_test_... or sk_live_... key, or run infi login.",
+    // NOT `infi claim create`, which is what this said and which PROVISIONS A NEW
+    // TENANT. Two cold-start audits were told that while sitting in a project that
+    // already had one, so the suggested fix would have abandoned the tenant holding
+    // their product. A command that creates state is never the remedy for "I cannot
+    // find your existing state".
+    command: "infi doctor --json",
+    hint: "Set INFI_SECRET_KEY, pass --key, or run from a directory whose .env.local has one. Run `infi login` to save a profile. Only run `infi bootstrap` if you have never provisioned — it creates a tenant.",
     docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   invalid_key: {

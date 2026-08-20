@@ -136,14 +136,16 @@ describe("err.fix", () => {
   it("interpolates as one readable line", () => {
     const fix = fixForCode("missing_secret_key");
     expect(String(fix)).toContain("INFI_SECRET_KEY");
-    expect(String(fix)).toContain("Run: infi claim create --json");
+    expect(String(fix)).toContain("Run: infi doctor --json");
+    // Never a command that CREATES state as the remedy for "cannot find your state".
+    expect(String(fix)).not.toContain("infi claim create");
     expect(String(fix)).not.toBe("[object Object]");
   });
 
   it("still serializes as a plain object, for agents that parse it", () => {
     const parsed = JSON.parse(JSON.stringify(fixForCode("missing_secret_key")));
     expect(parsed).toEqual({
-      command: "infi claim create --json",
+      command: "infi doctor --json",
       hint: expect.stringContaining("INFI_SECRET_KEY"),
       docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
     });

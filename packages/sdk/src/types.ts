@@ -40,6 +40,7 @@ export type Deliverable = components["schemas"]["Deliverable"];
 export type PresignDeliverableRequest = components["schemas"]["PresignDeliverableRequest"];
 export type PresignDeliverableResponse = components["schemas"]["PresignDeliverableResponse"];
 export type PutDeliverableRequest = components["schemas"]["PutDeliverableRequest"];
+export type Tenant = components["schemas"]["Tenant"];
 export type ApiKey = components["schemas"]["ApiKey"];
 export type CreatedApiKey = components["schemas"]["CreatedApiKey"];
 export type CLITokenResponse = components["schemas"]["CLITokenResponse"];

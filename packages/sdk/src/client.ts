@@ -6,6 +6,7 @@ import {
 } from "./errors.js";
 import { Transport, newIdempotencyKey } from "./http.js";
 import { resolveUsageValue, resolveMeterMode, resolveCustomerId, type MeterOptions } from "./meter.js";
+import { AccountResource } from "./resources/account.js";
 import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
 import { UsageResource } from "./resources/usage.js";
@@ -97,6 +98,8 @@ export class Infi {
   readonly #appBase: string;
 
   /** Catalog: products, versions, prices, meters. */
+  /** The tenant itself — the merchant name and terms the buyer sees. */
+  readonly account: AccountResource;
   readonly products: ProductsResource;
   /** Customers: rate-cards (per-org pricing) and credits. */
   readonly customers: CustomersResource;
@@ -148,6 +151,7 @@ export class Infi {
     this.#appBase = resolveAppBase(this.#mode, cfg.appUrl);
 
     const transport = new Transport(this.#apiBase, this.#secretKey);
+    this.account = new AccountResource(transport);
     this.products = new ProductsResource(transport);
     this.customers = new CustomersResource(transport);
     this.usage = new UsageResource(transport);

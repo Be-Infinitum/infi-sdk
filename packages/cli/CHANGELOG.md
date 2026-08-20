@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.4 — 2026-08-20
+
+### Fixed
+- **The CLI wrote `.env.local` and could not read it back.** `bootstrap` and `init`
+  write `INFI_SECRET_KEY` there, and key resolution only looked at `--key`, the real
+  environment, and a saved profile — so `infi sync` / `doctor` / `pull` in that same
+  directory, seconds later, failed with `missing_secret_key`. `doctor` passed *inside*
+  bootstrap and failed alone five minutes later. Two independent cold-start audits hit
+  it, and the error then told them to run `infi claim create`, which would have
+  provisioned a second tenant and abandoned their product.
+  The project file now sits between the real environment and the saved profile: more
+  specific than a global login, less explicit than an exported variable.
+  `INFI_API_URL` / `INFI_APP_URL` are honoured from it too, which is what makes
+  `init --local` keep talking to localhost across commands.
+
 ## 0.2.3 — 2026-08-20
 
 ### Fixed
