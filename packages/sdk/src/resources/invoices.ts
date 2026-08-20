@@ -26,6 +26,15 @@ export interface DeliverableGrant {
   downloadUrl: string;
   /** When the buyer's email went out. Absent if it hasn't — see `deliverable()`. */
   emailSentAt?: string;
+  /**
+   * Set once the download was turned off — by a full refund or a chargeback on
+   * the payment behind it. Present means `downloadUrl` now answers 410, so stop
+   * rendering the button.
+   *
+   * Revoked grants stay in the list rather than disappearing: a grant that
+   * vanished would look like fulfillment never ran.
+   */
+  revokedAt?: string;
   createdAt: string;
 }
 

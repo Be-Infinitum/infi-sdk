@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.10.8 — 2026-08-20
+
+### Added
+- **`infi.payments`** — `list()`, `get()`, `listForInvoice()`, `refund()`, `refunds()`.
+  Refunds had a backend route, a contract entry, provider adapters and no SDK method
+  at all: the only way to send money back was raw HTTP against a URL found in the
+  route table. There was also no way to read what you had refunded — the query
+  existed in generated code with no caller.
+- **`payments.refund(id, { revokeAccess })`** and **`DeliverableGrant.revokedAt`**.
+  A refund used to return the money and leave the buyer's download link working
+  forever; the token has no expiry and there was no off switch. Now a FULL refund
+  revokes it (the link answers `410 download_revoked`) and a partial one does not —
+  R$5 back on a R$100 guide is goodwill, not a cancellation. `revokeAccess`
+  overrides both ways; omit it to get the derived behaviour, which is the one you
+  want. Requires the backend deployed with migration `000100`.
+- **`Payment.refundedAmount`** — read this, never `status`, to tell a partial refund
+  from a full one. A partial refund also sets `status` to `"refunded"`, so the
+  status alone reports R$5 handed back as the entire sale reversed.
+- **`Refund` type** and `GET /billing/payments/{id}/refunds`, the only place the
+  individual amounts, dates and reason text are kept.
+
+### Notes
+- Refunding does **not** reverse prepaid credits. The money comes back and the
+  credits stay spendable — deliberately, because a buyer who consumed 800 of 1000
+  has no obvious right answer. Debit the remainder yourself.
+- The invoice stays `paid` after a refund, on purpose: accounting reverses a fact
+  rather than erasing it. Net your sales reports with `refundedAmount`.
+
 ## 0.10.7 — 2026-08-20
 
 ### Added

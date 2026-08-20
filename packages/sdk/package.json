@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/sdk",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "description": "Infi SDK — email-code auth and revenue infrastructure for technical founders",
   "license": "MIT",
   "type": "module",

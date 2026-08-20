@@ -1378,6 +1378,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/payments/{paymentID}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List the refunds recorded against a payment
+         * @description Every refund of this payment, oldest first. A payment may be refunded in parts, so this is what explains a Payment.refundedAmount that is neither zero nor the full amount — and the only place the reason text is kept.
+         */
+        get: operations["listRefunds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/invoices/{invoiceID}/deliverable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List the download grants an invoice's payments produced
+         * @description The buyer's download links, so a merchant can serve the file from their own thank-you page instead of relying on the fulfillment email.
+         *     Requires a SECRET key with billing:read — the token in downloadUrl is a bearer capability for a paid product, so a browser-safe pk_ key cannot read it.
+         *     An empty list is a 200, never a 404: an invoice that is unpaid, whose product has no deliverable, or whose fulfillment has not run yet is a real state to poll, and a 404 could not be told apart from a wrong id.
+         */
+        get: operations["listInvoiceDeliverableGrants"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/customers/{customerID}/payment-methods": {
         parameters: {
             query?: never;
@@ -2442,6 +2488,35 @@ export interface components {
             amount?: string;
             proration?: boolean;
         };
+        Refund: {
+            /** Format: uuid */
+            id?: string;
+            /** @description Decimal string. */
+            amount?: string;
+            reason?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        DeliverableGrant: {
+            /** Format: uuid */
+            paymentId?: string;
+            /** @description The bearer capability inside downloadUrl. Treat it like a password: anyone holding it downloads the paid product with no further proof of purchase. */
+            token?: string;
+            /** @description Buyer-facing download link. Answers 410 once revokedAt is set. */
+            downloadUrl?: string;
+            /**
+             * Format: date-time
+             * @description When the fulfillment email carrying this link went out.
+             */
+            emailSentAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When the download was turned off, set by a full refund or a chargeback on the payment behind it. Non-null means downloadUrl now answers 410 — stop rendering the button. Revoked grants are returned rather than hidden, because a grant that silently vanished would look like fulfillment never ran.
+             */
+            revokedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
         Payment: {
             /** Format: uuid */
             id?: string;
@@ -2456,6 +2531,8 @@ export interface components {
             currency?: string;
             /** @enum {string} */
             status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
+            /** @description Total returned so far, as a decimal string; absent when nothing was refunded. Read this rather than the status to tell a partial refund from a full one — a PARTIAL refund also sets status to `refunded`, so the status alone reports R$5 handed back as the whole sale reversed. Present on the tenant-facing reads only. */
+            refundedAmount?: string;
             /** Format: date-time */
             createdAt?: string;
             /** @description Who paid, resolved through the invoice (ad-hoc invoices name a tenant customer directly, subscription invoices name a product enrollment). Present only on the tenant-facing dashboard reads — GET /billing/payments and GET /billing/payments/{paymentID}. Null when the invoice has no resolvable customer. */
@@ -5382,6 +5459,8 @@ export interface operations {
                     /** @description Decimal string. Empty or omitted means a full refund. */
                     amount?: string;
                     reason?: string;
+                    /** @description Whether the buyer's digital-product download stops working. OMIT IT to get the derived behaviour, which is what you almost always want: a full refund revokes the download, a partial one leaves it alone (R$5 back on a R$100 guide is goodwill, not a cancellation). Send false to refund in full and still let the buyer keep the file; send true to cut access on a partial refund. Revoking makes the download URL answer 410. */
+                    revokeAccess?: boolean;
                 };
             };
         };
@@ -5398,6 +5477,58 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listRefunds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refunds */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        refunds?: components["schemas"]["Refund"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listInvoiceDeliverableGrants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Grants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        grants?: components["schemas"]["DeliverableGrant"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listPaymentMethods: {

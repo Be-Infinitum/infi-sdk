@@ -11,6 +11,7 @@ import { ProductsResource } from "./resources/products.js";
 import { CustomersResource } from "./resources/customers.js";
 import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
+import { PaymentsResource } from "./resources/payments.js";
 import { CouponsResource } from "./resources/coupons.js";
 import { LinksResource } from "./resources/links.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
@@ -107,6 +108,12 @@ export class Infi {
   readonly usage: UsageResource;
   /** Invoices: create, send, void, charge, generate-from-subscription. */
   readonly invoices: InvoicesResource;
+  /**
+   * Payments, and the only way to send money back. Refunds live here rather than
+   * on `invoices` because the refund is against a PAYMENT — an invoice may have
+   * several attempts, and only one of them took the money.
+   */
+  readonly payments: PaymentsResource;
   /** Coupons: tenant-wide merchant discounts for subscription invoices. */
   readonly coupons: CouponsResource;
   /** Payment links: share a URL, get paid. */
@@ -156,6 +163,7 @@ export class Infi {
     this.customers = new CustomersResource(transport);
     this.usage = new UsageResource(transport);
     this.invoices = new InvoicesResource(transport);
+    this.payments = new PaymentsResource(transport);
     this.coupons = new CouponsResource(transport);
     this.links = new LinksResource(transport, this.#appBase);
     this.subscriptions = new SubscriptionsResource(transport);
