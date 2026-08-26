@@ -19,6 +19,7 @@ import { WebhooksResource } from "./resources/webhooks-resource.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
 import { PayResource } from "./resources/pay.js";
 import { ProvidersResource } from "./resources/providers.js";
+import { RailResource } from "./resources/rail.js";
 import { MeteringSession } from "./meter-session.js";
 import { verifyWebhook, type WebhookEvent, type WebhookInput } from "./webhooks.js";
 import {
@@ -142,6 +143,12 @@ export class Infi {
    * provider does the charging.
    */
   readonly providers: ProvidersResource;
+  /**
+   * Infi Rail: selling one HTTP request to an agent that never signed up
+   * (x402). The seller side only — this client never holds a wallet and never
+   * signs. Mount it with `requirePayment` from `@beinfi/sdk/rail`.
+   */
+  readonly rail: RailResource;
 
   constructor(config: InfiConfig | string) {
     // No key is required for the public endpoints (email-code login, pay). The
@@ -171,6 +178,7 @@ export class Infi {
     this.webhooks = new WebhooksResource(transport);
     this.pay = new PayResource(this.#apiBase);
     this.providers = new ProvidersResource(transport);
+    this.rail = new RailResource(transport);
   }
 
   /** `"sandbox"` or `"live"` — the resolved mode. */
