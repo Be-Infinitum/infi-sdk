@@ -272,9 +272,24 @@ function pricesEqual(current: Price[], desired: DesiredPrice[]): boolean {
 function versionFieldsEqual(v: Version, p: BillingProduct): boolean {
   return (
     normNum(v.basePrice) === normNum(p.basePrice) &&
-    normNum(versionCycleGrant(v)) === normNum(cycleGrantAmount(p)) &&
+    grantsEqual(v, p) &&
     (v.billingCycle ?? null) === (p.billingCycle ?? null)
   );
+}
+
+/**
+ * Compare ALL grants, cycle and payment.
+ *
+ * Comparing only the cycle grant meant adding `on: "payment"` to a product that
+ * already existed reported `skip` and applied nothing — the grant silently
+ * never reached the tenant.
+ */
+function grantsEqual(v: Version, p: BillingProduct): boolean {
+  const key = (g: { meter: string; amount: string; on: string }) =>
+    `${g.meter}@${g.on}=${normNum(g.amount)}`;
+  const remote = (v.grants ?? []).map(key).sort();
+  const desired = versionGrants(p).map(key).sort();
+  return remote.length === desired.length && remote.every((x, i) => x === desired[i]);
 }
 
 /** Metadata patch for an existing product (only changed fields). */

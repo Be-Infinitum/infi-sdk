@@ -370,6 +370,84 @@ describe("syncBilling", () => {
     ).resolves.toBeDefined();
   });
 
+  // Drift only ever compared the CYCLE grant, so adding on:"payment" to a
+  // product that already exists reported skip and applied nothing — the grant
+  // silently never reached the tenant.
+  it("bumps the version when a payment grant is added to an existing product", async () => {
+    const state: any = {
+      products: [{ id: "prod_1", key: "topup", name: "topup", type: "item", pricingModel: "one_time", currency: "BRL" }],
+      meters: { prod_1: [] },
+      versions: {
+        prod_1: [
+          { id: "ver_1", status: "published", billingCycle: null, basePrice: "19.90", grants: [] },
+        ],
+      },
+      prices: { ver_1: [] },
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    const r = await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      }),
+    );
+
+    const version = r.actions.find((a) => a.resource === "version");
+    expect(version?.action).toBe("bump");
+    expect(calls.versionCreate).toBe(1);
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body.grants).toEqual([{ meter: "tokens", amount: "500000", on: "payment" }]);
+  });
+
+  it("does not bump when the payment grant already matches", async () => {
+    const state: any = {
+      products: [{ id: "prod_1", key: "topup", name: "topup", type: "item", pricingModel: "one_time", currency: "BRL" }],
+      meters: { prod_1: [] },
+      versions: {
+        prod_1: [
+          {
+            id: "ver_1",
+            status: "published",
+            billingCycle: null,
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      },
+      prices: { ver_1: [] },
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    const r = await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      }),
+    );
+
+    expect(r.actions.find((a) => a.resource === "version")?.action).toBe("skip");
+    expect(calls.versionCreate).toBe(0);
+  });
+
   it("omits grants entirely when the product has none", async () => {
     const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
     await syncBilling(infi, CONFIG);
