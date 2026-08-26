@@ -131,10 +131,16 @@ Infi also emails the buyer that link. Do not rely on it: `emailSentAt` stays nul
 when the send fails, and an address that does not really exist (`@example.com`) is
 the case that catches people testing. Serve the download yourself.
 
-**The customer needs a real email to be charged at all.** `checkout()` accepts one
-without it and mints a finalized, numbered invoice — then `pay.charge` answers
-`500` with an empty `errors[]`, and that invoice can never be paid. `email: ""`
-does the same. Collect the address before creating the invoice.
+**The customer needs a name OR an email — not both, but not neither.**
+`checkout()` accepts a customer with neither and mints a finalized, numbered
+invoice; then `pay.charge` answers `422 customer_name_required` and that invoice
+can never be paid (clean it up with `invoices.void(invoiceId)`). Measured: name
+only and email only each charge fine. Send an email anyway if you want the buyer
+to receive the download link.
+
+**Pix also needs `taxId`.** Same shape of trap: the `422 customer_tax_id_required`
+arrives at `pay.charge`, not at `checkout()`, because the document is required by
+the provider of the *method* and the method is only chosen at charge time.
 
 **Replacing a deliverable rewrites history.** A token minted for the old file
 redirects to the new one, so yesterday's buyer gets today's product. Publish a new
@@ -144,3 +150,21 @@ product for a new edition rather than swapping the file under a sold one.
 
 See the `test-payment-in-sandbox` skill: in sandbox you confirm the payment
 yourself, with no provider credential, so this whole flow is testable in CI.
+
+## 6. Refunds turn the download off
+
+A **full** refund revokes the buyer's link — it starts answering
+`410 download_revoked`, and the grant comes back with `revokedAt` set. A
+**partial** refund does not. Override with `revokeAccess` only if you mean to.
+
+```ts
+const [payment] = await infi.payments.listForInvoice(invoiceId);
+await infi.payments.refund(payment.id, { reason: "buyer asked" });
+
+// Reading it back: status is "refunded" even for a partial, so read the amount.
+const p = await infi.payments.get(payment.id);
+p.refundedAmount; // "5.00" — status alone would have said the whole sale reversed
+```
+
+Your own access (members area, Discord role, API key) is yours to cut: subscribe
+to `payment.refunded` and read `accessRevoked` on the event.

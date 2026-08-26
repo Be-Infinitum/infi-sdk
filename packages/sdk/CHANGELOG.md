@@ -1,6 +1,56 @@
 # Changelog
 
-## 0.10.8 — 2026-08-20
+## 0.11.0 — 2026-08-26
+
+Saiu de construir um app de crédito pré-pago contra a 0.10.7 publicada. Cinco
+correções, três delas de drift entre a SDK e o backend.
+
+### Breaking
+- **`BillingPrice.meter` agora é obrigatório.** O tipo dizia "omit for a flat
+  base fee" e o backend responde 422 exigindo `meterId` — mas só no *publish*,
+  que `--plan` nunca alcança. O plano vinha verde e o apply quebrava no meio,
+  com os produtos já criados. Valor flat vai em `basePrice`; `prices[]` é taxa
+  por meter. `assertValidConfig()` roda antes de qualquer escrita, para quem
+  chama de JS puro.
+
+### Fixed
+- **`sync` aplica grants `on: "payment"`.** Eram descartados como "not supported
+  yet", enquanto o backend implementa desde a ADR 0021
+  (`product_version_grants` + `internal/metergrant`). Todo top-up pré-pago
+  precisava escrever endpoint de webhook, verificação de assinatura, resolução
+  de produto, mapa produto→crédito, `wallet.credit` e idempotência própria —
+  seis peças para o que a plataforma já fazia. Agora é uma linha:
+  `grants: [{ meter: "tokens", amount: "500000", on: "payment" }]`.
+- **Drift compara todos os grants.** `versionFieldsEqual` olhava só o de ciclo,
+  então adicionar `on: "payment"` a um produto existente reportava `skip` e não
+  aplicava nada. Só funcionava em produto novo.
+- **Tipos de webhook derivam do OpenAPI.** Eram escritos à mão e divergiram:
+  a união de eventos omitia `invoice.paid`, `payment.refunded` e
+  `payment.chargeback` (quem lia concluía que não existiam);
+  `PaymentConfirmedData` não tinha `customerId`; `CustomerCreatedData` não tinha
+  `country`; e `payment.refunded` era mapeado em `PaymentFailedData`, perdendo
+  `amount`, `currency` e `accessRevoked`. Um teste de contrato falha se
+  divergirem de novo.
+
+### Added
+- **`WEBHOOK_EVENT_TYPES`** — lista de runtime dos eventos com payload
+  documentado. `WebhookEventType` é `union | (string & {})`: o conhecido
+  autocompleta, o desconhecido passa. O despacho no backend casa por
+  `event_type = ANY(events)` sem allowlist, então fechar a união recusaria
+  eventos reais.
+- **`InvoicePaidData`, `PaymentReversedData`** e `customerId`/`payerId` em
+  `PaymentConfirmedData` — acompanham a mudança de payload no backend
+  (Be-Infinitum/backend#149).
+- **Seção de webhooks no README**, com a chave de dedupe correta: a fatura, não
+  o id do evento. Duas entregas com ids distintos para a mesma fatura ainda são
+  uma compra só.
+
+---
+
+### Também nesta versão (era a 0.10.8, nunca publicada)
+
+O npm foi de 0.10.7 direto para cá, então o que estava marcado como 0.10.8
+sai junto — quem atualiza recebe as duas coisas de uma vez.
 
 ### Added
 - **`infi.payments`** — `list()`, `get()`, `listForInvoice()`, `refund()`, `refunds()`.
@@ -27,6 +77,7 @@
   has no obvious right answer. Debit the remainder yourself.
 - The invoice stays `paid` after a refund, on purpose: accounting reverses a fact
   rather than erasing it. Net your sales reports with `refundedAmount`.
+
 
 ## 0.10.7 — 2026-08-20
 

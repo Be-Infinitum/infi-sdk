@@ -210,6 +210,66 @@ const state = await infi.customers.state("enr_123");
 const lastMonth = await infi.customers.state("enr_123", { from: "2026-06-01", to: "2026-07-01" });
 ```
 
+## Webhooks
+
+Verify every inbound event — signature and timestamp — before acting on it. The
+event type travels in a header, not in the body:
+
+```ts
+import { verifyWebhook, WEBHOOK_EVENT_TYPES, type PaymentConfirmedData } from "@beinfi/sdk";
+
+const event = infi.verifyWebhook<PaymentConfirmedData>(
+  {
+    id: req.headers["x-webhook-id"],
+    timestamp: req.headers["x-webhook-timestamp"],
+    signature: req.headers["x-webhook-signature"],
+    eventType: req.headers["x-webhook-event-type"],
+    body: rawBody, // exact bytes — a re-serialized JSON will not verify
+  },
+  process.env.INFI_WEBHOOK_SECRET!,
+);
+```
+
+`WEBHOOK_EVENT_TYPES` is the runtime list of what the backend emits. `sync`
+validates declared events against it, so a typo fails before it registers an
+endpoint that can never fire.
+
+### Deduplicate on the invoice, not on the event
+
+Delivery is at-least-once. In a flow that moves money — crediting a wallet,
+granting access — processing the same event twice is free balance, so
+idempotency is yours to own.
+
+**The obvious key is the wrong one.** Keying on the event id lets two distinct
+deliveries for the same invoice both through; they are still one purchase. Key
+on the invoice:
+
+```ts
+const key = `invoice:${event.data.invoiceId}`;
+if (await wasProcessed(key)) return ok();
+await markProcessed(key);   // mark BEFORE the effect
+await creditWallet(...);
+```
+
+Mark before the effect, not after: a crash in between costs one lost credit,
+which is recoverable. The other order costs a duplicate credit, which is money.
+
+Answer 2xx for anything you decided not to act on. A 4xx tells the backend to
+redeliver an event that will never succeed.
+
+### You may not need a webhook at all
+
+To credit a wallet when someone buys a top-up, declare the grant and let the
+platform do it — no endpoint, no signature check, no idempotency of your own:
+
+```ts
+{ key: "topup-500k", type: "item", pricingModel: "one_time", basePrice: "19.90",
+  grants: [{ meter: "tokens", amount: "500000", on: "payment" }] }
+```
+
+`on: "payment"` credits on `payment.confirmed`; `on: "cycle"` credits at each
+period open.
+
 ## React
 
 `UsagePanel` renders a customer's credit balance, usage per meter (with rated amount when

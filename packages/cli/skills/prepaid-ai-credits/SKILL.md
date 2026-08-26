@@ -99,3 +99,8 @@ the `sell-digital-product` skill for the checkout and thank-you page, and
 - **`creditsPerCycle` is gone.** Use `grants: [{ meter, amount, on: "cycle" }]`.
 - The balance may go negative: the gate applies before the work, and the deficit at
   cycle close is the overage.
+- **Refunding a credit pack does NOT remove the credits.** The money goes back and
+  the balance stays spendable — the wallet has only grant and consume entries, and
+  a refund writes neither. If you refund a top-up, debit the unconsumed remainder
+  yourself. There is no obvious right answer when the buyer already spent 800 of
+  1000, which is exactly why it is not automatic.

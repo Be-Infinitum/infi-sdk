@@ -7,6 +7,7 @@ import type {
   Version,
   WebhookEndpoint,
 } from "./types.js";
+import type { WebhookEventType } from "./webhooks.js";
 
 // ── Declarative company config ("company as code" — ADR 0004)
 // Legacy name: billing as code. Prefer defineCompany() in new code. ───────────
@@ -25,8 +26,11 @@ export interface BillingMeter {
 }
 
 export interface BillingPrice {
-  /** Meter key this price rates; omit for a flat base fee. */
-  meter?: string;
+  /**
+   * Meter key this price rates. Required: the backend treats every price as a
+   * meter rate. A flat amount is not a price — it is the product's `basePrice`.
+   */
+  meter: string;
   model: PriceInput["model"];
   unitAmount?: string;
   currency?: string;
@@ -35,8 +39,8 @@ export interface BillingPrice {
 
 /**
  * Declarative meter grant on the plan.
- * `on: "cycle"` maps to today's `creditsPerCycle` and is applied.
- * `on: "payment"` is not supported yet — `sync` skips it and reports why.
+ * `on: "cycle"` credits at period open/renew; `on: "payment"` credits on
+ * `payment.confirmed` (backend ADR 0021). Both ride on the published version.
  */
 export interface BillingGrant {
   /** Catalog meter key (same as meters[].key). */
@@ -85,6 +89,44 @@ export function cycleGrant(p: BillingProduct): BillingGrant | null {
 }
 
 /**
+ * Pre-flight config validation.
+ *
+ * The backend rejects a price without a meter — "prices are meter rates; flat
+ * amounts live on the version's base price" — but only at PUBLISH, which
+ * `--plan` never reaches. Without this check a plan came back green and the
+ * apply then died mid-flight with the products already created. On a live
+ * tenant that is worse than failing early.
+ */
+export function assertValidConfig(config: BillingConfig): void {
+  for (const p of config.products ?? []) {
+    for (const [i, pr] of (p.prices ?? []).entries()) {
+      if (!pr.meter) {
+        throw new Error(
+          `${p.key}: prices[${i}] has no meter. Prices are per-meter rates; ` +
+            `a flat amount belongs in the product's basePrice.`,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Every grant the version should carry — `on: "cycle"` and `on: "payment"`.
+ *
+ * The backend has supported `on_event=payment` since ADR 0021
+ * (`product_version_grants` + `internal/metergrant`, which credits the wallet
+ * on `payment.confirmed`). Sync used to drop those, which forced every prepaid
+ * top-up to hand-roll a webhook, a product lookup and its own idempotency for
+ * something the platform already did.
+ */
+export function versionGrants(p: BillingProduct): BillingGrant[] {
+  const declared = p.grants ?? [];
+  if (declared.length > 0) return declared;
+  const legacy = cycleGrant(p);
+  return legacy ? [legacy] : [];
+}
+
+/**
  * The cycle grant a PUBLISHED version actually carries.
  *
  * The backend dropped `product_versions.credits_per_cycle` (migration 000098) in
@@ -100,7 +142,12 @@ export function versionCycleGrant(v: Version | undefined): string | null {
 export interface BillingWebhook {
   /** Stable natural key — the delivery URL. */
   url: string;
-  events: string[];
+  /**
+   * Derived from the backend's enum, so an event the backend never emits is a
+   * compile error. `assertValidConfig` repeats the check at runtime for JS
+   * callers.
+   */
+  events: WebhookEventType[];
   isActive?: boolean;
 }
 
@@ -220,9 +267,24 @@ function pricesEqual(current: Price[], desired: DesiredPrice[]): boolean {
 function versionFieldsEqual(v: Version, p: BillingProduct): boolean {
   return (
     normNum(v.basePrice) === normNum(p.basePrice) &&
-    normNum(versionCycleGrant(v)) === normNum(cycleGrantAmount(p)) &&
+    grantsEqual(v, p) &&
     (v.billingCycle ?? null) === (p.billingCycle ?? null)
   );
+}
+
+/**
+ * Compare ALL grants, cycle and payment.
+ *
+ * Comparing only the cycle grant meant adding `on: "payment"` to a product that
+ * already existed reported `skip` and applied nothing — the grant silently
+ * never reached the tenant.
+ */
+function grantsEqual(v: Version, p: BillingProduct): boolean {
+  const key = (g: { meter: string; amount: string; on: string }) =>
+    `${g.meter}@${g.on}=${normNum(g.amount)}`;
+  const remote = (v.grants ?? []).map(key).sort();
+  const desired = versionGrants(p).map(key).sort();
+  return remote.length === desired.length && remote.every((x, i) => x === desired[i]);
 }
 
 /** Metadata patch for an existing product (only changed fields). */
@@ -309,11 +371,11 @@ async function publishVersion(
   // The backend dropped product_versions.credits_per_cycle (migration 000098) and
   // now answers 422 "unrecognized field" for it, so the allowance goes over as a
   // meter grant. Sending the old field failed every sync, and with it bootstrap.
-  const grant = cycleGrant(p);
+  const grants = versionGrants(p);
   const version = await infi.products.versions.create(productId, {
     billingCycle: p.billingCycle ?? null,
     basePrice: p.basePrice ?? null,
-    ...(grant ? { grants: [grant] } : {}),
+    ...(grants.length > 0 ? { grants } : {}),
   });
   for (const pr of p.prices ?? []) {
     const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
@@ -371,7 +433,7 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
     const prev = ctx.prevLock?.webhooks?.[w.url];
     const preState = webhookFingerprint(match);
     const drifted = Boolean(prev && prev.state !== preState);
-    const patch: { events?: string[]; isActive?: boolean } = {};
+    const patch: { events?: WebhookEventType[]; isActive?: boolean } = {};
     if (!arrEq(match.events, w.events)) patch.events = w.events;
     if (w.isActive !== undefined && match.isActive !== w.isActive) patch.isActive = w.isActive;
     const changed = Object.keys(patch);
@@ -416,6 +478,8 @@ export async function syncBilling(
   config: BillingConfig,
   opts: SyncOptions = {},
 ): Promise<SyncResult> {
+  assertValidConfig(config);
+
   const plan = opts.plan ?? false;
   const force = opts.force ?? false;
   const now = opts.now ?? new Date().toISOString();
@@ -565,23 +629,14 @@ export async function syncBilling(
       }
     }
 
-    // Grants — cycle rides on the version via publishVersion; payment needs backend ADR 0005.
+    // Grants ride on the version via publishVersion — both cycle and payment.
     for (const g of p.grants ?? []) {
-      if (g.on === "cycle") {
-        actions.push({
-          action: "skip",
-          resource: "grant",
-          ref: `${name}/${g.meter}@cycle`,
-          detail: `sent as a version grant (${g.amount})`,
-        });
-      } else {
-        actions.push({
-          action: "skip",
-          resource: "grant",
-          ref: `${name}/${g.meter}@payment`,
-          detail: "grants on payment are not supported yet — not applied",
-        });
-      }
+      actions.push({
+        action: "skip",
+        resource: "grant",
+        ref: `${name}/${g.meter}@${g.on}`,
+        detail: `sent as a version grant (${g.amount})`,
+      });
     }
 
     // Deliverable (link only in sync; file uploads go through presign/save).

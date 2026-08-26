@@ -200,6 +200,258 @@ describe("syncBilling", () => {
     expect(body.grants).toEqual([{ meter: "credits", amount: "50", on: "cycle" }]);
   });
 
+  // The backend has shipped on_event=payment grants since ADR 0021
+  // (product_version_grants + internal/metergrant credits the wallet on
+  // payment.confirmed). Sync refusing to send them forced every prepaid
+  // top-up integration to hand-roll a webhook, a product lookup and its own
+  // idempotency for something the platform already does.
+  it("sends grants on payment, not just on cycle", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      }),
+    );
+
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body.grants).toEqual([{ meter: "tokens", amount: "500000", on: "payment" }]);
+  });
+
+  it("sends cycle and payment grants together", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "hybrid",
+            type: "agent",
+            pricingModel: "prepaid",
+            currency: "BRL",
+            billingCycle: "monthly",
+            grants: [
+              { meter: "tokens", amount: "50000", on: "cycle" },
+              { meter: "tokens", amount: "500000", on: "payment" },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body.grants).toEqual([
+      { meter: "tokens", amount: "50000", on: "cycle" },
+      { meter: "tokens", amount: "500000", on: "payment" },
+    ]);
+  });
+
+  it("reports a payment grant as applied, not as skipped", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    const r = await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      }),
+    );
+
+    const grant = r.actions.find((a) => a.resource === "grant");
+    expect(grant?.detail).toContain("500000");
+    expect(grant?.detail).not.toContain("not supported");
+  });
+
+  // The backend answers 422 "meterId is required: prices are meter rates; flat
+  // amounts live on the version's base price" — but only at publish, which
+  // `--plan` never reaches. A green plan then broke mid-apply with the products
+  // already created. Catch it before anything is written.
+  it("rejects a price without a meter at plan time, before writing anything", async () => {
+    const { infi, calls } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    const config = defineBilling({
+      products: [
+        {
+          key: "topup",
+          type: "item",
+          pricingModel: "one_time",
+          currency: "BRL",
+          // Cast deliberado: o tipo agora impede isto em TS, e a guarda de
+          // runtime existe para quem chama de JS puro ou ignora o tipo.
+          prices: [{ model: "flat", unitAmount: "19.90" } as never],
+        },
+      ],
+    });
+
+    await expect(syncBilling(infi, config, { plan: true })).rejects.toThrow(/basePrice/);
+    expect(calls.create).toBe(0);
+    expect(calls.versionCreate).toBe(0);
+  });
+
+  it("names the offending product and price in the message", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    const config = defineBilling({
+      products: [
+        {
+          key: "topup",
+          type: "item",
+          pricingModel: "one_time",
+          currency: "BRL",
+          // Cast deliberado: o tipo agora impede isto em TS, e a guarda de
+          // runtime existe para quem chama de JS puro ou ignora o tipo.
+          prices: [{ model: "flat", unitAmount: "19.90" } as never],
+        },
+      ],
+    });
+
+    await expect(syncBilling(infi, config)).rejects.toThrow(/topup/);
+  });
+
+  it("accepts a flat amount expressed as basePrice", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+          },
+        ],
+      }),
+    );
+
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body.basePrice).toBe("19.90");
+  });
+
+  // NÃO recusar nome de evento é deliberado. O despacho casa por
+  // `event_type = ANY(events)` sem allowlist, e o outbox carrega famílias
+  // inteiras fora do enum documentado (payout.*, plan.*, usage.*). Uma versão
+  // anterior recusava, e passou a quebrar `checkout.session.completed` e
+  // `usage.threshold_reached` — eventos reais.
+  it("aceita evento fora do enum documentado, porque o backend aceita", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {}, webhooks: [] });
+    const config = defineBilling({
+      products: [],
+      webhooks: [{ url: "https://example.com/hook", // Cast deliberado: o tipo agora recusa isto, e a guarda de runtime existe
+        // para quem chama de JS puro.
+        events: ["invoice.payed" as never] }],
+    });
+
+    await expect(syncBilling(infi, config, { plan: true })).resolves.toBeDefined();
+  });
+
+  it("accepts every event the backend emits", async () => {
+    const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {}, webhooks: [] });
+    await expect(
+      syncBilling(
+        infi,
+        defineBilling({
+          products: [],
+          webhooks: [{ url: "https://example.com/hook", events: ["invoice.paid", "payment.refunded"] }],
+        }),
+        { plan: true },
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  // Drift only ever compared the CYCLE grant, so adding on:"payment" to a
+  // product that already exists reported skip and applied nothing — the grant
+  // silently never reached the tenant.
+  it("bumps the version when a payment grant is added to an existing product", async () => {
+    const state: any = {
+      products: [{ id: "prod_1", key: "topup", name: "topup", type: "item", pricingModel: "one_time", currency: "BRL" }],
+      meters: { prod_1: [] },
+      versions: {
+        prod_1: [
+          { id: "ver_1", status: "published", billingCycle: null, basePrice: "19.90", grants: [] },
+        ],
+      },
+      prices: { ver_1: [] },
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    const r = await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      }),
+    );
+
+    const version = r.actions.find((a) => a.resource === "version");
+    expect(version?.action).toBe("bump");
+    expect(calls.versionCreate).toBe(1);
+    const body = (infi.products.versions.create as any).mock.calls[0][1];
+    expect(body.grants).toEqual([{ meter: "tokens", amount: "500000", on: "payment" }]);
+  });
+
+  it("does not bump when the payment grant already matches", async () => {
+    const state: any = {
+      products: [{ id: "prod_1", key: "topup", name: "topup", type: "item", pricingModel: "one_time", currency: "BRL" }],
+      meters: { prod_1: [] },
+      versions: {
+        prod_1: [
+          {
+            id: "ver_1",
+            status: "published",
+            billingCycle: null,
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      },
+      prices: { ver_1: [] },
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    const r = await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "topup",
+            type: "item",
+            pricingModel: "one_time",
+            currency: "BRL",
+            basePrice: "19.90",
+            grants: [{ meter: "tokens", amount: "500000", on: "payment" }],
+          },
+        ],
+      }),
+    );
+
+    expect(r.actions.find((a) => a.resource === "version")?.action).toBe("skip");
+    expect(calls.versionCreate).toBe(0);
+  });
+
   it("omits grants entirely when the product has none", async () => {
     const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
     await syncBilling(infi, CONFIG);
