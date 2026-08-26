@@ -343,17 +343,21 @@ describe("syncBilling", () => {
     expect(body.basePrice).toBe("19.90");
   });
 
-  // A webhook declared with an event the backend never emits registers an
-  // endpoint that can never fire — and you debug your handler instead of the
-  // event name. Fail on the name.
-  it("rejects a webhook event the backend does not emit", async () => {
+  // NÃO recusar nome de evento é deliberado. O despacho casa por
+  // `event_type = ANY(events)` sem allowlist, e o outbox carrega famílias
+  // inteiras fora do enum documentado (payout.*, plan.*, usage.*). Uma versão
+  // anterior recusava, e passou a quebrar `checkout.session.completed` e
+  // `usage.threshold_reached` — eventos reais.
+  it("aceita evento fora do enum documentado, porque o backend aceita", async () => {
     const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {}, webhooks: [] });
     const config = defineBilling({
       products: [],
-      webhooks: [{ url: "https://example.com/hook", events: ["invoice.payed"] }],
+      webhooks: [{ url: "https://example.com/hook", // Cast deliberado: o tipo agora recusa isto, e a guarda de runtime existe
+        // para quem chama de JS puro.
+        events: ["invoice.payed" as never] }],
     });
 
-    await expect(syncBilling(infi, config, { plan: true })).rejects.toThrow(/invoice\.payed/);
+    await expect(syncBilling(infi, config, { plan: true })).resolves.toBeDefined();
   });
 
   it("accepts every event the backend emits", async () => {

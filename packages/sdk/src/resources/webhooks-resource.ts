@@ -1,5 +1,6 @@
 import type { Transport } from "../http.js";
 import type { WebhookDelivery, WebhookEndpoint } from "../types.js";
+import type { WebhookEventType } from "../webhooks.js";
 
 export type CreatedWebhookEndpoint = WebhookEndpoint & {
   /** HMAC signing secret — returned only once at creation. */
@@ -8,12 +9,12 @@ export type CreatedWebhookEndpoint = WebhookEndpoint & {
 
 export type CreateWebhookInput = {
   url: string;
-  events: string[];
+  events: WebhookEventType[];
 };
 
 export type PatchWebhookInput = {
   isActive?: boolean;
-  events?: string[];
+  events?: WebhookEventType[];
 };
 
 /**

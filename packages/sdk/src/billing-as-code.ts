@@ -7,7 +7,7 @@ import type {
   Version,
   WebhookEndpoint,
 } from "./types.js";
-import { WEBHOOK_EVENT_TYPES } from "./webhooks.js";
+import type { WebhookEventType } from "./webhooks.js";
 
 // ── Declarative company config ("company as code" — ADR 0004)
 // Legacy name: billing as code. Prefer defineCompany() in new code. ───────────
@@ -98,16 +98,6 @@ export function cycleGrant(p: BillingProduct): BillingGrant | null {
  * tenant that is worse than failing early.
  */
 export function assertValidConfig(config: BillingConfig): void {
-  for (const w of config.webhooks ?? []) {
-    for (const e of w.events ?? []) {
-      if (!(WEBHOOK_EVENT_TYPES as readonly string[]).includes(e)) {
-        throw new Error(
-          `webhook ${w.url}: "${e}" is not an event the backend emits. ` +
-            `Supported: ${WEBHOOK_EVENT_TYPES.join(", ")}.`,
-        );
-      }
-    }
-  }
   for (const p of config.products ?? []) {
     for (const [i, pr] of (p.prices ?? []).entries()) {
       if (!pr.meter) {
@@ -152,7 +142,12 @@ export function versionCycleGrant(v: Version | undefined): string | null {
 export interface BillingWebhook {
   /** Stable natural key — the delivery URL. */
   url: string;
-  events: string[];
+  /**
+   * Derived from the backend's enum, so an event the backend never emits is a
+   * compile error. `assertValidConfig` repeats the check at runtime for JS
+   * callers.
+   */
+  events: WebhookEventType[];
   isActive?: boolean;
 }
 
@@ -438,7 +433,7 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
     const prev = ctx.prevLock?.webhooks?.[w.url];
     const preState = webhookFingerprint(match);
     const drifted = Boolean(prev && prev.state !== preState);
-    const patch: { events?: string[]; isActive?: boolean } = {};
+    const patch: { events?: WebhookEventType[]; isActive?: boolean } = {};
     if (!arrEq(match.events, w.events)) patch.events = w.events;
     if (w.isActive !== undefined && match.isActive !== w.isActive) patch.isActive = w.isActive;
     const changed = Object.keys(patch);

@@ -59,6 +59,7 @@ export {
   WEBHOOK_EVENT_TYPES,
   type CustomerCreatedData,
   type InvoicePaidData,
+  type PaymentReversedData,
   type InvoiceAmountData,
   type InvoiceRefData,
   type PaymentConfirmedData,

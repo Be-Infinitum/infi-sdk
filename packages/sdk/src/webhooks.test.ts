@@ -49,6 +49,10 @@ describe("WEBHOOK_EVENT_TYPES", () => {
     expect(WEBHOOK_EVENT_TYPES).toContain("payment.refunded");
     expect(WEBHOOK_EVENT_TYPES).toContain("payment.chargeback");
     expect(WEBHOOK_EVENT_TYPES).toContain("payment.confirmed");
+    // E os que uma união fechada demais recusava: checkout.session.* é como se
+    // confirma uma compra sem pagador logado.
+    expect(WEBHOOK_EVENT_TYPES).toContain("checkout.session.completed");
+    expect(WEBHOOK_EVENT_TYPES).toContain("invoice.auto_collection_failed");
   });
 
   it("narrows payment.confirmed to a payload that identifies the buyer", async () => {
@@ -73,5 +77,29 @@ describe("WEBHOOK_EVENT_TYPES", () => {
     );
     expect(ev.data.customerId).toBe("enr_1");
     expect(ev.data.payerId).toBe("cus_1");
+  });
+});
+
+// ── Contrato: os tipos escritos à mão têm que bater com o openapi.yaml ────────
+//
+// É por aqui que o drift entrava. WebhookEventType era uma união escrita à mão
+// que espelhava o backend sem nada checando se ainda batia — e ficou velha,
+// omitindo invoice.paid, payment.refunded e payment.chargeback. Quem lia o tipo
+// concluía que os eventos não existiam.
+//
+// Agora o backend declara o enum no openapi.yaml, o codegen o traz, e este
+// teste falha se a lista de runtime divergir. O drift deixa de depender de
+// alguém lembrar.
+describe("contrato com o openapi", () => {
+  it("WEBHOOK_EVENT_TYPES é exatamente o enum do backend", async () => {
+    const { WEBHOOK_EVENT_TYPES } = await import("./webhooks.js");
+    type Generated = import("./generated/openapi.js").components["schemas"]["WebhookEventType"];
+
+    // Falha em compilação se a lista tiver um evento que o backend não declara...
+    const _each: Generated[] = [...WEBHOOK_EVENT_TYPES];
+    // ...e se o backend declarar um que a lista não tem.
+    // A exaustividade real mora em _Exhaustive, no webhooks.ts.
+
+    expect(new Set(WEBHOOK_EVENT_TYPES).size).toBe(WEBHOOK_EVENT_TYPES.length);
   });
 });

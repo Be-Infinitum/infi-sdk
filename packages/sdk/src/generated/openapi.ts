@@ -4,6 +4,91 @@
  */
 
 export interface paths {
+    "/public/platform-plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Published Infi platform plans for the landing and calculators */
+        get: operations["getPublicPlatformPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Effective plan, approved payment volume, invoice projection and entitlements */
+        get: operations["getAccountPlan"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/plan/activate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the current Terms and activate a postpaid live plan */
+        post: operations["activateAccountPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/plan/upgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Scale as the account's minimum economic tier */
+        post: operations["upgradeAccountPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/plan/downgrade": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Schedule a paid self-service tier to Free at the next cycle boundary */
+        post: operations["downgradeAccountPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -38,6 +123,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pay/{slug}/invoices/{invoiceID}/invoice.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public hosted-checkout invoice PDF (unauthenticated) */
+        get: operations["getCheckoutInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/invoices/{invoiceID}/receipt.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Public hosted-checkout receipt PDF (unauthenticated) */
+        get: operations["getCheckoutReceiptPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pay/{slug}/invoices/{invoiceID}/charge": {
         parameters: {
             query?: never;
@@ -49,6 +168,53 @@ export interface paths {
         put?: never;
         /** Initiate payment on a public checkout invoice (unauthenticated) */
         post: operations["chargeCheckoutInvoice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/invoices/{invoiceID}/payments/{paymentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read authoritative public payment status (unauthenticated)
+         * @description Least-privilege polling surface for hosted checkout. The tenant slug, invoice and payment must belong to the same scope or the response is a single 404. Provider references, payer details, decline reasons and browser-action secrets are deliberately omitted. Client-side PSP callbacks are provisional; this server status is authoritative.
+         */
+        get: operations["getCheckoutPaymentStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/links/{token}/sessions/{sessionID}/payments/{paymentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+                paymentID: components["parameters"]["PaymentID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read authoritative link-session payment status (unauthenticated)
+         * @description Least-privilege polling surface. The tenant slug, link token, checkout session, materialized invoice and payment must all belong to the same chain or the response is a single 404. PSP references, contact data and browser-action secrets are omitted.
+         */
+        get: operations["getLinkCheckoutPaymentStatus"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -474,6 +640,26 @@ export interface paths {
         get?: never;
         /** Set a committed minimum on a version */
         put: operations["setCommitment"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metering/products/{productID}/versions/{versionID}/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+                versionID: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the complete entitlement snapshot of a draft version */
+        put: operations["replaceVersionEntitlements"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1299,6 +1485,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/invoices/{invoiceID}/invoice.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        /** Get an invoice PDF */
+        get: operations["getInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/invoices/{invoiceID}/receipt.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        /** Get an invoice receipt PDF */
+        get: operations["getInvoiceReceiptPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/invoices/{invoiceID}/charge": {
         parameters: {
             query?: never;
@@ -1372,6 +1596,52 @@ export interface paths {
         put?: never;
         /** Refund a payment (full or partial) */
         post: operations["refundPayment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/payments/{paymentID}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List the refunds recorded against a payment
+         * @description Every refund of this payment, oldest first. A payment may be refunded in parts, so this is what explains a Payment.refundedAmount that is neither zero nor the full amount — and the only place the reason text is kept.
+         */
+        get: operations["listRefunds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/invoices/{invoiceID}/deliverable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * List the download grants an invoice's payments produced
+         * @description The buyer's download links, so a merchant can serve the file from their own thank-you page instead of relying on the fulfillment email.
+         *     Requires a SECRET key with billing:read — the token in downloadUrl is a bearer capability for a paid product, so a browser-safe pk_ key cannot read it.
+         *     An empty list is a 200, never a 404: an invoice that is unpaid, whose product has no deliverable, or whose fulfillment has not run yet is a real state to poll, and a 404 could not be told apart from a wrong id.
+         */
+        get: operations["listInvoiceDeliverableGrants"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1527,6 +1797,52 @@ export interface paths {
          *     The `/webhook/provider` prefix is the mount, not decoration: the routes are registered relative to it in cmd/api. Documenting the bare path is how a production Asaas account was pointed at a URL that 404s, silently leaving paid invoices open until someone read pod logs.
          */
         post: operations["pspWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhook/provider/webhooks/{provider}/{externalAccountID}/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inbound webhook for a provider whose deliveries are not self-authenticating
+         * @description Per-connection endpoint for a BYOP provider that cannot prove, by itself, which merchant a delivery belongs to. Efí signs nothing at all; Woovi signs with its own global platform key, which proves that Woovi sent the delivery and says nothing about whose account it concerns.
+         *
+         *     Neither the token nor the body authorizes anything. `externalAccountID` selects which connection's credential to load, the token is compared in constant time and only bounds abuse, and confirmation comes from the adapter re-reading each event on that merchant's own credential — the amount that reaches the ledger is the provider API's, never the payload's.
+         *
+         *     Answers 200 to a delivery it does not recognise. Both providers validate a registered URL by calling it, and Woovi refuses the registration outright unless it answers 200 — that probe carries no recognisable event and arrives before any secret is stored.
+         *
+         *     The `/webhook/provider` prefix is the mount, not decoration.
+         */
+        post: operations["confirmedProviderWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhook/provider/webhooks/adyen/{externalAccountID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Inbound Adyen Standard webhook
+         * @description Per-connection Adyen Standard webhook. Every notification item must carry a valid HMAC for the current or previous endpoint key and must name the exact merchant account in `externalAccountID`; a mixed valid/invalid batch is rejected in full. The normalized items are durably inserted into the webhook inbox before the endpoint acknowledges them. Business and ledger effects run asynchronously. Request bodies are limited to 1 MiB.
+         */
+        post: operations["adyenStandardWebhook"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1731,6 +2047,105 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PlatformPlanTier: {
+            /** @enum {string} */
+            key: "free" | "scale" | "pro" | "enterprise";
+            /** @description BRL monthly base; absent for Enterprise */
+            monthly?: string;
+            /** @description Fraction of approved BRL payment volume; 0.02 means 2%; absent for Enterprise */
+            unitAmount?: string;
+            automatic: boolean;
+        };
+        PlatformEntitlement: {
+            key: string;
+            /** @enum {string} */
+            type: "boolean" | "limit";
+            value: unknown;
+            meter?: string;
+            /** @enum {string} */
+            action: "notify" | "overage" | "upgrade" | "block";
+        };
+        PlatformFeatureCatalog: {
+            key: string;
+            /** @enum {string} */
+            type: "boolean" | "limit";
+            free: unknown;
+            scale: unknown;
+            meter?: string;
+            /** @enum {string} */
+            action: "notify" | "overage" | "upgrade" | "block";
+        };
+        PlatformFeatureInput: {
+            key: string;
+            /** @enum {string} */
+            type: "boolean" | "limit";
+            free: unknown;
+            scale: unknown;
+            /** Format: uuid */
+            meterId?: string | null;
+            /** @enum {string} */
+            action: "notify" | "overage" | "upgrade" | "block";
+        };
+        PlatformPlanCatalog: {
+            /** Format: uuid */
+            productId: string;
+            /** Format: uuid */
+            versionId: string;
+            version: number;
+            /** @example BRL */
+            currency: string;
+            /** @constant */
+            meter: "approved_transactions";
+            /** Format: int64 */
+            crossover: number;
+            /** Format: int64 */
+            proCrossover: number;
+            tiers: components["schemas"]["PlatformPlanTier"][];
+            features: components["schemas"]["PlatformFeatureCatalog"][];
+        };
+        AccountPlan: {
+            /** @enum {string} */
+            plan: "free" | "scale" | "pro" | "enterprise";
+            /** @enum {string} */
+            minimumTier: "free" | "scale" | "pro" | "enterprise";
+            /** Format: uuid */
+            subscriptionId: string;
+            /** @description BRL volume confirmed in the current billing period */
+            approvedVolume: string;
+            /** @description Fraction applied to approved volume; absent for Enterprise */
+            takeRate?: string;
+            accumulatedCost?: string;
+            /** Format: int64 */
+            crossover: number;
+            /** Format: int64 */
+            proCrossover: number;
+            /** Format: date-time */
+            nextInvoiceAt: string;
+            /** @enum {string} */
+            billingStatus: "active" | "grace" | "suspended";
+            /** Format: date-time */
+            graceExpiresAt?: string | null;
+            /** @enum {string|null} */
+            pendingChange?: "free" | null;
+            /** Format: date-time */
+            pendingChangeAt?: string | null;
+            /** Format: uuid */
+            pendingPriceVersionId?: string | null;
+            /** Format: date-time */
+            pendingPriceVersionAt?: string | null;
+            entitlements: {
+                [key: string]: components["schemas"]["PlatformEntitlement"];
+            };
+        };
+        ActivateAccountPlanRequest: {
+            /** @enum {string} */
+            plan: "free" | "scale" | "pro";
+            /** @constant */
+            termsVersion: "2026-08-22";
+            /** Format: email */
+            billingEmail: string;
+            taxId?: string;
+        };
         CheckoutSession: {
             merchant: {
                 slug: string;
@@ -1738,8 +2153,9 @@ export interface components {
             };
             invoice: components["schemas"]["Invoice"];
             testMode: boolean;
-            /** @description Whether card is chargeable in this deployment's mode. Always present. */
-            cardEnabled?: boolean;
+            paymentOptions: components["schemas"]["PublicPaymentOption"][];
+            /** @description Compatibility projection derived from paymentOptions. Always present. */
+            cardEnabled: boolean;
             /**
              * @description Method of the confirmed payment. Present only once the invoice is paid (it drives the shared receipt); absent otherwise.
              * @enum {string}
@@ -1963,6 +2379,93 @@ export interface components {
              */
             on: "cycle" | "payment";
         };
+        /**
+         * @description Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.
+         * @enum {string}
+         */
+        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "usage.threshold_reached";
+        /** @description Body of customer.created. */
+        CustomerCreatedData: {
+            /** Format: uuid */
+            customerId: string;
+            /** @description Your own user id for this customer. */
+            externalId: string;
+            /** Format: date-time */
+            createdAt: string;
+            name?: string;
+            email?: string;
+            taxId?: string;
+            country?: string;
+        };
+        /** @description Body of invoice.finalized and invoice.sent. */
+        InvoiceAmountData: {
+            /** Format: uuid */
+            invoiceId: string;
+            /** @description Decimal string. */
+            total: string;
+            currency: string;
+        };
+        /** @description Body of invoice.paid — the invoice settled. No paymentId: an invoice can settle across more than one payment. */
+        InvoicePaidData: {
+            /** Format: uuid */
+            invoiceId: string;
+            /** @description Decimal string. */
+            amount: string;
+            currency: string;
+            /**
+             * Format: uuid
+             * @description Product enrollment billed. Absent on ad-hoc invoices.
+             */
+            customerId?: string;
+            /**
+             * Format: uuid
+             * @description Tenant-level customer. Absent on subscription invoices.
+             */
+            payerId?: string;
+        };
+        /** @description Body of invoice.voided and invoice.uncollectible. */
+        InvoiceRefData: {
+            /** Format: uuid */
+            invoiceId: string;
+        };
+        /** @description Body of payment.confirmed. */
+        PaymentConfirmedData: {
+            /** Format: uuid */
+            paymentId: string;
+            /** Format: uuid */
+            invoiceId: string;
+            /** @description Decimal string. */
+            amount: string;
+            currency: string;
+            /**
+             * Format: uuid
+             * @description Product enrollment billed. Absent on ad-hoc invoices.
+             */
+            customerId?: string;
+            /**
+             * Format: uuid
+             * @description Tenant-level customer. Absent on subscription invoices.
+             */
+            payerId?: string;
+        };
+        /** @description Body of payment.failed. */
+        PaymentFailedData: {
+            /** Format: uuid */
+            paymentId: string;
+            /** Format: uuid */
+            invoiceId: string;
+        };
+        /** @description Body of payment.refunded and payment.chargeback. accessRevoked says whether the buyer's deliverable download grants were cut, so a merchant can mirror the decision in its own entitlements. */
+        PaymentReversedData: {
+            /** Format: uuid */
+            paymentId: string;
+            /** Format: uuid */
+            invoiceId: string;
+            /** @description Decimal string. */
+            amount: string;
+            currency: string;
+            accessRevoked: boolean;
+        };
         WalletMutationRequest: {
             meter: string;
             /** @description Decimal string. */
@@ -2100,6 +2603,20 @@ export interface components {
             tiers?: {
                 [key: string]: unknown;
             }[];
+            currency?: string;
+        };
+        RateCardInput: {
+            /**
+             * Format: uuid
+             * @description Null targets the recurring base fee; that override must use model flat.
+             */
+            meterId: string | null;
+            /** @enum {string} */
+            model: "flat" | "per_unit" | "tiered" | "volume" | "package";
+            unitAmount?: string | null;
+            /** @default [] */
+            tiers: unknown;
+            /** @example BRL */
             currency?: string;
         };
         RateCard: {
@@ -2442,6 +2959,120 @@ export interface components {
             amount?: string;
             proration?: boolean;
         };
+        Refund: {
+            /** Format: uuid */
+            id?: string;
+            /** @description Decimal string. */
+            amount?: string;
+            reason?: string | null;
+            /**
+             * @description A pending row reserves the amount but has no financial effect yet. For asynchronous providers such as Adyen it remains pending after the provider accepts the modification, until a verified outcome webhook makes it succeeded or failed. A succeeded refund can later become reversed.
+             * @enum {string}
+             */
+            status?: "pending" | "succeeded" | "failed" | "reversed";
+            /** @description The PSP's own reference for this refund (e.g. Efí's devolução id). It can be present while an asynchronous refund is still pending. */
+            providerId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        DeliverableGrant: {
+            /** Format: uuid */
+            paymentId?: string;
+            /** @description The bearer capability inside downloadUrl. Treat it like a password: anyone holding it downloads the paid product with no further proof of purchase. */
+            token?: string;
+            /** @description Buyer-facing download link. Answers 410 once revokedAt is set. */
+            downloadUrl?: string;
+            /**
+             * Format: date-time
+             * @description When the fulfillment email carrying this link went out.
+             */
+            emailSentAt?: string | null;
+            /**
+             * Format: date-time
+             * @description When the download was turned off, set by a full refund or a chargeback on the payment behind it. Non-null means downloadUrl now answers 410 — stop rendering the button. Revoked grants are returned rather than hidden, because a grant that silently vanished would look like fulfillment never ran.
+             */
+            revokedAt?: string | null;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        /** @description Safe public polling projection. It intentionally excludes PSP references, payer identity, decline details and transient browser-action material. */
+        PublicPaymentStatus: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            paymentId: string;
+            /** @enum {string} */
+            status: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
+            /** @enum {string} */
+            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi" | "stub";
+            /** @enum {string} */
+            method: "pix" | "boleto" | "card";
+            invoiceStatus: string;
+            /** @description Succeeded, non-reversed refund total as a decimal string. */
+            refundedAmount: string;
+        };
+        /** @description Public discovery hint computed from connected providers and charge-routing eligibility. Charge creation reroutes and validates again. */
+        PublicPaymentOption: components["schemas"]["PublicPixPaymentOption"] | components["schemas"]["PublicCardPaymentOption"];
+        PublicPixPaymentOption: {
+            /** @constant */
+            method: "pix";
+            /** @constant */
+            flow: "pix";
+        };
+        PublicCardPaymentOption: {
+            /** @constant */
+            method: "card";
+            /** @enum {string} */
+            provider: "adyen" | "stripe";
+            /** @enum {string} */
+            flow: "adyen_session" | "stripe_payment_intent";
+            /** @description False for Adyen phase one; Stripe may offer a mandate. */
+            supportsSavedInstrument: boolean;
+        };
+        /** @description Tagged transient browser handoff. Switch on `type`; never infer the provider protocol from legacy fields or accept these values from the browser on a later request. */
+        PaymentNextAction: components["schemas"]["AdyenSessionAction"] | components["schemas"]["StripePaymentIntentAction"];
+        AdyenSessionAction: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "adyen_session";
+            session: {
+                /** @description Adyen Checkout session identifier, not a payment PSP reference. */
+                id: string;
+                /** @description Transient opaque browser handoff. Never persist, log, include in telemetry, or treat as authoritative payment state. */
+                sessionData: string;
+            };
+            /** @description Browser-safe Adyen live client key; never an API or HMAC key. */
+            clientKey: string;
+            /** @enum {string} */
+            environment: "live" | "live-us" | "live-au" | "live-nea" | "live-in";
+            /** @constant */
+            countryCode: "BR";
+            /** @constant */
+            locale: "pt-BR";
+            amount: components["schemas"]["ClientActionAmount"];
+        };
+        StripePaymentIntentAction: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "stripe_payment_intent";
+            /** @description Transient Stripe PaymentIntent client secret for browser confirmation. */
+            clientSecret: string;
+            /** @description Browser-safe Stripe key for the account that owns the PaymentIntent. */
+            publishableKey: string;
+        };
+        ClientActionAmount: {
+            /**
+             * Format: int64
+             * @description Amount in the currency's minor unit.
+             */
+            value: number;
+            /** @example BRL */
+            currency: string;
+        };
         Payment: {
             /** Format: uuid */
             id?: string;
@@ -2456,6 +3087,8 @@ export interface components {
             currency?: string;
             /** @enum {string} */
             status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
+            /** @description Total succeeded, non-reversed refunds so far, as a decimal string; absent when nothing was refunded. Partial refunds leave payment status `confirmed`; only a fully refunded aggregate sets `refunded`. Present on tenant-facing reads only. */
+            refundedAmount?: string;
             /** Format: date-time */
             createdAt?: string;
             /** @description Who paid, resolved through the invoice (ad-hoc invoices name a tenant customer directly, subscription invoices name a product enrollment). Present only on the tenant-facing dashboard reads — GET /billing/payments and GET /billing/payments/{paymentID}. Null when the invoice has no resolvable customer. */
@@ -2484,6 +3117,7 @@ export interface components {
             clientSecret?: string;
             /** @description The merchant's provider publishable key, paired with `clientSecret`. Transient — create-charge response only. */
             publishableKey?: string;
+            nextAction?: components["schemas"]["PaymentNextAction"];
             /** @description Whether this charge can still be released so the same invoice can be paid another way (ADR 0026) — true while it is pending, false once it confirmed or failed. Releasing cancels it at the provider where that is supported, and abandons it regardless where it is not. Transient: present on the create-charge response, not on later reads. The hosted checkout keeps the other payment methods clickable while it is true; treat a missing value as false. */
             switchable?: boolean;
         };
@@ -2540,6 +3174,7 @@ export interface components {
             };
             product: components["schemas"]["PaymentLinkProduct"];
             testMode: boolean;
+            paymentOptions: components["schemas"]["PublicPaymentOption"][];
             cardEnabled: boolean;
         };
         PaymentLinkProduct: {
@@ -2563,6 +3198,7 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
             testMode: boolean;
+            paymentOptions: components["schemas"]["PublicPaymentOption"][];
             cardEnabled: boolean;
         };
         /** @description Session read shape — also the `checkout_session.*` webhook payload, which is why it differs from LinkCheckoutSession (`id`, not `sessionId`). */
@@ -2726,7 +3362,7 @@ export interface components {
             id?: string;
             /** Format: uri */
             url?: string;
-            /** @description Subscribed event types. Supported: customer.created; invoice.finalized, invoice.sent, invoice.paid, invoice.voided, invoice.uncollectible; payment.confirmed, payment.failed, payment.refunded, payment.chargeback. */
+            /** @description Subscribed event types. Not constrained to WebhookEventType: dispatch matches on `event_type = ANY(events)` with no allowlist, so any event the outbox emits is subscribable. WebhookEventType documents the ones with a described payload. */
             events?: string[];
             isActive?: boolean;
             /** Format: date-time */
@@ -2868,6 +3504,7 @@ export interface components {
         LegacyEnrollmentID: string;
         SubscriptionID: string;
         InvoiceID: string;
+        PaymentID: string;
         /** @description Stored payment method UUID (payment_instruments.id). */
         InstrumentID: string;
     };
@@ -2877,6 +3514,144 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getPublicPlatformPlans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current immutable published platform catalog version */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformPlanCatalog"];
+                };
+            };
+            /** @description No complete published platform catalog is configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getAccountPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current tenant plan */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPlan"];
+                };
+            };
+            /** @description Terms and a live plan have not been activated */
+            428: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    activateAccountPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActivateAccountPlanRequest"];
+            };
+        };
+        responses: {
+            /** @description Idempotently activated plan; no initial charge is created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPlan"];
+                };
+            };
+            /** @description Sandbox does not require or create a subscription */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    upgradeAccountPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * @deprecated
+                     * @description Ignored compatibility field; features never require a paid tier
+                     */
+                    feature?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Upgraded plan (idempotent) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPlan"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    downgradeAccountPlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plan with its pending change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountPlan"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
     getHealthz: {
         parameters: {
             query?: never;
@@ -2923,6 +3698,76 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getCheckoutInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invoice PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            /** @description The invoice has not been finalized yet (`invoice_not_finalized`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getCheckoutReceiptPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Receipt PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            /** @description The invoice has not been finalized yet (`invoice_not_finalized`), or a receipt is not available because it has not been paid (`receipt_not_available`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
             429: components["responses"]["RateLimited"];
         };
     };
@@ -2974,6 +3819,61 @@ export interface operations {
                 };
             };
             503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getCheckoutPaymentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+                invoiceID: string;
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authoritative payment state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPaymentStatus"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getLinkCheckoutPaymentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+                paymentID: components["parameters"]["PaymentID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authoritative payment status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicPaymentStatus"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
         };
     };
     applyCheckoutCoupon: {
@@ -3769,6 +4669,44 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
         };
     };
+    replaceVersionEntitlements: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["parameters"]["ProductID"];
+                versionID: components["parameters"]["VersionID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    features: components["schemas"]["PlatformFeatureInput"][];
+                };
+            };
+        };
+        responses: {
+            /** @description Complete versioned feature snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        features?: components["schemas"]["PlatformFeatureCatalog"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     listMeters: {
         parameters: {
             query?: never;
@@ -4503,7 +5441,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PriceInput"];
+                "application/json": components["schemas"]["RateCardInput"];
             };
         };
         responses: {
@@ -4801,7 +5739,7 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
-                /** @description Provider tag, e.g. `asaas`, `stripe`, or `sandbox`. */
+                /** @description Provider tag, e.g. `asaas`, `stripe`, `adyen`, or `sandbox`. */
                 provider?: string;
                 method?: "pix" | "boleto" | "card";
                 limit?: number;
@@ -5270,6 +6208,72 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
+    getInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invoice PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description The invoice has not been finalized yet (`invoice_not_finalized`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+        };
+    };
+    getInvoiceReceiptPdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Receipt PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description The invoice has not been finalized yet (`invoice_not_finalized`), or a receipt is not available because it has not been paid (`receipt_not_available`). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+        };
+    };
     chargeInvoice: {
         parameters: {
             query?: never;
@@ -5382,6 +6386,8 @@ export interface operations {
                     /** @description Decimal string. Empty or omitted means a full refund. */
                     amount?: string;
                     reason?: string;
+                    /** @description Whether the buyer's digital-product download stops working. OMIT IT to get the derived behaviour, which is what you almost always want: a full refund revokes the download, a partial one leaves it alone (R$5 back on a R$100 guide is goodwill, not a cancellation). Send false to refund in full and still let the buyer keep the file; send true to cut access on a partial refund. Revoking makes the download URL answer 410. */
+                    revokeAccess?: boolean;
                 };
             };
         };
@@ -5398,6 +6404,58 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listRefunds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paymentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refunds */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        refunds?: components["schemas"]["Refund"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listInvoiceDeliverableGrants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Grants */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        grants?: components["schemas"]["DeliverableGrant"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listPaymentMethods: {
@@ -5695,6 +6753,104 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
+        };
+    };
+    confirmedProviderWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: "efi" | "woovi";
+                /** @description Opaque handle minted at connect time. Never a credential, never a pix key. */
+                externalAccountID: string;
+                /** @description High-entropy capability token. Scrubbed from access logs. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Acknowledged (including deliveries that were recognised and ignored) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        received?: boolean;
+                        ignored?: boolean;
+                    };
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    adyenStandardWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Exact Adyen merchant account configured on the connection. */
+                externalAccountID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    notificationItems: {
+                        NotificationRequestItem: {
+                            [key: string]: unknown;
+                        };
+                    }[];
+                } & {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Batch authenticated and durably accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": "[accepted]";
+                };
+            };
+            /** @description Malformed webhook, merchant mismatch, or invalid HMAC */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description The authenticated batch could not be persisted */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Adyen webhook processing is not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
         };
     };
     getTenant: {
