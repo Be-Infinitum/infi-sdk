@@ -269,7 +269,7 @@ export class Infi {
     const customerId = resolveCustomerId(options);
     const mode = resolveMeterMode(options);
     if (mode !== "postpaid") {
-      await this.assertCredit(customerId);
+      await this.assertCredit(customerId, options.meter);
     }
     const result = await fn();
     if (mode !== "streaming") {
@@ -289,9 +289,12 @@ export class Infi {
    * Read a customer's credit summary — the gate `meter` uses. Public so callers
    * can gate outside a `meter` call (e.g. at the top of a Server Action).
    */
-  async checkCredit(customerId: string): Promise<CreditSummary> {
+  async checkCredit(customerId: string, meter?: string): Promise<CreditSummary> {
     this.#requireSecretKey("checkCredit");
-    return this.customers.credits.balance(customerId);
+    // Sem meter cai no endpoint legado, para não quebrar quem já chamava assim.
+    return meter
+      ? this.customers.credits.meterBalance(customerId, meter)
+      : this.customers.credits.balance(customerId);
   }
 
   /**
@@ -299,8 +302,8 @@ export class Infi {
    * pre-flight gate `meter` runs in `"prepaid"`/`"streaming"` mode, exposed
    * so a Server Action or non-route handler can gate without wrapping in `meter`.
    */
-  async assertCredit(customerId: string): Promise<void> {
-    const summary = await this.checkCredit(customerId);
+  async assertCredit(customerId: string, meter?: string): Promise<void> {
+    const summary = await this.checkCredit(customerId, meter);
     const balance = Number(summary.balance ?? "0");
     if (!(balance > 0)) {
       throw new InsufficientCreditError(customerId, summary.balance ?? "0");

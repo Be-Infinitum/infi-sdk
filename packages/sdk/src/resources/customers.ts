@@ -51,6 +51,22 @@ class CreditsResource {
     });
   }
 
+  /**
+   * Balance of ONE meter's wallet.
+   *
+   * `/credit` above is the legacy shim: the backend documents it as always
+   * reading the default credits (CRD) pool, so a wallet holding 50,000
+   * `tokens` answers "0" there. Anything gating a real prepaid product has to
+   * ask per meter.
+   */
+  meterBalance(customerId: string, meter: string): Promise<CreditSummary> {
+    return this.t.request(
+      "GET",
+      `/metering/customers/${enc(customerId)}/wallet?meter=${encodeURIComponent(meter)}`,
+      { requireSecret: true },
+    );
+  }
+
   /** Grant credit (e.g. after a credit-pack payment is confirmed). */
   grant(customerId: string, input: GrantCreditInput, idempotencyKey?: string): Promise<CreditSummary> {
     return this.t.request("POST", `/metering/customers/${enc(customerId)}/credit`, {

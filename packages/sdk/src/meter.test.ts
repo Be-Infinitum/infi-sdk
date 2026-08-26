@@ -92,7 +92,9 @@ describe("infi.meter", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/credit`);
+    // Antes era /credit — o shim legado do pool CRD, que respondia 0 para uma
+    // carteira cheia de `tokens`.
+    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/wallet?meter=tokens`);
 
     const [trackUrl, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(String(trackUrl)).toBe(`${BASE}/metering/events`);
@@ -115,7 +117,7 @@ describe("infi.meter", () => {
     }));
 
     const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr1/credit`);
+    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr1/wallet?meter=tokens`);
     const [, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(JSON.parse(trackInit.body as string)).toEqual({
       eventId: expect.any(String),
@@ -200,7 +202,9 @@ describe("infi.meter", () => {
     expect(out).toBe(stream); // returned unchanged, no usage-extraction throw
     expect(fetchMock).toHaveBeenCalledTimes(1); // gate ran, no track
     const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/credit`);
+    // Antes era /credit — o shim legado do pool CRD, que respondia 0 para uma
+    // carteira cheia de `tokens`.
+    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/wallet?meter=tokens`);
   });
 
   it('mode "streaming" still throws when out of credit', async () => {
@@ -224,5 +228,57 @@ describe("infi.meter", () => {
       }),
     ).rejects.toThrow("llm down");
     expect(fetchMock).toHaveBeenCalledTimes(1); // gate only, no track
+  });
+});
+
+// O gate lia GET /metering/customers/{id}/credit — o shim legado que o backend
+// documenta como "always reads the default credits (CRD) pool". Uma carteira
+// com 50.000 no meter `tokens` respondia balance "0" ali, e TODA geração de um
+// produto prepaid real caía em 402 com saldo em caixa.
+//
+// Reproduzido em produção contra o tenant beinfi:
+//   GET /wallet?meter=tokens -> {"balance":"50000"}
+//   GET /credit              -> {"balance":"0"}
+describe("infi.meter — o gate lê a carteira do meter, não o pool legado", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    global.fetch = fetchMock as unknown as typeof fetch;
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("consulta /wallet?meter= no gate prepaid", async () => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ meter: "tokens", balance: "50000", total: "50000" }))
+      .mockResolvedValueOnce(jsonResponse({ accepted: 1 }));
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+
+    await infi.meter({ customerId: "enr_1", meter: "tokens" }, async () => ({
+      usage: { total_tokens: 10 },
+    }));
+
+    const [gateUrl] = fetchMock.mock.calls[0] as [string];
+    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr_1/wallet?meter=tokens`);
+  });
+
+  it("não deixa passar quando a carteira daquele meter está zerada", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ meter: "tokens", balance: "0", total: "0" }));
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+    const ran = vi.fn();
+
+    await expect(
+      infi.meter({ customerId: "enr_1", meter: "tokens" }, async () => ran()),
+    ).rejects.toBeInstanceOf(InsufficientCreditError);
+    expect(ran).not.toHaveBeenCalled();
+  });
+
+  it("checkCredit sem meter continua no endpoint legado", async () => {
+    // Chamador antigo que gateia fora de meter() não pode quebrar.
+    fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "5", total: "5" }));
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+
+    await infi.checkCredit("enr_1");
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(String(url)).toBe(`${BASE}/metering/customers/enr_1/credit`);
   });
 });

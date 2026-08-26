@@ -452,6 +452,79 @@ describe("syncBilling", () => {
     expect(calls.versionCreate).toBe(0);
   });
 
+  // currentVersion caía para a maior versão QUALQUER quando nenhuma estava
+  // publicada, adotando um draft como "atual". Os campos batiam, o sync
+  // reportava skip, e o produto ficava despublicado para sempre — sem
+  // ninguém poder comprá-lo e sem nenhum sinal de que algo estava errado.
+  // Encontrado em produção: um publish que falhou uma vez deixou o produto
+  // morto e três syncs seguidos disseram que estava tudo certo.
+  it("publica quando existe draft e nada publicado, em vez de reportar skip", async () => {
+    const state: any = {
+      products: [{ id: "prod_1", key: "studio", name: "studio", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
+      meters: { prod_1: [{ id: "m1", key: "tokens", name: "tokens" }] },
+      versions: {
+        prod_1: [
+          { id: "ver_1", version: 1, status: "draft", billingCycle: "monthly", grants: [] },
+          { id: "ver_2", version: 2, status: "draft", billingCycle: "monthly", grants: [{ meter: "tokens", amount: "50000", on: "cycle" }] },
+        ],
+      },
+      prices: {},
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    const r = await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "studio",
+            type: "agent",
+            pricingModel: "prepaid",
+            currency: "BRL",
+            billingCycle: "monthly",
+            meters: [{ key: "tokens", unit: "token", aggregation: "sum", valueProperty: "value" }],
+            grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],
+          },
+        ],
+      }),
+    );
+
+    expect(r.actions.find((a) => a.resource === "version")?.action).not.toBe("skip");
+    expect(calls.publish).toBeGreaterThan(0);
+  });
+
+  it("publica o draft que já bate, sem empilhar mais um", async () => {
+    // Criar uma versão nova a cada sync deixaria um rastro de drafts órfãos.
+    const state: any = {
+      products: [{ id: "prod_1", key: "studio", name: "studio", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
+      meters: { prod_1: [] },
+      versions: {
+        prod_1: [{ id: "ver_1", version: 1, status: "draft", billingCycle: "monthly", grants: [{ meter: "tokens", amount: "50000", on: "cycle" }] }],
+      },
+      prices: {},
+    };
+    const { infi, calls } = fakeInfi(state);
+
+    await syncBilling(
+      infi,
+      defineBilling({
+        products: [
+          {
+            key: "studio",
+            type: "agent",
+            pricingModel: "prepaid",
+            currency: "BRL",
+            billingCycle: "monthly",
+            grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],
+          },
+        ],
+      }),
+    );
+
+    expect(calls.versionCreate).toBe(0);
+    expect(calls.publish).toBe(1);
+  });
+
   it("omits grants entirely when the product has none", async () => {
     const { infi } = fakeInfi({ products: [], meters: {}, versions: {}, prices: {} });
     await syncBilling(infi, CONFIG);

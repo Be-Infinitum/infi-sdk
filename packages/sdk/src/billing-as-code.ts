@@ -166,7 +166,7 @@ export function defineBilling(config: BillingConfig): BillingConfig {
 }
 
 export interface SyncAction {
-  action: "create" | "skip" | "update" | "bump" | "blocked";
+  action: "create" | "skip" | "update" | "bump" | "publish" | "blocked";
   resource: "product" | "meter" | "version" | "price" | "deliverable" | "app" | "webhook" | "grant";
   ref: string;
   /** Human-readable reason for an update/bump/blocked (e.g. changed fields, drift). */
@@ -299,9 +299,25 @@ function productPatch(existing: Product, p: BillingProduct): Partial<CreateProdu
 }
 
 /** Pick the version a bump should diff against: latest published, else latest. */
+/**
+ * A versão "atual" é a PUBLICADA. Um draft não é atual: ninguém consegue
+ * comprá-lo.
+ *
+ * Isto já caiu para o maior draft quando não havia nada publicado — e aí os
+ * campos batiam, o sync reportava `skip`, e um produto cujo publish falhou
+ * uma vez ficava morto para sempre sem nenhum sinal. Encontrado em produção.
+ */
 function currentVersion(versions: Version[]): Version | undefined {
-  const byVersionDesc = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
-  return byVersionDesc.find((v) => v.status === "published") ?? byVersionDesc[0];
+  return [...versions]
+    .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    .find((v) => v.status === "published");
+}
+
+/** O maior draft — candidato a publicar em vez de criar mais um. */
+function latestDraft(versions: Version[]): Version | undefined {
+  return [...versions]
+    .sort((a, b) => (b.version ?? 0) - (a.version ?? 0))
+    .find((v) => v.status === "draft");
 }
 
 /** Deterministic JSON with sorted keys — stable across runs for fingerprinting. */
@@ -594,9 +610,18 @@ export async function syncBilling(
     // Versions — seed the first one, or bump when the desired pricing drifted.
     let applied = !existing; // created products already seeded above (when not plan)
     if (!current) {
-      actions.push({ action: "create", resource: "version", ref: name });
+      // Publicar um draft que já bate evita empilhar draft órfão a cada sync.
+      const draft = latestDraft(versions);
+      const reusable = draft && versionFieldsEqual(draft, p) && (p.prices ?? []).length === 0;
+      actions.push({
+        action: reusable ? "publish" : "create",
+        resource: "version",
+        ref: name,
+        ...(reusable ? { detail: `publicando o draft v${draft?.version}` } : {}),
+      });
       if (!plan) {
-        await publishVersion(infi, productId, p, meterIdByKey);
+        if (reusable && draft?.id) await infi.products.versions.publish(productId, draft.id);
+        else await publishVersion(infi, productId, p, meterIdByKey);
         applied = true;
       }
     } else {
