@@ -1,15 +1,27 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { InfiError } from "./errors.js";
 
-/** Events the backend actually emits (type travels in the X-Webhook-Event-Type header). */
-export type WebhookEventType =
-  | "customer.created"
-  | "invoice.finalized"
-  | "invoice.sent"
-  | "invoice.voided"
-  | "invoice.uncollectible"
-  | "payment.confirmed"
-  | "payment.failed";
+/**
+ * Events the backend emits (the type travels in the X-Webhook-Event-Type header).
+ *
+ * A runtime list, not just a union: `sync` validates declared webhook events
+ * against it, so a typo or an unsupported name fails before an endpoint that
+ * can never fire is registered.
+ */
+export const WEBHOOK_EVENT_TYPES = [
+  "customer.created",
+  "invoice.finalized",
+  "invoice.sent",
+  "invoice.paid",
+  "invoice.voided",
+  "invoice.uncollectible",
+  "payment.confirmed",
+  "payment.failed",
+  "payment.refunded",
+  "payment.chargeback",
+] as const;
+
+export type WebhookEventType = (typeof WEBHOOK_EVENT_TYPES)[number];
 
 // Payload bodies (flat JSON, decimals/uuids as strings; optional fields omitted).
 export interface CustomerCreatedData {
@@ -33,6 +45,19 @@ export interface PaymentConfirmedData {
   invoiceId: string;
   amount: string;
   currency: string;
+  /** Product enrollment that was billed. Absent on ad-hoc invoices. */
+  customerId?: string;
+  /** Tenant-level customer. Absent on subscription invoices. */
+  payerId?: string;
+}
+
+/** invoice.paid — the invoice settled. No paymentId: an invoice can settle across several. */
+export interface InvoicePaidData {
+  invoiceId: string;
+  amount: string;
+  currency: string;
+  customerId?: string;
+  payerId?: string;
 }
 export interface PaymentFailedData {
   paymentId: string;
@@ -44,10 +69,13 @@ export interface WebhookEventMap {
   "customer.created": CustomerCreatedData;
   "invoice.finalized": InvoiceAmountData;
   "invoice.sent": InvoiceAmountData;
+  "invoice.paid": InvoicePaidData;
   "invoice.voided": InvoiceRefData;
   "invoice.uncollectible": InvoiceRefData;
   "payment.confirmed": PaymentConfirmedData;
   "payment.failed": PaymentFailedData;
+  "payment.refunded": PaymentFailedData;
+  "payment.chargeback": PaymentFailedData;
 }
 
 export interface WebhookEvent<T = unknown> {

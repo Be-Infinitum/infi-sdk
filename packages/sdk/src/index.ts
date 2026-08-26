@@ -16,6 +16,8 @@ export {
   syncBilling,
   cycleGrantAmount,
   versionCycleGrant,
+  versionGrants,
+  assertValidConfig,
   type BillingConfig,
   type BillingGrant,
   type BillingMeter,
@@ -54,7 +56,9 @@ export {
 } from "./wallet.js";
 export {
   verifyWebhook,
+  WEBHOOK_EVENT_TYPES,
   type CustomerCreatedData,
+  type InvoicePaidData,
   type InvoiceAmountData,
   type InvoiceRefData,
   type PaymentConfirmedData,

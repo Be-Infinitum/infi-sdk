@@ -38,3 +38,40 @@ describe("verifyWebhook", () => {
     expect(() => verifyWebhook({ id, eventType, timestamp: ts, signature: sig, body }, SECRET)).toThrow();
   });
 });
+
+describe("WEBHOOK_EVENT_TYPES", () => {
+  it("carries the events the backend actually emits", async () => {
+    const { WEBHOOK_EVENT_TYPES } = await import("./webhooks.js");
+    // The hand-written union had gone stale: it omitted invoice.paid (emitted at
+    // internal/payment/service.go), payment.refunded and payment.chargeback.
+    // Anyone reading it concluded invoice.paid did not exist.
+    expect(WEBHOOK_EVENT_TYPES).toContain("invoice.paid");
+    expect(WEBHOOK_EVENT_TYPES).toContain("payment.refunded");
+    expect(WEBHOOK_EVENT_TYPES).toContain("payment.chargeback");
+    expect(WEBHOOK_EVENT_TYPES).toContain("payment.confirmed");
+  });
+
+  it("narrows payment.confirmed to a payload that identifies the buyer", async () => {
+    const { verifyWebhook } = await import("./webhooks.js");
+    const secret = "s3cr3t";
+    const body = JSON.stringify({
+      paymentId: "pay_1",
+      invoiceId: "inv_1",
+      amount: "19.90",
+      currency: "BRL",
+      customerId: "enr_1",
+      payerId: "cus_1",
+    });
+    const id = "evt_1";
+    const ts = Math.floor(Date.now() / 1000);
+    const { createHmac } = await import("node:crypto");
+    const sig = createHmac("sha256", secret).update(`${id}.${ts}.${body}`).digest("hex");
+
+    const ev = verifyWebhook<import("./webhooks.js").PaymentConfirmedData>(
+      { id, timestamp: ts, signature: `v1=${sig}`, eventType: "payment.confirmed", body },
+      secret,
+    );
+    expect(ev.data.customerId).toBe("enr_1");
+    expect(ev.data.payerId).toBe("cus_1");
+  });
+});
