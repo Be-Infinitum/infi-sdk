@@ -1,5 +1,39 @@
 # Changelog
 
+## 0.11.1 — 2026-08-26
+
+Dois bugs achados **rodando** um app pré-pago contra produção. Nenhum aparece
+lendo código.
+
+### Fixed
+- **O gate prepaid consultava a carteira errada.** `meter({ mode: "prepaid" })`
+  lia `GET /metering/customers/{id}/credit` — o shim que o backend documenta
+  como *"always reads the default credits (CRD) pool"*. Uma carteira com 50.000
+  no meter `tokens` respondia `0` ali, e **toda** chamada de um produto prepaid
+  real caía em `402` com o saldo em caixa. Medido no mesmo instante:
+
+  ```
+  GET /wallet?meter=tokens  ->  {"balance":"50000"}
+  GET /credit               ->  {"balance":"0"}
+  ```
+
+  `checkCredit`/`assertCredit` passam a aceitar `meter`, e `meter()` repassa o
+  seu. Sem `meter` continua no endpoint legado.
+
+- **Produto cujo publish falhou ficava morto, e o `sync` reportava `skip`.**
+  `currentVersion` caía para a maior versão de qualquer status, adotando um
+  draft como atual. Os campos batiam e nada era publicado — o produto seguia
+  invisível para qualquer comprador, sem sinal nenhum. Agora só versão
+  publicada conta como atual, e um draft que já bate o desejado é publicado em
+  vez de empilhar outro.
+
+### Atenção ao atualizar
+- **`SyncAction.action` ganhou `"publish"`.** Um `switch` exaustivo sobre essa
+  união passa a acusar o caso novo. É a única mudança de tipo.
+- **Se você compensava o bug do gate** creditando o pool `credits` legado para
+  o `meter()` deixar passar, o gate agora lê a carteira do meter de verdade —
+  confira os saldos antes de subir.
+
 ## 0.11.0 — 2026-08-26
 
 Saiu de construir um app de crédito pré-pago contra a 0.10.7 publicada. Cinco
