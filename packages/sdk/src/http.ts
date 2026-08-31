@@ -14,6 +14,22 @@ export interface RequestOptions {
   requireSecret?: boolean;
   /** Client-supplied key for safe retries (Idempotency-Key header). */
   idempotencyKey?: string;
+  /**
+   * Abort the request after this many ms. It rejects with an `AbortError`, not
+   * an `InfiError` — a timeout is "unreachable", not a verdict, and the rail's
+   * grace path (§6) depends on telling those two apart.
+   */
+  timeoutMs?: number;
+}
+
+/** `AbortSignal.timeout` where it exists, a timer elsewhere (Node 18 has both). */
+function timeoutSignal(ms: number): AbortSignal | undefined {
+  const S = (globalThis as { AbortSignal?: typeof AbortSignal }).AbortSignal;
+  if (S?.timeout) return S.timeout(ms);
+  if (typeof AbortController === "undefined") return undefined;
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
 }
 
 /** Shared fetch layer for the resource clients. Bearer sk_ + JSON in/out. */
@@ -48,6 +64,7 @@ export class Transport {
       method,
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
+      ...(opts.timeoutMs !== undefined ? { signal: timeoutSignal(opts.timeoutMs) } : {}),
     });
 
     if (!res.ok) throw await parseErrorResponse(res);

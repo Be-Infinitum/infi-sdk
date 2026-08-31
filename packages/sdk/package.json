@@ -17,6 +17,11 @@
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js",
       "require": "./dist/react/index.cjs"
+    },
+    "./rail": {
+      "types": "./dist/rail/index.d.ts",
+      "import": "./dist/rail/index.js",
+      "require": "./dist/rail/index.cjs"
     }
   },
   "files": [

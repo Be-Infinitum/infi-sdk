@@ -290,6 +290,66 @@ Props: `hideCredit` (omit the balance section — for postpaid/no-credit models)
 (`"light"` \| `"dark"`, sets default text colors), `hideSubscriptions`, plus `className` /
 `classNames` and `--infi-panel-*` CSS variables for theming.
 
+## Selling to agents (Infi Rail)
+
+`@beinfi/sdk/rail` sells one HTTP request to an AI agent that never signed up with you,
+over [x402](https://x402.org). The agent signs a payment authorization naming **your**
+wallet; Infi verifies and meters it; the money goes from the agent to you. The SDK never
+holds a wallet, never signs and never sees a private key.
+
+```ts
+import { Infi } from "@beinfi/sdk";
+import { requirePayment, paid } from "@beinfi/sdk/rail";
+
+const infi = new Infi(process.env.INFI_SECRET_KEY!);
+
+const pay = await requirePayment(infi, {
+  product: "serp-api",
+  wallet: "0xMerchantWallet",
+  grace: { window: "5m", maxPerAgent: "0.50" },   // per process — see below
+});
+
+app.get("/v1/search", pay({ meter: "searches" }), (req, res) => {
+  const { agent, verifiedBy } = paid(req);
+  res.json({ results: search(req.query.q), servedTo: agent.address, verifiedBy });
+});
+
+// Variable price: authorize a ceiling, then true up with the real quantity.
+app.post("/v1/summarize", pay({ meter: "tokens", max: 8000 }), async (req, res) => {
+  const out = await summarize(req.body);
+  await paid(req).settle({ quantity: out.tokens });
+  res.json(out);
+});
+```
+
+A request with no `X-PAYMENT` gets a 402 carrying the price, the asset and the EIP-712
+domain the agent needs to sign. A request with one is verified with Infi, released, and
+answered with `X-PAYMENT-RESPONSE`.
+
+`requirePayment` is `await`ed because the asset's decimals and the route's price come from
+your Infi account, not from a guess in the middleware: prices are on the wire in **atomic
+units** (`"5000"` is 0.005 USDC), and getting the exponent wrong is a factor of a million
+on a real charge.
+
+### Grace is per process, and it is a cap, not a fallback
+
+When Infi is unreachable, each server process may keep serving an agent up to
+`maxPerAgent` per `window` — then it refuses with 402 `verification_unavailable`. It never
+fails open silently.
+
+- **Nothing is shared between instances.** Real exposure during an outage is
+  `maxPerAgent x instances`. Making it global would need shared state, which is the
+  dependency grace exists to avoid.
+- **Local checks cannot see exposure.** During grace an agent can exceed your
+  `max_exposure`, bounded by the allowance.
+- **The payer address in an unverified payload can be forged**, so `maxPerAgent` alone
+  bounds nothing against a hostile client. Set `grace.maxTotal` to cap the whole process
+  per window.
+- **The signature is not checked during grace** unless you pass
+  `grace.verifySignature` (e.g. viem's `verifyTypedData`) — the SDK ships no cryptography.
+- `grace: false` refuses instead of ever serving unverified. Payloads released on grace are
+  replayed to Infi when it answers again, recorded as `verifiedBy: "grace"`.
+
 ## Next.js
 
 For App Router route handlers (`Usage`, `State`, `withMeter`), use
