@@ -16,6 +16,7 @@ import type {
   RailConfigResponse,
   RailMeterPrice,
   RailSettleRequest,
+  RailSettleResponse,
   RailVerifyRequest,
   RailVerifyResponse,
 } from "../resources/rail.js";
@@ -51,7 +52,7 @@ export interface RailClient {
   rail: {
     config(product: string, opts?: { timeoutMs?: number }): Promise<RailConfigResponse>;
     verify(body: RailVerifyRequest, opts?: { timeoutMs?: number }): Promise<RailVerifyResponse>;
-    settle(body: RailSettleRequest, opts?: { timeoutMs?: number }): Promise<unknown>;
+    settle(body: RailSettleRequest, opts?: { timeoutMs?: number }): Promise<RailSettleResponse>;
   };
 }
 
@@ -122,6 +123,16 @@ export interface PayOptions {
   mimeType?: string;
   /** Force the `resource` URL, when the request's own is not what agents call. */
   resource?: string;
+  /**
+   * Hold the handler's response until the payment settles, and answer 402 if it
+   * does not. Default TRUE, which is the shape the reference implementations use:
+   * the merchant risks the compute, never the goods.
+   *
+   * Set false for a route that STREAMS — a buffer cannot stream — accepting that
+   * such a route delivers before the payment is confirmed. The cost of the default
+   * is latency: an on-chain write sits inside the endpoint's response time.
+   */
+  withholdUntilSettled?: boolean;
   /** Declare this route for discovery. Defaults to the mount's setting. */
   discoverable?: boolean;
   /** JSON schema of the route's input, published for discovery. */
@@ -147,6 +158,13 @@ export type RailDecision =
       infi: InfiPaymentContext;
       /** Headers to set on the response — `X-PAYMENT-RESPONSE`. */
       headers: Record<string, string>;
+      /**
+       * What this request was priced against. Carried so that a refusal raised
+       * LATER — settlement, under withheld delivery — can build the same 402 body
+       * without recomputing a price the agent already signed for. Recomputing it
+       * would risk answering with requirements that differ from the ones quoted.
+       */
+      requirements: PaymentRequirements;
     }
   | {
       release: false;
@@ -523,7 +541,7 @@ export class RailRoute {
       },
       authorization: { ...auth, payer },
       verifiedBy: "infi",
-    });
+    }, requirements);
   }
 
   // ── internals ────────────────────────────────────────────────────────────
@@ -632,7 +650,7 @@ export class RailRoute {
       agent: { address: auth.from, network: payload.network },
       authorization,
       verifiedBy: "grace",
-    });
+    }, requirements);
   }
 
   #authorization(
@@ -661,7 +679,10 @@ export class RailRoute {
     };
   }
 
-  #release(input: Omit<InfiPaymentContext, "settle">): RailDecision {
+  #release(
+    input: Omit<InfiPaymentContext, "settle">,
+    requirements: PaymentRequirements,
+  ): RailDecision {
     const context: InfiPaymentContext = {
       ...input,
       settle: (settleInput) => this.#settle(input, settleInput),
@@ -669,16 +690,93 @@ export class RailRoute {
     return {
       release: true,
       infi: context,
+      requirements,
       headers: {
         [PAYMENT_RESPONSE_HEADER]: encodePaymentResponse({
           success: true,
-          // Empty until the batch settles (§7) — there is no hash to state yet.
+          // Empty here: under withheld delivery the adapter overwrites this with the
+          // real transaction after settling, and a route that opted out has no hash
+          // to state yet.
           transaction: "",
           network: input.authorization.network,
           payer: input.authorization.payer,
         }),
       },
     };
+  }
+
+  /**
+   * Settle NOW and report whether the buffered response may be released.
+   *
+   * Distinct from `#settle`, which is the optional variable-price true-up and is
+   * fire-and-forget. This one is the gate: its answer decides whether the buyer
+   * receives the bytes, so an unreachable Infi is `unknown` and never `settled`.
+   */
+  /**
+   * Settle NOW, and answer with a decision the adapter already knows how to write.
+   *
+   * Returning a `RailDecision` rather than a raw outcome keeps the knowledge here:
+   * the adapters are supposed to know only how to read a header, write a 402 and
+   * call next(). It also means the receipt carries the REAL transaction, which is
+   * impossible before settling.
+   *
+   * Distinct from `#settle`, which is the optional variable-price true-up and is
+   * fire-and-forget. This one is the gate — its answer decides whether the buyer
+   * receives the bytes.
+   */
+  async settleNow(
+    released: Omit<InfiPaymentContext, "settle">,
+    requirements: PaymentRequirements,
+    quantity?: number | string,
+  ): Promise<RailDecision> {
+    const auth = released.authorization;
+    const body: RailSettleRequest = {
+      network: auth.network,
+      payer: auth.payer,
+      nonce: auth.nonce,
+      quantity: normalizeDecimal(quantity ?? this.route.quantity),
+      meter: auth.meter,
+    };
+
+    let status = "unknown";
+    let reason: string | undefined;
+    let transaction = "";
+    try {
+      const out = await this.rail.client.rail.settle(body, {
+        timeoutMs: this.rail.verifyTimeoutMs,
+      });
+      status = out.status ?? "unknown";
+      reason = out.reason;
+      transaction = out.transaction ?? "";
+    } catch {
+      // Infi did not answer. The payment may well have settled, so this is
+      // `unknown` — withhold, but never tell the agent it failed to pay.
+      status = "unknown";
+    }
+
+    if (status === "settled") {
+      return {
+        release: true,
+        infi: { ...released, settle: (i) => this.#settle(released, i) },
+        requirements,
+        headers: {
+          [PAYMENT_RESPONSE_HEADER]: encodePaymentResponse({
+            success: true,
+            transaction,
+            network: auth.network,
+            payer: auth.payer,
+          }),
+        },
+      };
+    }
+
+    // Refused and unknown BOTH withhold, and they are not the same thing: an
+    // unknown settlement may have landed, so the code says so rather than telling
+    // the agent its payment was declined.
+    return this.#refuse(
+      requirements,
+      status === "unknown" ? "settlement_unknown" : (reason ?? "settlement_failed"),
+    );
   }
 
   async #settle(

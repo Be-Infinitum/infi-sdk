@@ -119,16 +119,22 @@ export function parseDuration(value: string | number): number {
  */
 export function resolveGrace(
   option: GraceOptions | false | undefined,
-  fromBackend: { window?: string; maxPerAgent?: string } | undefined,
+  fromBackend: { window?: string; maxPerAgent?: string; maxTotal?: string } | undefined,
 ): ResolvedGrace | null {
   if (option === false) return null;
   const maxPerAgent = option?.maxPerAgent ?? fromBackend?.maxPerAgent;
   if (maxPerAgent === undefined || isZeroDecimal(maxPerAgent)) return null;
   const window = option?.window ?? fromBackend?.window ?? "5m";
+  // maxTotal falls back to the tenant's, exactly like the other two. It is the
+  // only cap that binds against a hostile client — during grace the payer address
+  // is unverified, so a caller forges a fresh address per request and mints a
+  // fresh per-agent bucket each time. Taking it only from the local option left a
+  // merchant who did not repeat the number bounded by nothing.
+  const maxTotal = option?.maxTotal ?? fromBackend?.maxTotal;
   return {
     windowMs: parseDuration(window),
     maxPerAgent: normalizeDecimal(maxPerAgent),
-    ...(option?.maxTotal !== undefined ? { maxTotal: normalizeDecimal(option.maxTotal) } : {}),
+    ...(maxTotal !== undefined ? { maxTotal: normalizeDecimal(maxTotal) } : {}),
     maxAgents: option?.maxAgents ?? 5000,
     queueLimit: option?.queueLimit ?? 1000,
     clockSkewSeconds: option?.clockSkewSeconds ?? 5,

@@ -16,6 +16,10 @@
  * app.post("/v1/summarize", pay({ meter: "tokens", max: 8000 }), handler);
  * ```
  *
+ * The same rail sells MCP tools over Streamable HTTP — `requireMcpPayment`, one
+ * gate in front of the transport. No backend change: an MCP tool call is an HTTP
+ * POST, which is the envelope a 402 already fits into.
+ *
  * **Seller side only.** This module never holds a wallet, never signs and never
  * sees a private key. The agent signs an authorization naming YOUR wallet as
  * recipient — non-custody is a property of what it signed, not a promise anyone
@@ -48,6 +52,9 @@ export type {
   RequirePaymentOptions,
 } from "./core.js";
 
+export { requireMcpPayment } from "./mcp.js";
+export type { McpGate, McpPaymentOptions, McpRequestLike, McpResponseLike } from "./mcp.js";
+
 export { GraceLedger, parseDuration, resolveGrace } from "./grace.js";
 export type { GraceOptions, GraceRefusal, GraceSpend, QueuedPayment, ResolvedGrace } from "./grace.js";
 
@@ -73,6 +80,9 @@ export {
 } from "./amount.js";
 
 export {
+  FAMILY_EVM,
+  FAMILY_SVM,
+  NETWORKS,
   PAYMENT_HEADER,
   PAYMENT_RESPONSE_HEADER,
   X402_VERSION,

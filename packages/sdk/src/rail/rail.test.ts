@@ -529,3 +529,186 @@ describe("requirePayment mount", () => {
     expect(() => pay({ meter: "unpriced" })).toThrow(/has no price/);
   });
 });
+
+// ── withheld delivery ───────────────────────────────────────────────────────
+//
+// The market's shape, and the one that decides whether a merchant can be made to
+// deliver for free: run the handler into a BUFFER, settle, and flush only if the
+// payment landed. What the merchant risks is the compute, never the goods.
+//
+// Confirmed against the reference implementation: x402's own Go middleware is
+// `handlePaymentVerified ... with response capture and settlement`, and thirdweb's
+// `settlePayment` runs inside the handler and returns content only after settling.
+
+interface DeliveryResult {
+  /** What actually reached the client. */
+  body: string;
+  status: number;
+  headers: Record<string, string>;
+}
+
+/**
+ * Run the middleware AND a handler, the way Express would: the middleware calls
+ * next(), the handler writes, and whatever the adapter decides to flush is what
+ * this returns.
+ */
+function deliver(
+  mw: PaymentMiddleware,
+  headers: Record<string, string>,
+  handler: (res: Record<string, unknown>) => void,
+): Promise<DeliveryResult> {
+  const req: ExpressRequestLike = {
+    method: "GET",
+    url: "/v1/search?q=infi",
+    originalUrl: "/v1/search?q=infi",
+    protocol: "https",
+    headers: { host: "api.merchant.com", ...headers },
+  };
+  const out: Record<string, string> = {};
+  let flushed = "";
+
+  return new Promise<DeliveryResult>((resolve) => {
+    // Read statusCode at the end rather than tracking it: a handler sets it
+    // directly as often as it calls res.status(), and observing only one of the two
+    // is how a harness reports 200 for a 500.
+    const done = () =>
+      resolve({
+        body: flushed,
+        status: (res as { statusCode: number }).statusCode,
+        headers: out,
+      });
+    const res: Record<string, unknown> = {
+      statusCode: 200,
+      setHeader(name: string, value: string) {
+        out[name] = value;
+      },
+      status(code: number) {
+        (res as { statusCode: number }).statusCode = code;
+        return {
+          json(body: unknown) {
+            flushed = JSON.stringify(body);
+            done();
+          },
+        };
+      },
+      write(chunk: unknown) {
+        flushed += String(chunk);
+        return true;
+      },
+      end(chunk?: unknown) {
+        if (chunk !== undefined) flushed += String(chunk);
+        done();
+      },
+    };
+    mw(req, res as never, (err?: unknown) => {
+      if (err !== undefined) {
+        flushed = `next(${String(err)})`;
+        done();
+        return;
+      }
+      handler(res);
+    });
+  });
+}
+
+/** Infi verifies, then settles with a real transaction. */
+function verifyThenSettle(outcome: Record<string, unknown>): Handler {
+  return (call) => {
+    if (call.url.endsWith("/rail/verify")) {
+      return json({
+        isValid: true,
+        payer: "0xPayer",
+        agent: { id: "agt_1", enrollmentId: "enr_1", address: "0xPayer", network: "base" },
+      });
+    }
+    if (call.url.endsWith("/rail/settle")) return json(outcome);
+    return json({});
+  };
+}
+
+describe("withheld delivery", () => {
+  it("flushes the handler's body only after settlement, with the real transaction", async () => {
+    stubInfi(verifyThenSettle({ status: "settled", transaction: "0xbeef" }));
+    const pay = await mount();
+    const out = await deliver(
+      pay({ meter: "searches" }),
+      { "x-payment": paymentHeader() },
+      (res) => {
+        (res.end as (c: string) => void)('{"results":["infi"]}');
+      },
+    );
+
+    expect(out.status).toBe(200);
+    expect(out.body).toBe('{"results":["infi"]}');
+    const receipt = decodePaymentResponse(out.headers["X-PAYMENT-RESPONSE"] ?? "");
+    expect(receipt.transaction).toBe("0xbeef");
+    expect(calls.some((c) => c.url.endsWith("/rail/settle"))).toBe(true);
+  });
+
+  it("WITHHOLDS the body when settlement is refused, and answers 402", async () => {
+    stubInfi(verifyThenSettle({ status: "refused", reason: "insufficient_funds" }));
+    const pay = await mount();
+    const out = await deliver(
+      pay({ meter: "searches" }),
+      { "x-payment": paymentHeader() },
+      (res) => {
+        (res.end as (c: string) => void)('{"results":["the merchant would have paid for this"]}');
+      },
+    );
+
+    expect(out.status).toBe(402);
+    expect(out.body).not.toContain("would have paid");
+    // Proves the refusal came from SETTLEMENT and not from an earlier gate: without
+    // this the test passes for the wrong reason, which is how it first passed with
+    // no implementation at all.
+    expect(calls.some((c) => c.url.endsWith("/rail/settle"))).toBe(true);
+  });
+
+  it("WITHHOLDS the body when settlement is unknown — it may have landed, but nobody can say so", async () => {
+    stubInfi(verifyThenSettle({ status: "unknown" }));
+    const pay = await mount();
+    const out = await deliver(
+      pay({ meter: "searches" }),
+      { "x-payment": paymentHeader() },
+      (res) => {
+        (res.end as (c: string) => void)('{"secret":"x"}');
+      },
+    );
+
+    expect(out.status).toBe(402);
+    expect(out.body).not.toContain("secret");
+    expect(calls.some((c) => c.url.endsWith("/rail/settle"))).toBe(true);
+  });
+
+  it("does not settle when the handler itself failed — there is nothing to charge for", async () => {
+    stubInfi(verifyThenSettle({ status: "settled", transaction: "0xbeef" }));
+    const pay = await mount();
+    const out = await deliver(
+      pay({ meter: "searches" }),
+      { "x-payment": paymentHeader() },
+      (res) => {
+        (res as { statusCode: number }).statusCode = 500;
+        (res.end as (c: string) => void)('{"error":"upstream exploded"}');
+      },
+    );
+
+    expect(out.status).toBe(500);
+    expect(out.body).toContain("upstream exploded");
+    expect(calls.some((c) => c.url.endsWith("/rail/settle"))).toBe(false);
+  });
+
+  it("can be turned off for a streaming route, which cannot be buffered", async () => {
+    stubInfi(verifyThenSettle({ status: "settled", transaction: "0xbeef" }));
+    const pay = await mount();
+    const out = await deliver(
+      pay({ meter: "searches", withholdUntilSettled: false }),
+      { "x-payment": paymentHeader() },
+      (res) => {
+        (res.end as (c: string) => void)("streamed");
+      },
+    );
+
+    expect(out.body).toBe("streamed");
+    expect(calls.some((c) => c.url.endsWith("/rail/settle"))).toBe(false);
+  });
+});

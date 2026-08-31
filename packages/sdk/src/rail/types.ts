@@ -21,8 +21,40 @@ export const PAYMENT_RESPONSE_HEADER = "X-PAYMENT-RESPONSE";
 /** Only `exact` ships. `upto` is experimental and not built here. */
 export type RailScheme = "exact";
 
-/** Networks the rail settles on. EVM and SVM payload shapes differ. */
-export type RailNetwork = "base" | "base-sepolia" | "solana" | "solana-devnet";
+/**
+ * The networks the backend names, in CAIP-2. Mirrors `internal/rail/network.go`.
+ *
+ * `base` and `solana-devnet` were OUR earlier vocabulary and the ecosystem left it
+ * behind; a rail speaking them diverges from every counterparty, and the backend
+ * refuses them. Exported as constants rather than left to be typed by hand because a
+ * genesis reference is 32 bytes of base58 nobody remembers, and a typo names a chain
+ * that does not exist — every payment refused, with nothing saying why.
+ */
+export const NETWORKS = {
+  /** Base mainnet. */
+  base: "eip155:8453",
+  /** Base Sepolia, the testnet the sandbox settles on. */
+  baseSepolia: "eip155:84532",
+  /** Solana mainnet-beta. */
+  solana: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+  /** Solana devnet. */
+  solanaDevnet: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1",
+} as const;
+
+/**
+ * A network identifier, in CAIP-2.
+ *
+ * The SHAPE is typed and the MEMBERSHIP is not, deliberately and for the same reason
+ * the backend splits them: the reference is explicit that any EVM chain is supported,
+ * so enumerating them here would go stale, while which networks Infi actually settles
+ * on gates real money movement and is compiled server-side. Use `NETWORKS` for the
+ * four the backend names today.
+ */
+export type RailNetwork = `eip155:${string}` | `solana:${string}`;
+
+/** The two chain families. The payload shape differs between them, not just the id. */
+export const FAMILY_EVM = "eip155";
+export const FAMILY_SVM = "solana";
 
 /**
  * One entry of the 402 body's `accepts` array.

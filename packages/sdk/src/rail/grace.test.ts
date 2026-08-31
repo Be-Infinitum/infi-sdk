@@ -44,6 +44,28 @@ describe("resolveGrace", () => {
     });
     expect(policy).toMatchObject({ windowMs: 30_000, maxPerAgent: "0.1" });
   });
+
+  // maxTotal is the only cap that binds against a hostile client: during grace
+  // the payer address is unverified, so a caller forges a fresh address per
+  // request and mints a fresh per-agent bucket each time. Dropping the tenant's
+  // maxTotal because the merchant did not repeat it locally leaves the process
+  // bounded by nothing at all.
+  it("takes maxTotal from the backend, not only from the merchant", () => {
+    const policy = resolveGrace(undefined, {
+      window: "5m",
+      maxPerAgent: "0.50",
+      maxTotal: "5.00",
+    });
+    expect(policy).toMatchObject({ maxPerAgent: "0.5", maxTotal: "5" });
+  });
+
+  it("still lets the merchant tighten the total below the tenant's", () => {
+    const policy = resolveGrace({ maxPerAgent: "0.50", maxTotal: "1.00" }, {
+      maxPerAgent: "0.50",
+      maxTotal: "5.00",
+    });
+    expect(policy).toMatchObject({ maxTotal: "1" });
+  });
 });
 
 describe("GraceLedger allowance", () => {

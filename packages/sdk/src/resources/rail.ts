@@ -32,8 +32,8 @@ export interface RailConfigResponse {
   extra?: Record<string, unknown>;
   /** Prices, keyed by meter. */
   meters?: Record<string, RailMeterPrice>;
-  /** Tenant grace policy (`rail_settings.grace_*`), per process. */
-  grace?: { window?: string; maxPerAgent?: string };
+  /** Tenant grace policy. `maxTotal` is the cap that binds against a forged payer (§6). */
+  grace?: { window?: string; maxPerAgent?: string; maxTotal?: string };
   /**
    * The connected facilitator. `indexesForDiscovery: false` means the merchant
    * is invisible to the Bazaar however the route declares itself (§9.1.2).
@@ -68,7 +68,7 @@ export interface RailVerifyResponse {
   payer?: string;
   agent?: { id?: string; enrollmentId?: string; address?: string; network?: string };
   /** Allowance Infi issues for the next outage (§6). */
-  grace?: { maxPerAgent?: string; window?: string };
+  grace?: { maxPerAgent?: string; window?: string; maxTotal?: string };
 }
 
 /** Reporting the real quantity for a variable-price route (§5.1). */
@@ -82,7 +82,17 @@ export interface RailSettleRequest {
 }
 
 export interface RailSettleResponse {
+  /**
+   * `settled` | `refused` | `unknown`. Three, not two, and the third is the point:
+   * `unknown` means the settle call was sent and never answered, so the payment may
+   * have landed. A caller holding a buffered response must withhold it — but must
+   * not report a refusal either, because a retry could pay twice.
+   */
   status?: string;
+  /** The provider's normalized refusal code, on `refused`. */
+  reason?: string;
+  /** The on-chain transaction, on `settled`. Echo it in `X-PAYMENT-RESPONSE`. */
+  transaction?: string;
 }
 
 /**
