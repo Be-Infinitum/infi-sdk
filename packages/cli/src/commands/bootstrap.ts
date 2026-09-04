@@ -210,7 +210,7 @@ export async function runAgentOnboarding(flags: BootstrapFlags) {
       expiresAt: result.claimable.expiresAt,
       next: "The human signs in at claimUrl to own this same account. Continue integrating in sandbox; production setup happens in Infi. Never request their password or verification code.",
     },
-    next: [...result.next, "Store INFI_SECRET_KEY only in server secrets. Expose only the Infi publishable key to browser code that needs it.", "Run an application-level test before telling the user the integration is working. Doctor checks setup, not the app."],
+    next: [...result.next, "Store INFI_SECRET_KEY only in server secrets. Do not expose the Infi publishable key to browser code: no route accepts it yet, so it authorizes nothing. Embedded checkout needs no key at all \u2014 the payment link's plink_ token is the capability, and it is public by design.", "Run an application-level test before telling the user the integration is working. Doctor checks setup, not the app."],
   };
 }
 
