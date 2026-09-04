@@ -11,6 +11,7 @@ import { readProjectEnv } from "./dotenv.js";
 import { getProfile, loadConfig } from "./config.js";
 
 export type GlobalFlags = {
+  cwd?: string;
   key?: string;
   profile?: string;
   local?: boolean;
@@ -31,7 +32,7 @@ export function findSecretKey(flags: GlobalFlags): string | undefined {
   return (
     flags.key ??
     process.env.INFI_SECRET_KEY ??
-    readProjectEnv().INFI_SECRET_KEY ??
+    readProjectEnv(flags.cwd).INFI_SECRET_KEY ??
     getProfile(loadConfig(), flags.profile)?.secretKey ??
     undefined
   );
@@ -49,7 +50,7 @@ export function apiBaseOverride(flags: GlobalFlags): { url: string; source: stri
   if (fromEnv) return { url: fromEnv.replace(/\/$/, ""), source: "INFI_API_URL" };
   // `init --local` writes this into .env.local; honouring it is what makes a local
   // project keep talking to localhost across commands.
-  const fromFile = readProjectEnv().INFI_API_URL;
+  const fromFile = readProjectEnv(flags.cwd).INFI_API_URL;
   if (fromFile) return { url: fromFile.replace(/\/$/, ""), source: ".env.local" };
   return undefined;
 }
@@ -64,7 +65,7 @@ export function apiBase(flags: GlobalFlags): string {
   if (override) return override.url;
   // A saved profile records the host its key came from (local / self-host logins),
   // but an explicit --key or INFI_SECRET_KEY outranks it.
-  if (!flags.key && !process.env.INFI_SECRET_KEY && !readProjectEnv().INFI_SECRET_KEY) {
+  if (!flags.key && !process.env.INFI_SECRET_KEY && !readProjectEnv(flags.cwd).INFI_SECRET_KEY) {
     const saved = getProfile(loadConfig(), flags.profile)?.baseUrl;
     if (saved) return saved.replace(/\/$/, "");
   }
@@ -85,7 +86,7 @@ export function provisioningApiBase(flags: GlobalFlags): string {
  * same reason the API host is: a sandbox tenant does not exist on the live app.
  */
 export function appBase(flags: GlobalFlags): string {
-  const fromEnv = process.env.INFI_APP_URL ?? readProjectEnv().INFI_APP_URL;
+  const fromEnv = process.env.INFI_APP_URL ?? readProjectEnv(flags.cwd).INFI_APP_URL;
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   return resolveAppBase(resolveMode(flags));
 }

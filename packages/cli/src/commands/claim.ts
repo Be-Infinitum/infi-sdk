@@ -2,9 +2,11 @@ import { provisioningApiBase, type GlobalFlags } from "../lib/client.js";
 import { createClaimable, getClaimable, type ClaimRef } from "../lib/claim.js";
 import { fail, ok, printJson } from "../lib/output.js";
 
-export async function claimCreate(flags: GlobalFlags & { ref?: ClaimRef }): Promise<void> {
+export async function claimCreate(flags: GlobalFlags & { ref?: ClaimRef; email?: string; accountName?: string }): Promise<void> {
   const claimable = await createClaimable(provisioningApiBase(flags), {
     ref: flags.ref ?? "cli",
+    email: flags.email,
+    accountName: flags.accountName,
   });
   if (flags.json) {
     printJson(claimable);

@@ -46,8 +46,13 @@ describe("cli claim", () => {
     expect(JSON.parse(init.body as string)).toEqual({ ref: "cli" });
   });
 
-  // The endpoint answers 422 "unrecognized field" for anything but `ref`, and
-  // company intent only shapes the generated infi.company.ts locally.
+  it("sends the user's contact and business name without turning intent into an API field", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "claim_1" }, 201));
+    await createClaimable(BASE, { ref: "mcp", email: " founder@example.com ", accountName: " Acme " });
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ ref: "mcp", email: "founder@example.com", accountName: "Acme" });
+  });
+
+  // Company intent shapes the generated file, not the public provision request.
   it("createClaimable sends ref only — never intent", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse(

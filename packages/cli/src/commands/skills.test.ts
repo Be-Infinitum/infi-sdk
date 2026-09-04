@@ -15,8 +15,9 @@ afterEach(() => {
 });
 
 describe("skills catalog", () => {
-  it("ships at least the five integration recipes", () => {
+  it("ships the six integration recipes", () => {
     expect(listSkills().map((s) => s.id)).toEqual([
+      "embed-checkout",
       "prepaid-ai-credits",
       "sell-digital-product",
       "send-payment-link",

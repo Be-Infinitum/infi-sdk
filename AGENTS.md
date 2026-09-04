@@ -124,13 +124,44 @@ infi go-live --json
 Tools: `infi_bootstrap`, `infi_claim_create`, `infi_doctor`, `infi_go_live_status`,
 `infi_sync_plan`, `infi_sync_apply`, `infi_pull`.
 
+## Embedded checkout
+
+The buyer pays **on the merchant's page**, in an iframe served from
+`app.beinfi.com`. Alternative to sending them to the hosted `/pay/{slug}` link,
+not a replacement: same backend, same webhooks.
+
+```tsx
+import { InfiCheckoutEmbed } from "@beinfi/checkout/react";
+
+// href is the string links.create() returned — it carries slug + token.
+<InfiCheckoutEmbed href={link.url} environment="sandbox" onComplete={() => setStep("thanks")} />
+```
+
+| Fact | Consequence |
+|------|-------------|
+| `onComplete` is a client-side event | **Fulfil on `payment.confirmed`**, verified with `verifyWebhook`. Never on `onComplete` |
+| The public route is `/pay/{slug}/links/{token}` | `linkToken` needs `slug` too; `href={link.url}` avoids the question |
+| `linkToken` is one product, `invoiceId` is a cart | Price a cart server-side with `infi.checkout({ payerId, lineItems })` — amounts are never browser-settable |
+| `environment` has no default | `"sandbox"` \| `"production"`, always explicit |
+| The merchant embeds our surface | Theming is `themeOptions` + `locale` + `hidePrice`, not their CSS |
+
+No API key in the browser, and no server call per purchase. Card fields render in
+the provider's own frame, so the merchant's PCI scope does not change.
+Full instructions: `skills/embed-checkout/`.
+
 ## Recipes
 
 | Intent | Skill |
 |--------|--------|
-| Prepaid AI chat | `skills/add-prepaid-ai-chat/` |
-| One-time sale | `skills/add-one-time-checkout/` |
-| Usage SaaS | `skills/add-usage-based-saas/` |
+| Sell a file or link | `skills/sell-digital-product/` |
+| Charge with a link, build nothing | `skills/send-payment-link/` |
+| Pay on the merchant's own page | `skills/embed-checkout/` |
+| Prepaid AI chat | `skills/prepaid-ai-credits/` |
+| Usage SaaS | `skills/usage-based-subscription/` |
+| Confirm a test payment | `skills/test-payment-in-sandbox/` |
+
+`infi skills list` / `infi skills install` copies these into `.claude/skills/`;
+the MCP server serves the same files as `infi://skills/<id>`.
 
 ## Streaming LLM + credits
 

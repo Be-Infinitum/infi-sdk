@@ -1,12 +1,13 @@
 {
-  "name": "@beinfi/sdk",
-  "version": "0.11.2",
-  "description": "Infi SDK — email-code auth and revenue infrastructure for technical founders",
+  "name": "@beinfi/checkout",
+  "version": "0.1.0",
+  "description": "Embeddable Infi checkout — drop pix, card and crypto payment into your own page.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -17,17 +18,11 @@
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js",
       "require": "./dist/react/index.cjs"
-    },
-    "./rail": {
-      "types": "./dist/rail/index.d.ts",
-      "import": "./dist/rail/index.js",
-      "require": "./dist/rail/index.cjs"
     }
   },
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {
@@ -37,11 +32,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "rm -rf dist && tsup",
     "prepublishOnly": "npm run build && npm run typecheck && npm test",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "codegen": "bash ../../scripts/codegen.sh"
+    "test": "vitest run"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -56,9 +50,11 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "happy-dom": "^15.11.7",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tsup": "^8.5.0",

@@ -15,7 +15,12 @@ export type Meter = components["schemas"]["Meter"];
 export type CreateMeterRequest = components["schemas"]["CreateMeterRequest"];
 export type UpdateMeterRequest = components["schemas"]["UpdateMeterRequest"];
 export type RateCard = components["schemas"]["RateCard"];
-export type CreditSummary = components["schemas"]["CreditSummary"];
+/** @deprecated Legacy credit endpoints. New integrations use per-meter WalletBalance. */
+export type CreditSummary = {
+  balance?: string;
+  total?: string;
+  entries?: { id?: string; kind?: "grant" | "consumption" | "expiry" | "refund"; amount?: string; reference?: string | null; createdAt?: string }[];
+};
 export type UsageReport = components["schemas"]["UsageReport"];
 
 /**

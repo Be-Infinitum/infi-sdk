@@ -1,6 +1,7 @@
 ---
-description: Integrate Infi billing, auth, and metering in this project
+description: Integrate Infi billing, checkout and metering in this project
 globs:
+  - "**/infi.company.ts"
   - "**/infi.billing.ts"
   - "**/scripts/seed.ts"
   - "**/scripts/setup.ts"
@@ -8,18 +9,27 @@ globs:
 
 # Infi integration rules
 
-Read `/AGENTS.md` at the repo root before changing auth or company config.
+Read `/AGENTS.md` at the repo root before changing company config or payment code.
 
 ## Non-negotiables
 
 1. **Company as code**: prefer `infi.company.ts` + `defineCompany` / `defineCompany.fromIntent`.
 2. **Bootstrap first**: `infi bootstrap --intent <…> --json` (claim + sync + doctor).
 3. **No AUTH/PAY URL env vars** — SDK infers hosts from `INFI_SECRET_KEY`.
-4. **Wallet helper**: `infi.wallet.fromSession(token, { productKey })` for meter/credits.
-5. **Go-live**: guide humans via `infi go-live` / `infi_go_live_status` (claim → KYC) — never invent `sk_live_`.
+4. **Wallet helper**: `infi.wallet.forCustomer(externalId, { productKey })` — `externalId` is YOUR
+   user id, from your own auth. Beinfi does not do login. (`infi.wallet.bind(enrollmentId)` when
+   you already hold the enrollment.)
+5. **Fulfilment is webhook-driven**: a thank-you page or the embed's `onComplete` is not proof
+   of payment. Deliver on `payment.confirmed`, verified with `verifyWebhook`.
+6. **Go-live**: guide humans via `infi go-live` / `infi_go_live_status` (claim → KYC) — never invent `sk_live_`.
 
 ## Stack picks
 
 - Next.js → `@beinfi/nextjs`
-- Hono / Vite / Workers / Lovable → `@beinfi/auth`
+- Hono / Vite / Workers / Lovable → `@beinfi/sdk` (framework-agnostic; server-side only)
+- Buyer pays without leaving the page → `@beinfi/checkout` (`skills/embed-checkout/`)
+- Buyer can be sent a URL → `infi.links.create()` (`skills/send-payment-link/`)
+
+Published packages are `@beinfi/sdk`, `@beinfi/checkout`, `@beinfi/nextjs`, `@beinfi/cli`,
+`@beinfi/mcp`. There is no `@beinfi/auth`.
 

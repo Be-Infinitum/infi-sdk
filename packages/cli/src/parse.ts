@@ -5,6 +5,7 @@ export function printHelp(): void {
 ${pc.bold("infi")} — Infi operator CLI (company as code)
 
 ${pc.dim("Usage:")}
+  infi onboard [--email <email>] [--account-name <name>] [--intent <intent>] [--cwd <project>] --json
   infi bootstrap --intent <crm|prepaid-ai-chat|one-time|usage-saas> [--ref <channel>] [--json]
   infi login [--token <session>] [--tenant <slug>] [--profile name]
   infi keys list|create|revoke [--key sk_...] [--json]

@@ -24,6 +24,22 @@ export async function run(argv: string[]): Promise<void> {
       break;
     }
 
+    case "onboard": {
+      const { runAgentOnboarding } = await import("./commands/bootstrap.js");
+      const { printJson } = await import("./lib/output.js");
+      const result = await runAgentOnboarding({
+        ...gf,
+        intent: typeof parsed.flags.intent === "string" ? parsed.flags.intent : undefined,
+        email: typeof parsed.flags.email === "string" ? parsed.flags.email : undefined,
+        accountName: typeof parsed.flags["account-name"] === "string" ? parsed.flags["account-name"] : undefined,
+        ref: typeof parsed.flags.ref === "string" ? parsed.flags.ref as ClaimRef : undefined,
+        cwd: typeof parsed.flags.cwd === "string" ? parsed.flags.cwd : undefined,
+      });
+      printJson(result);
+      if (result.status === "needs_attention") process.exitCode = 1;
+      break;
+    }
+
     case "bootstrap":
       await (
         await import("./commands/bootstrap.js")
@@ -31,7 +47,9 @@ export async function run(argv: string[]): Promise<void> {
         ...gf,
         intent: typeof parsed.flags.intent === "string" ? parsed.flags.intent : undefined,
         ref: typeof parsed.flags.ref === "string" ? (parsed.flags.ref as ClaimRef) : undefined,
-        slug: typeof parsed.flags.slug === "string" ? parsed.flags.slug : undefined,
+        email: typeof parsed.flags.email === "string" ? parsed.flags.email : undefined,
+        accountName: typeof parsed.flags["account-name"] === "string" ? parsed.flags["account-name"] : undefined,
+        cwd: typeof parsed.flags.cwd === "string" ? parsed.flags.cwd : undefined,
         skipSync: parsed.flags["skip-sync"] === true,
       });
       break;
@@ -117,6 +135,8 @@ export async function run(argv: string[]): Promise<void> {
           await claim.claimCreate({
             ...gf,
             ref: (typeof parsed.flags.ref === "string" ? parsed.flags.ref : "cli") as ClaimRef,
+            email: typeof parsed.flags.email === "string" ? parsed.flags.email : undefined,
+            accountName: typeof parsed.flags["account-name"] === "string" ? parsed.flags["account-name"] : undefined,
           });
           break;
         case "get":

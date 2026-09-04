@@ -8,6 +8,8 @@ export type ClaimableTenantCreateResponse = {
   tenantSlug: string;
   productId: string;
   apiKeySecret: string;
+  publishableKey?: string;
+  accountName?: string;
   claimUrl: string;
   expiresAt: string;
 };
@@ -24,15 +26,16 @@ export type ClaimableTenantPublicView = {
 
 export type CreateClaimableOptions = {
   ref?: ClaimRef;
+  email?: string;
+  accountName?: string;
 };
 
-/**
- * `ref` is the only field POST /public/v1/claimables accepts; anything else comes
- * back 422 "unrecognized field". Company intent shapes the generated
- * infi.company.ts locally (see writeCompanyFile) and is never sent.
- */
 function claimableBody(opts: CreateClaimableOptions): Record<string, string> {
-  return { ref: opts.ref ?? "cli" };
+  return {
+    ref: opts.ref ?? "cli",
+    ...(opts.email ? { email: opts.email.trim() } : {}),
+    ...(opts.accountName ? { accountName: opts.accountName.trim() } : {}),
+  };
 }
 
 /** A 404 here is the wrong host, not a missing record — say so. */

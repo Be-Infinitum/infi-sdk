@@ -3,21 +3,22 @@
   "private": true,
   "workspaces": [
     "packages/sdk",
+    "packages/checkout",
     "packages/nextjs",
     "packages/cli",
     "packages/mcp",
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter '@beinfi/mcp' build",
+    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/checkout' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter '@beinfi/mcp' build",
     "test": "bun run --filter '@beinfi/*' test",
     "typecheck": "bun run --filter '@beinfi/*' typecheck",
     "codegen": "bash scripts/codegen.sh",
     "templates:normalize": "node scripts/normalize-templates.mjs",
     "templates:sync": "bun run --filter '@beinfi/cli' sync-templates",
     "smoke": "bash scripts/smoke-cli.sh",
-    "publish:dry-run": "bun run build && npm publish --dry-run --workspace @beinfi/sdk && npm publish --dry-run --workspace @beinfi/nextjs && npm publish --dry-run --workspace @beinfi/cli",
-    "publish:packages": "bun run build && npm publish --workspace @beinfi/sdk && npm publish --workspace @beinfi/nextjs && npm publish --workspace @beinfi/cli"
+    "publish:dry-run": "bun run build && npm publish --dry-run --workspace @beinfi/sdk && npm publish --dry-run --workspace @beinfi/checkout && npm publish --dry-run --workspace @beinfi/nextjs && npm publish --dry-run --workspace @beinfi/cli",
+    "publish:packages": "bun run build && npm publish --workspace @beinfi/sdk && npm publish --workspace @beinfi/checkout && npm publish --workspace @beinfi/nextjs && npm publish --workspace @beinfi/cli"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

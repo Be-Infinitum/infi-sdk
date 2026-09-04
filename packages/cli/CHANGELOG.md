@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.6
+
+- Conversational onboarding collects missing email, account name and intent; returns a human claim link.
+- Provision both sandbox keys and resume the same project without overwriting app configuration.
+
+
 ## 0.2.4 — 2026-08-20
 
 ### Fixed

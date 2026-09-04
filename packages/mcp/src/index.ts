@@ -9,38 +9,70 @@ import { Infi, COMPANY_INTENTS, type BillingConfig } from "@beinfi/sdk";
 import { createClaimable, type ClaimRef } from "@beinfi/cli/claim";
 import { runDoctor } from "@beinfi/cli/doctor";
 import { getGoLiveStatus } from "@beinfi/cli/go-live";
-import { runBootstrap } from "@beinfi/cli/bootstrap";
+import { runBootstrap, runAgentOnboarding } from "@beinfi/cli/bootstrap";
 import { listSkills } from "@beinfi/cli/skills";
 import { readFileSync } from "node:fs";
 
 const API_BASE = (process.env.INFI_API_URL ?? "https://api-sandbox.beinfi.com").replace(/\/$/, "");
 
+let activeKey: string | undefined;
+let activeCwd: string | undefined;
+let activeApiBase: string | undefined;
+
 function client(): Infi {
-  const key = process.env.INFI_SECRET_KEY;
+  const key = activeKey ?? process.env.INFI_SECRET_KEY;
   if (!key) {
     throw new Error("INFI_SECRET_KEY is required for this tool (except claim/bootstrap).");
   }
   // Prefer SDK host inference; INFI_API_URL only for local overrides.
   return new Infi({
     secretKey: key,
-    ...(process.env.INFI_API_URL ? { apiUrl: process.env.INFI_API_URL } : {}),
+    ...((activeApiBase ?? process.env.INFI_API_URL) ? { apiUrl: activeApiBase ?? process.env.INFI_API_URL } : {}),
   });
 }
 
-const server = new McpServer({ name: "infi", version: "0.2.0" });
+const server = new McpServer({ name: "infi", version: "0.2.0" }, {
+  instructions: "Start with infi_onboard for a new integration. It returns missing questions; ask the human and call again with the answers and the same project cwd. Existing integrations should use doctor/sync. Sandbox provisioning needs no login. Only the human claims the account and completes production setup. Never ask for passwords or verification codes.",
+});
 
 const intentSchema = z.enum(["crm", "prepaid-ai-chat", "one-time", "usage-saas"]);
+
+server.tool(
+  "infi_onboard",
+  "Conversational signup: ask for missing email, business name and intent, then provision a named sandbox with both test keys, configure the project and return the human completion link. Resume using the same cwd. Does not verify identity or enable production.",
+  {
+    email: z.string().email().max(254).optional(),
+    accountName: z.string().trim().min(1).max(120).optional(),
+    intent: intentSchema.optional(),
+    ref: z.enum(["cli", "cursor", "mcp", "lovable"]).optional(),
+    cwd: z.string().optional(),
+  },
+  async ({ email, accountName, intent, ref, cwd }) => {
+    const result = await runAgentOnboarding({ email, accountName, intent, ref: ref ?? "mcp", cwd, json: true });
+    if (result.status !== "requires_input") {
+      activeKey = result.env.INFI_SECRET_KEY;
+      activeCwd = cwd;
+      activeApiBase = result.apiBase;
+    }
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  },
+);
 
 server.tool(
   "infi_claim_create",
   "Provision a claimable sandbox tenant (sk_test_ + claim URL). Use infi_bootstrap to also seed a catalog from an intent.",
   {
     ref: z.enum(["cli", "cursor", "mcp", "lovable"]).optional(),
+    email: z.string().email().max(254).optional(),
+    accountName: z.string().trim().min(1).max(120).optional(),
   },
-  async ({ ref }) => {
+  async ({ ref, email, accountName }) => {
     const claimable = await createClaimable(API_BASE, {
       ref: (ref ?? "mcp") as ClaimRef,
+      email, accountName,
     });
+    activeKey = claimable.apiKeySecret;
+    activeApiBase = API_BASE;
     return { content: [{ type: "text", text: JSON.stringify(claimable, null, 2) }] };
   },
 );
@@ -52,15 +84,20 @@ server.tool(
     intent: intentSchema,
     ref: z.enum(["cli", "cursor", "mcp", "lovable"]).optional(),
     cwd: z.string().optional(),
+    email: z.string().email().max(254).optional(),
+    accountName: z.string().trim().min(1).max(120).optional(),
   },
-  async ({ intent, ref, cwd }) => {
+  async ({ intent, ref, cwd, email, accountName }) => {
     const result = await runBootstrap({
-      intent,
+      intent, email, accountName,
       ref: (ref ?? "mcp") as ClaimRef,
       cwd,
       local: API_BASE.includes("localhost"),
       json: true,
     });
+    activeKey = result.env.INFI_SECRET_KEY;
+    activeCwd = cwd;
+    activeApiBase = result.apiBase;
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   },
 );
@@ -73,7 +110,8 @@ server.tool(
     const result = await runDoctor({
       local: API_BASE.includes("localhost"),
       json: true,
-      key: process.env.INFI_SECRET_KEY,
+      key: activeKey ?? process.env.INFI_SECRET_KEY,
+      cwd: activeCwd,
     });
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   },
@@ -86,7 +124,8 @@ server.tool(
   async ({ claimId }) => {
     const status = await getGoLiveStatus({
       claimId,
-      key: process.env.INFI_SECRET_KEY,
+      key: activeKey ?? process.env.INFI_SECRET_KEY,
+      cwd: activeCwd,
       local: API_BASE.includes("localhost"),
       json: true,
     });

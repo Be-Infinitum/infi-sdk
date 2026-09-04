@@ -97,9 +97,11 @@ export function UsagePanel({
       {!hideCredit && (
         <section>
           <h3 className={classNames.heading}>Balance</h3>
-          <div className={classNames.balance} style={{ fontSize: "1.75rem", fontWeight: 600 }}>
-            {state.credit?.balance ?? "0"} <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>{creditLabel}</span>
-          </div>
+          {(state.balances ?? []).map((balance, index) => (
+            <div key={balance.meter ?? index} className={classNames.balance} style={{ fontSize: "1.75rem", fontWeight: 600 }}>
+              {balance.balance ?? "0"} <span style={{ fontSize: "0.9rem", fontWeight: 400 }}>{balance.meter ?? creditLabel}</span>
+            </div>
+          ))}
         </section>
       )}
 

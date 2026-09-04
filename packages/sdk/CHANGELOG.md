@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.2
+
+- Regenerate the API contract, including named agent provisioning and both test keys.
+- Render per-meter balances from the current customer-state response; retain the legacy CreditSummary export for compatibility.
+
+
 ## 0.11.1 — 2026-08-26
 
 Dois bugs achados **rodando** um app pré-pago contra produção. Nenhum aparece

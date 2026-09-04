@@ -72,3 +72,22 @@ if (rMajor !== wMajor || rMinor > wMinor) {
 }
 
 console.log(`smoke: bundle starts, speaks MCP, advertises resources; cli range ${cliRange} admits ${cliVersion}`);
+
+// Exercise the actual tool over stdio without provisioning an account.
+const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
+const os = await import("node:os");
+const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "infi-mcp-onboard-"));
+const transport = new StdioClientTransport({ command: "node", args: [dist], env: { PATH: process.env.PATH ?? "" } });
+const client = new Client({ name: "onboarding-smoke", version: "1" });
+try {
+  await client.connect(transport);
+  const result = await client.callTool({ name: "infi_onboard", arguments: { cwd, accountName: "Acme" } });
+  const payload = JSON.parse(result.content[0].text);
+  if (payload.status !== "requires_input" || payload.missingFields.join(",") !== "email,intent") throw new Error("incorrect missing-field response");
+  if (fs.readdirSync(cwd).length) throw new Error("asking questions wrote files");
+  console.log("smoke: infi_onboard asks only missing questions over stdio, without provisioning");
+} finally {
+  await client.close();
+  fs.rmSync(cwd, { recursive: true, force: true });
+}

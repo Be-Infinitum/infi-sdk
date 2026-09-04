@@ -93,6 +93,26 @@ const FIXES: Record<string, InfiErrorFix> = {
     hint: "Customer wallet is empty. Return 402 and surface checkout to buy a credit pack.",
     docs: "https://beinfi.com/pt-br/docs/sdk",
   },
+
+  // Codes the public checkout answers with. They reach a browser mid-purchase,
+  // so each hint has to be something a buyer-facing surface can act on rather
+  // than a note to the developer reading a log later.
+  customer_tax_id_required: {
+    hint: "Pix and boleto need the payer's CPF/CNPJ. Pass customer.taxId when you create the checkout — a customer created without one can never pay by pix or boleto, and the charge fails in front of the buyer.",
+    docs: "https://beinfi.com/pt-br/docs/sdk",
+  },
+  charge_in_progress: {
+    hint: "This invoice already has a pending charge. Show the one the buyer already has (the same pix code re-reads) instead of opening a second.",
+  },
+  charge_already_processing: {
+    hint: "The buyer's previous charge is already being paid, so it cannot be released. Keep them on that method — switching now would abandon money in flight.",
+  },
+  method_switch_failed: {
+    hint: "The provider was unreachable while releasing the previous charge. Retryable: the old method still works, so leave the buyer on it and try again.",
+  },
+  invoice_not_open: {
+    hint: "The invoice is paid, void or uncollectible — there is nothing left to charge. Read its status and show the receipt instead of a payment form.",
+  },
 };
 
 /** Known error codes with agent-friendly remediation. */
