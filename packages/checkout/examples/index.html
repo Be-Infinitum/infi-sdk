@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>@beinfi/checkout — exemplo</title>
+<style>
+  :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+  body { margin: 0; padding: 2rem 1.25rem; display: grid; gap: 1.5rem;
+         grid-template-columns: minmax(320px, 420px) minmax(0, 1fr); align-items: start; }
+  @media (max-width: 860px) { body { grid-template-columns: 1fr; } }
+  h1 { font-size: 1.05rem; margin: 0 0 .25rem; }
+  p.sub { margin: 0 0 1.25rem; opacity: .7; font-size: .85rem; line-height: 1.5; }
+  fieldset { border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+             border-radius: 10px; padding: 1rem; margin: 0 0 1rem; display: grid; gap: .75rem; }
+  legend { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; opacity: .6; }
+  label { display: grid; gap: .3rem; font-size: .8rem; }
+  input, select { font: inherit; padding: .5rem .6rem; border-radius: 7px;
+                  border: 1px solid color-mix(in oklab, currentColor 25%, transparent);
+                  background: transparent; color: inherit; }
+  button { font: inherit; padding: .6rem 1rem; border-radius: 999px; cursor: pointer;
+           border: 1px solid transparent; background: #5b21b6; color: #fff; }
+  button.ghost { background: transparent; color: inherit;
+                 border-color: color-mix(in oklab, currentColor 25%, transparent); }
+  .row { display: flex; gap: .5rem; flex-wrap: wrap; }
+  #log { font-family: ui-monospace, monospace; font-size: .72rem; line-height: 1.6;
+         border: 1px solid color-mix(in oklab, currentColor 20%, transparent);
+         border-radius: 10px; padding: .75rem; height: 15rem; overflow: auto;
+         white-space: pre-wrap; }
+  #log b { color: #5b21b6; }
+  #mount { border: 1px dashed color-mix(in oklab, currentColor 25%, transparent);
+           border-radius: 12px; min-height: 8rem; }
+</style>
+</head>
+<body>
+<div>
+  <h1>@beinfi/checkout</h1>
+  <p class="sub">
+    Cole o slug e o token do payment link e monte. Todo evento do protocolo aparece
+    no log — é o mesmo que a página do merchant recebe.
+  </p>
+
+  <form id="cfg">
+    <fieldset>
+      <legend>Checkout</legend>
+      <label>slug do tenant<input name="slug" value="acme" required /></label>
+      <label>linkToken (plink_…)<input name="linkToken" placeholder="plink_…" required /></label>
+      <label>ambiente
+        <select name="environment">
+          <option value="sandbox" selected>sandbox</option>
+          <option value="production">production</option>
+        </select>
+      </label>
+      <label>appUrl (opcional — dev local)
+        <input name="appUrl" placeholder="http://localhost:4003" />
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Aparência</legend>
+      <label>accent<input name="accent" value="#5b21b6" /></label>
+      <label>locale
+        <select name="locale"><option value="pt-BR" selected>pt-BR</option><option value="en">en</option></select>
+      </label>
+    </fieldset>
+
+    <div class="row">
+      <button type="submit">Montar</button>
+      <button type="button" class="ghost" id="submitBtn">submit()</button>
+      <button type="button" class="ghost" id="emailBtn">getEmail()</button>
+      <button type="button" class="ghost" id="destroyBtn">destroy()</button>
+    </div>
+  </form>
+
+  <div id="log"></div>
+</div>
+
+<div id="mount"></div>
+
+<script type="module">
+// Imports the built package directly — run `npm run build` in packages/checkout
+// first, then serve this directory over http (a module script cannot be loaded
+// from file://):
+//
+//   cd packages/checkout && npm run build && python3 -m http.server 5173
+//   open http://localhost:5173/examples/
+//
+// Port 5173 on localhost is a genuinely foreign origin as far as Infi is
+// concerned, which is the point: it proves the embed works somewhere we could
+// never have allowlisted.
+import { createCheckoutEmbed } from "../dist/index.js";
+
+const logEl = document.getElementById("log");
+const mount = document.getElementById("mount");
+let embed = null;
+
+function log(label, payload) {
+  const time = new Date().toLocaleTimeString();
+  const body = payload === undefined ? "" : " " + JSON.stringify(payload);
+  logEl.insertAdjacentHTML("afterbegin", `<div>${time} <b>${label}</b>${body}</div>`);
+}
+
+document.getElementById("cfg").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const f = Object.fromEntries(new FormData(event.target));
+  embed?.destroy();
+  mount.innerHTML = "";
+  logEl.innerHTML = "";
+
+  embed = createCheckoutEmbed(
+    mount,
+    { slug: f.slug, linkToken: f.linkToken },
+    {
+      mode: f.environment === "production" ? "live" : "sandbox",
+      appUrl: f.appUrl || undefined,
+      locale: f.locale,
+      themeOptions: { accentColor: f.accent || undefined },
+      onStateChange: (state, method) => log("state", { state, method }),
+      onPaymentPending: (info) => log("payment_pending", info),
+      onResize: (height) => log("resize", { height }),
+      onPaymentError: (error) => log("error", error),
+      // NOTE: this is the event a merchant is tempted to fulfil on, and it is
+      // the wrong one. It says the payer finished, on a page the merchant
+      // controls. Real fulfilment keys off the payment.confirmed webhook.
+      onComplete: (payload) => log("complete (NOT proof of payment)", payload),
+    },
+  );
+  log("mounted", { src: embed.iframe.getAttribute("src") });
+});
+
+document.getElementById("submitBtn").addEventListener("click", async () => {
+  try { await embed?.submit(); log("submit() resolved"); }
+  catch (e) { log("submit() rejected", { message: e.message }); }
+});
+document.getElementById("emailBtn").addEventListener("click", async () => {
+  try { log("getEmail()", { value: await embed?.getEmail() }); }
+  catch (e) { log("getEmail() rejected", { message: e.message }); }
+});
+document.getElementById("destroyBtn").addEventListener("click", () => {
+  embed?.destroy(); embed = null; log("destroyed");
+});
+</script>
+</body>
+</html>

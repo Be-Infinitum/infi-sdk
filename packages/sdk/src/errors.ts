@@ -145,6 +145,26 @@ export async function parseErrorResponse(res: Response): Promise<InfiError> {
  * Untyped callers used to get a URL containing the literal `undefined` and no
  * error at all, which only surfaced as a 404 for the buyer.
  */
+/**
+ * Require a CPF or CNPJ, checked for shape as well as presence.
+ *
+ * Presence alone is not enough: a truncated document passes a `!taxId` test and
+ * then fails at the provider, which is the same late failure with an extra step.
+ * 11 digits is a CPF, 14 a CNPJ — the same rule the public checkout session
+ * enforces, so a caller cannot get past here and fail there.
+ */
+export function requireTaxId(taxId: string | undefined): string {
+  const digits = (taxId ?? "").replace(/\D/g, "");
+  if (digits.length !== 11 && digits.length !== 14) {
+    throw new InfiError(
+      "checkout: customer.taxId must be a CPF (11 digits) or CNPJ (14 digits). Pix and boleto are refused for a payer without one, and the refusal reaches the buyer's screen, not your logs.",
+      400,
+      "customer_tax_id_required",
+    );
+  }
+  return digits;
+}
+
 export function requireSlug(slug: string | undefined | null, method: string): string {
   const trimmed = typeof slug === "string" ? slug.trim() : "";
   if (!trimmed) {

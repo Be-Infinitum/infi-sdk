@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { InfiError, parseErrorResponse, requireSlug } from "./errors.js";
+import { InfiError, parseErrorResponse, requireSlug,
+  requireTaxId,
+} from "./errors.js";
 import { INFI_ERROR_FIXES, fixForCode } from "./error-fixes.js";
 
 function jsonResponse(body: unknown, status = 422): Response {
@@ -157,6 +159,38 @@ describe("err.fix", () => {
   it("every docs pointer is a public URL, never a repo path", () => {
     for (const [code, fix] of Object.entries(INFI_ERROR_FIXES)) {
       if (fix.docs) expect(fix.docs, code).toMatch(/^https:\/\/beinfi\.com\//);
+    }
+  });
+});
+
+describe("requireTaxId", () => {
+  it("accepts a CPF and a CNPJ, formatted or not", () => {
+    expect(requireTaxId("52998224725")).toBe("52998224725");
+    expect(requireTaxId("529.982.247-25")).toBe("52998224725");
+    expect(requireTaxId("11222333000181")).toBe("11222333000181");
+    expect(requireTaxId("11.222.333/0001-81")).toBe("11222333000181");
+  });
+
+  it("rejects absence with the code the checkout answers with", () => {
+    // Same code the public charge endpoint returns, so a caller can handle one
+    // thing whether it failed early here or late there.
+    for (const bad of [undefined, "", "   ", "-.-"]) {
+      try {
+        requireTaxId(bad);
+        throw new Error(`expected a throw for ${JSON.stringify(bad)}`);
+      } catch (e) {
+        expect(e).toBeInstanceOf(InfiError);
+        expect((e as InfiError).code).toBe("customer_tax_id_required");
+        expect((e as InfiError).status).toBe(400);
+      }
+    }
+  });
+
+  it("rejects a truncated document instead of passing it to the provider", () => {
+    // Presence alone would let this through, and it fails at the PSP — the same
+    // late failure with an extra step.
+    for (const bad of ["529982247", "5299822472", "112223330001", "1"]) {
+      expect(() => requireTaxId(bad)).toThrow(/CPF \(11 digits\) or CNPJ \(14 digits\)/);
     }
   });
 });

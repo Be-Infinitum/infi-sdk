@@ -3,6 +3,7 @@ import {
   InsufficientCreditError,
   parseErrorResponse,
   requireSlug,
+  requireTaxId,
 } from "./errors.js";
 import { Transport, newIdempotencyKey } from "./http.js";
 import { resolveUsageValue, resolveMeterMode, resolveCustomerId, type MeterOptions } from "./meter.js";
@@ -83,11 +84,18 @@ export type CheckoutOptions =
       /** Purchase: enroll the customer in this product and open a product-linked invoice. */
       productId: string;
       /**
-       * `taxId` is the payer's CPF/CNPJ. Optional here, but pix and boleto on Asaas
-       * REFUSE a customer without one ("A CPF/CNPJ is required to process this
-       * payment"), so a checkout that will be paid that way has to collect it.
+       * The payer. `taxId` is their CPF or CNPJ, and it is **required**.
+       *
+       * Pix and boleto on Asaas refuse to create a payer without one, and the
+       * refusal lands at charge time — in front of the buyer, on a screen no
+       * client-side change can rescue, because the public charge endpoint takes
+       * no `taxId`. A customer created without it can never pay by pix or boleto,
+       * which in this market is most buyers.
+       *
+       * So it fails here instead: at the moment you write the code, not the
+       * moment someone tries to pay you.
        */
-      customer: { externalId: string; email?: string; name?: string; taxId?: string };
+      customer: { externalId: string; email?: string; name?: string; taxId: string };
       /** Override the auto-derived product price. */
       amount?: string;
       description?: string;
@@ -335,6 +343,7 @@ export class Infi {
     const slug = requireSlug(opts.slug, "checkout");
     let invoice: Invoice;
     if ("productId" in opts) {
+      requireTaxId(opts.customer.taxId);
       invoice = await this.invoices.createForProduct(opts.productId, {
         customer: {
           externalId: opts.customer.externalId,

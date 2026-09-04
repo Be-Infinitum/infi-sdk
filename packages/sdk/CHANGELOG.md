@@ -1,8 +1,42 @@
 # Changelog
 
+## Unreleased
+
+### BREAKING
+- **`checkout()` now requires `customer.taxId`** in purchase mode, validated as a
+  CPF (11 digits) or CNPJ (14). Pix and boleto on Asaas refuse to create a payer
+  without one, the refusal arrives at charge time, and the public charge endpoint
+  takes no `taxId` — so a customer created without it can never pay by pix or
+  boleto and no client-side change rescues it. It used to be optional, which
+  meant the failure landed in front of the buyer instead of on the integrator's
+  keyboard. A truncated document is rejected too: presence alone passes a
+  falsy check and then fails at the provider, which is the same late failure with
+  an extra step.
+
+  Card-only integrations that omit it will stop compiling. That is deliberate —
+  the alternative is discovering it in staging, or worse, in production.
+
+  Releasing this is a minor bump (0.12.0), which means the ranges in
+  `@beinfi/nextjs` (`>=0.9.0 <0.12.0`), `@beinfi/cli` (`>=0.10.1 <0.12.0`) and
+  `@beinfi/mcp` (`>=0.9.0 <0.12.0`) all have to widen in the same release or
+  nothing resolves. `packages/mcp/scripts/smoke.mjs` fails the publish if they
+  do not.
+
+### Added
+- `@beinfi/checkout` ships a runnable example — `examples/index.html`, served over
+  http from a plain directory. `localhost:5173` is an origin Infi could never have
+  allowlisted, which is the point: it logs every protocol message a merchant's
+  page would receive, and labels `complete` as not being proof of payment.
+
+
 ## 0.11.2
 
 - Regenerate the API contract, including named agent provisioning and both test keys.
+- Remediation hints (`err.fix`) for the codes the public checkout answers with:
+  `customer_tax_id_required`, `charge_in_progress`, `charge_already_processing`,
+  `method_switch_failed`, `invoice_not_open`. They reach a buyer mid-purchase, so
+  each hint is something a payment surface can act on rather than a note to
+  whoever reads the log later.
 - Render per-meter balances from the current customer-state response; retain the legacy CreditSummary export for compatibility.
 
 

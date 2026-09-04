@@ -193,7 +193,7 @@ it("checkout forwards a caller-supplied idempotency key", async () => {
   await infi.checkout({
     slug: "acme",
     productId: "prd_1",
-    customer: { externalId: "buyer-1" },
+    customer: { externalId: "buyer-1", taxId: "52998224725" },
     idempotencyKey: "pedido-buyer1-prd1-2026-08-19",
   });
 
