@@ -18,9 +18,13 @@ describe("buildEmbedUrl", () => {
     expect(url.pathname).toBe("/embed/acme/links/plink_abc");
   });
 
-  it("throws on an empty slug instead of interpolating undefined", () => {
-    // Audit #11: checkout() once built `/pay/undefined/...` and 404'd silently.
-    expect(() => buildEmbedUrl({ slug: "  ", linkToken: "plink_abc" }, base)).toThrow(InvalidEmbedUrlError);
+  it("falls back to the slug-less route rather than interpolating a blank slug", () => {
+    // Audit #11's lesson is "never build a URL that 404s silently", and this
+    // honours it: with a token, no slug means the route that resolves the
+    // merchant from the token — a working URL, not a broken one. A merchant
+    // whose INFI_TENANT_SLUG is unset gets a checkout, not a 404.
+    const url = new URL(buildEmbedUrl({ slug: "  ", linkToken: "plink_abc" }, base));
+    expect(url.pathname).toBe("/embed/sandbox/links/plink_abc");
   });
 
   it("throws on an empty link token", () => {
@@ -108,5 +112,41 @@ describe("parseCheckoutHref", () => {
 
   it("refuses a non-URL", () => {
     expect(() => parseCheckoutHref("plink_1")).toThrow(InvalidEmbedUrlError);
+  });
+});
+
+describe("a link token on its own", () => {
+  it("builds the slug-less route", () => {
+    // The token is globally unique and carries its own tenant, so the slug is
+    // a scoping check rather than a lookup key — and it can be dropped.
+    const url = new URL(buildEmbedUrl({ linkToken: "plink_abc" }, base));
+    expect(url.pathname).toBe("/embed/sandbox/links/plink_abc");
+  });
+
+  it("builds it for live too", () => {
+    const url = new URL(buildEmbedUrl({ linkToken: "plink_abc" }, { ...base, mode: "live" }));
+    expect(url.pathname).toBe("/embed/links/plink_abc");
+  });
+
+  it("still uses the tenant-scoped route when a slug is given", () => {
+    const url = new URL(buildEmbedUrl({ linkToken: "plink_abc", slug: "acme" }, base));
+    expect(url.pathname).toBe("/embed/sandbox/acme/links/plink_abc");
+  });
+
+  it("treats a blank slug as absent rather than interpolating it", () => {
+    const url = new URL(buildEmbedUrl({ linkToken: "plink_abc", slug: "   " }, base));
+    expect(url.pathname).toBe("/embed/sandbox/links/plink_abc");
+  });
+
+  it("still refuses an empty token", () => {
+    expect(() => buildEmbedUrl({ linkToken: "" }, base)).toThrow(InvalidEmbedUrlError);
+  });
+
+  it("still requires a slug for an invoice, which names no merchant", () => {
+    // An invoice id is a per-tenant uuid: dropping the slug here would be a
+    // route that cannot resolve.
+    expect(() =>
+      buildEmbedUrl({ slug: "", invoiceId: "inv_1" } as never, base),
+    ).toThrow(/slug/);
   });
 });

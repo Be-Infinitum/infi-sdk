@@ -9,7 +9,12 @@ import type { EmbedSource } from "../url.js";
 export interface InfiCheckoutEmbedProps
   extends Omit<CreateCheckoutEmbedOptions, "mode">,
     Partial<Record<never, never>> {
-  /** Your tenant slug — the `acme` in `app.beinfi.com/pay/acme/...`. */
+  /**
+   * Your tenant slug. **Optional with `linkToken`** — the token is globally
+   * unique and carries its own tenant, so it resolves the merchant on its own.
+   * **Required with `invoiceId`**, which is a per-tenant uuid and names no
+   * merchant.
+   */
   slug?: string;
   /** The `plink_…` token of a payment link. One product, no server call per sale. */
   linkToken?: string;

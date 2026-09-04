@@ -11,12 +11,15 @@ npm install @beinfi/checkout
 import { InfiCheckoutEmbed } from "@beinfi/checkout/react";
 
 <InfiCheckoutEmbed
-  slug="acme"
   linkToken="plink_…"
   environment="sandbox"
   onComplete={({ invoiceId }) => router.push(`/obrigado?i=${invoiceId}`)}
 />
 ```
+
+One prop. The token is globally unique and carries its own tenant, so it
+identifies the merchant on its own — no slug needed. Pass `slug` alongside it if
+you want the backend to cross-check the two.
 
 That is the whole integration. No API key reaches the browser, and there is no
 server call per purchase — the `plink_…` payment-link token is the capability,

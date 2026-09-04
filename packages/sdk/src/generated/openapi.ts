@@ -418,6 +418,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pay/links/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Resolve a payment link for display, without the slug (unauthenticated)
+         * @description The same view as `GET /pay/{slug}/links/{token}`, resolved from the token alone. `payment_links.token` is globally unique and the row carries its own `tenant_id`, so the slug segment was only ever a cross-check against a value this response hands back in `merchant.slug`.
+         *     For an embedded checkout, which holds the token and nothing else. It returns the whole display body rather than just the slug, because a slug-only answer would cost a second round trip on every pageview.
+         *     A missing, revoked or malformed token is a single 404 with the same message, so the response never says which.
+         */
+        get: operations["getPaymentLinkByTokenPublic"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pay/{slug}/links/{token}/checkout": {
         parameters: {
             query?: never;
@@ -4829,6 +4854,31 @@ export interface operations {
             path: {
                 /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
                 slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Payment link display */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLinkView"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    getPaymentLinkByTokenPublic: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
                 /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
                 token: components["parameters"]["LinkToken"];
             };

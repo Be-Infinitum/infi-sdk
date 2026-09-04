@@ -9,9 +9,17 @@ import { embedPathPrefix, resolveAppBase, type CheckoutMode } from "./hosts.js";
  * is a cart or a custom amount and comes from `infi.checkout()` on your server.
  */
 export type EmbedSource =
-  /** The `plink_…` token of a payment link, plus your tenant slug. */
-  | { readonly slug: string; readonly linkToken: string; readonly invoiceId?: never; readonly href?: never }
-  /** An invoice your server already created, plus your tenant slug. */
+  /**
+   * Just the `plink_…` token of a payment link. The shortest form, and the one
+   * to prefer: the token is globally unique and identifies the merchant on its
+   * own, so nothing else is needed.
+   */
+  | { readonly linkToken: string; readonly slug?: string; readonly invoiceId?: never; readonly href?: never }
+  /**
+   * An invoice your server already created, plus your tenant slug. The slug is
+   * required here and cannot be dropped the way it can for a link: an invoice
+   * id is a per-tenant uuid, so it does not identify the merchant by itself.
+   */
   | { readonly slug: string; readonly invoiceId: string; readonly linkToken?: never; readonly href?: never }
   /** The URL `links.create()` handed you, verbatim. Slug and token are read from it. */
   | { readonly href: string; readonly slug?: never; readonly linkToken?: never; readonly invoiceId?: never };
@@ -129,9 +137,13 @@ export function buildEmbedUrl(source: EmbedSource, options: EmbedUrlOptions): st
     // at a local frontend without rewriting the string.
     appUrl = appUrl ?? parsed.appUrl;
   } else {
-    slug = requireNonEmpty(source.slug, "slug");
     linkToken = source.linkToken;
     invoiceId = source.invoiceId;
+    // An invoice id is a per-tenant uuid and names no merchant, so the slug is
+    // still mandatory there. A link token names its own.
+    slug = invoiceId !== undefined
+      ? requireNonEmpty(source.slug, "slug")
+      : (source.slug ?? "").trim();
   }
 
   const base = resolveAppBase(options.mode, appUrl);
@@ -140,7 +152,10 @@ export function buildEmbedUrl(source: EmbedSource, options: EmbedUrlOptions): st
 
   let path: string;
   if (linkToken !== undefined) {
-    path = `${prefix}/${enc(slug)}/links/${enc(requireNonEmpty(linkToken, "linkToken"))}`;
+    const token = enc(requireNonEmpty(linkToken, "linkToken"));
+    // With a slug, the tenant-scoped route; without one, the route that resolves
+    // the merchant from the token alone. Both work — the second is one prop.
+    path = slug ? `${prefix}/${enc(slug)}/links/${token}` : `${prefix}/links/${token}`;
   } else if (invoiceId !== undefined) {
     path = `${prefix}/${enc(slug)}/invoices/${enc(requireNonEmpty(invoiceId, "invoiceId"))}`;
   } else {
