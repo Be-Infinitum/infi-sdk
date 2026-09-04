@@ -39,9 +39,16 @@ describe("PayResource", () => {
   });
 });
 
-// Same reason as the checkout case: without this, a second click is a second
-// charge, and the docs' advice to derive a stable key is unactionable.
-it("charge forwards a caller-supplied idempotency key", async () => {
+// This test used to assert the opposite, and the assertion was the bug: no
+// `/pay/*` route honours an idempotency key, so sending one advertised a
+// guarantee the server does not give. Worse than useless — a caller reading
+// the old JSDoc would derive a stable key, believe double clicks were
+// collapsed, and ship without the guard they actually needed.
+//
+// What protects a retry instead: one pending charge per invoice (a second is
+// 409 charge_in_progress) and a repeated pix charge returning the same charge
+// with the same QR. Neither needs a header.
+it("charge sends no idempotency key, even when the caller supplies one", async () => {
   const fetchMock = vi.fn().mockResolvedValue(
     new Response(JSON.stringify({ id: "pay_1", status: "pending" }), {
       status: 201,
@@ -51,10 +58,11 @@ it("charge forwards a caller-supplied idempotency key", async () => {
   global.fetch = fetchMock as unknown as typeof fetch;
 
   const pay = new PayResource("http://localhost:8088");
+  // Still accepted, so no caller breaks — just not put on the wire.
   await pay.charge({ slug: "acme", invoiceId: "inv_1", method: "pix", idempotencyKey: "compra-42" });
 
   const [, init] = fetchMock.mock.calls[0] as [URL | string, RequestInit];
-  expect(new Headers(init.headers).get("Idempotency-Key")).toBe("compra-42");
+  expect(new Headers(init.headers).get("Idempotency-Key")).toBeNull();
 });
 
 // Coverage for the shape the README documents: resource methods take the key as a

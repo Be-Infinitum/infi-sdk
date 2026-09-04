@@ -3776,6 +3776,13 @@ export interface components {
             saveInstrument?: boolean;
             /** @description The mandate wording the payer actually saw — echo `CheckoutSession.mandate.version`. Required when `saveInstrument` is true, and must name a known version. */
             consentTextVersion?: string;
+            /**
+             * @description Which of Infi's own checkout pages the payer is on. It selects the path a redirecting PSP (an Adyen 3DS challenge) returns the browser to — `/pay/{slug}/…` for the hosted checkout, `/embed/{slug}/…` for an embedded one — and nothing else: it never reaches routing, pricing or a credential.
+             *     Set `embed` from an iframe checkout. Omitted or unrecognized values mean `hosted`, so an embed that forgets it navigates the iframe to the full-page checkout, which is served with `frame-ancestors 'none'`.
+             * @default hosted
+             * @enum {string}
+             */
+            surface: "hosted" | "embed";
         };
         /** @description Raw card + holder fields for an embedded card charge (method=card). Sent over TLS to the checkout endpoint, which tokenizes them at the PSP and never persists the PAN/CVV. All fields are required by the PSP tokenizer. */
         CheckoutCardInput: {

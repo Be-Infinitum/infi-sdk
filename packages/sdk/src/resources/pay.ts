@@ -1,5 +1,4 @@
 import type { components } from "../generated/openapi.js";
-import { newIdempotencyKey } from "../http.js";
 
 /** A charge attempt (mirrors the backend Payment). For pix, `pixPayload` is what
  *  the payer pays with and `pixExpiresAt` its expiry — in live it is the copy-paste
@@ -38,10 +37,20 @@ export interface ChargeArgs {
   invoiceId: string;
   method: ChargeMethod;
   /**
-   * Idempotency key for this charge. Omit and one is generated per call, which
-   * protects against a network retry but NOT against a buyer clicking Buy twice —
-   * a second click is a second call and gets a second key. To collapse the double
-   * click, derive this from something stable about the purchase intent.
+   * @deprecated Accepted and ignored. **No `/pay/*` route honours an
+   * idempotency key**, so sending one claimed a guarantee that did not exist:
+   * the header was allowed through CORS and dropped. Worse, the middleware
+   * could not help even if mounted — the three routes where a duplicate costs
+   * money run outside a transaction, and the idempotency layer falls through
+   * when there is none.
+   *
+   * What actually stops a double charge, and does so without this:
+   * at most one pending charge per invoice (a second is `409
+   * charge_in_progress`), and a repeated pix charge returns the *same* charge
+   * with the same QR rather than opening another at the provider. A refresh or
+   * a double click lands on both.
+   *
+   * Kept in the type so no caller breaks. It is no longer sent.
    */
   idempotencyKey?: string;
 }
@@ -58,10 +67,15 @@ export interface WaitForPaidArgs extends GetInvoiceArgs {
 }
 
 /**
- * PayResource — browser-safe, slug-based public checkout. No secret key: it hits
- * the public `/pay/{slug}/*` endpoints (per-tenant CORS + rate limited), so it
- * can run in the tenant's end-customer browser. For headless integrations and
- * whatever UI you build on top.
+ * PayResource — slug-based public checkout. No secret key: the `plink_…` token
+ * or the invoice id IS the capability, so these routes take none. Rate limited
+ * per IP, per link and per invoice.
+ *
+ * **It does not run in a merchant's page.** The claim of "per-tenant CORS" here
+ * was true once and is not: that allowlist was removed with product auth (ADR
+ * 0025), and the API's CORS list is now a process-global env allowlist. A page
+ * on the merchant's own domain is refused. Use `@beinfi/checkout`, which frames
+ * our own origin — or call this from your server.
  */
 export class PayResource {
   constructor(private readonly baseUrl: string) {}
@@ -86,20 +100,21 @@ export class PayResource {
    * Create a charge. For pix the returned Payment carries `pixPayload` +
    * `pixExpiresAt`; for card it carries `clientSecret` + `publishableKey` of the
    * provider routing picked, which the browser confirms directly with that
-   * provider. Idempotency-Key is auto-generated.
+   * provider.
    *
    * It deliberately takes NO raw card fields. Accepting a PAN here put it in the
    * merchant's DOM and then through our servers, which pulls both sides into PCI
    * scope; the card capture UI is being rebuilt as an embed that keeps the PAN
    * between the browser and the provider.
    */
-  async charge({ slug, invoiceId, method, idempotencyKey }: ChargeArgs): Promise<Payment> {
+  async charge({ slug, invoiceId, method }: ChargeArgs): Promise<Payment> {
     const res = await fetch(this.url(slug, `/invoices/${encodeURIComponent(invoiceId)}/charge`), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "Idempotency-Key": idempotencyKey ?? newIdempotencyKey(),
+        // Deliberately no Idempotency-Key: nothing on /pay/* honours one. See
+        // the note on ChargeArgs.idempotencyKey for what protects a retry.
       },
       body: JSON.stringify({ method }),
     });
