@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<title>@beinfi/checkout — sem build</title>
+<style>
+  body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 42rem;
+         margin: 3rem auto; padding: 0 1rem; }
+  code { background: #f4f4f5; padding: .1rem .3rem; border-radius: 4px; }
+</style>
+</head>
+<body>
+  <h1>Checkout sem build</h1>
+  <p>
+    Nenhum bundler, nenhum npm install. Uma tag de script e uma div — é o que um
+    merchant no Framer, Webflow ou WordPress consegue colar.
+  </p>
+
+  <script>
+    // Named on window, resolved by the data attribute below. A typo here is
+    // warned about rather than silently dropped.
+    window.onInfiCheckoutComplete = function (payload) {
+      console.log("[merchant] complete", payload);
+      // NOT proof of payment. Fulfil on the payment.confirmed webhook.
+    };
+    window.onInfiCheckoutState = function (state, method) {
+      console.log("[merchant] state", state, method);
+    };
+  </script>
+
+  <!-- Replace the token, and point app-url at a local frontend while testing. -->
+  <div
+    id="checkout"
+    data-infi-checkout-link-token="plink_COLE_O_SEU_AQUI"
+    data-infi-checkout-environment="sandbox"
+    data-infi-checkout-locale="pt-BR"
+    data-infi-checkout-theme-accent-color="#5b21b6"
+    data-infi-checkout-on-complete="onInfiCheckoutComplete"
+    data-infi-checkout-on-state-change="onInfiCheckoutState"
+  ></div>
+
+  <p style="margin-top:2rem">
+    <button type="button" onclick="infiCheckout.submit('checkout')">
+      Pagar (botão do merchant, via <code>infiCheckout.submit</code>)
+    </button>
+  </p>
+
+  <!-- In production this is https://app.beinfi.com/checkout/v1/loader.js -->
+  <script async defer src="../dist/loader.global.js"></script>
+</body>
+</html>

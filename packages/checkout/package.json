@@ -1,7 +1,7 @@
 {
   "name": "@beinfi/checkout",
   "version": "0.1.0",
-  "description": "Embeddable Infi checkout — drop pix, card and crypto payment into your own page.",
+  "description": "Embeddable Infi checkout \u2014 drop pix, card and crypto payment into your own page.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -18,6 +18,11 @@
       "types": "./dist/react/index.d.ts",
       "import": "./dist/react/index.js",
       "require": "./dist/react/index.cjs"
+    },
+    "./loader": {
+      "types": "./dist/loader.d.ts",
+      "import": "./dist/loader.js",
+      "require": "./dist/loader.cjs"
     }
   },
   "files": [

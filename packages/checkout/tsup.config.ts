@@ -15,7 +15,22 @@ const shared = {
 // (dist/index.js:1494), so a clean in either one races the other's output into
 // the same dist/. The build script does `rm -rf dist` once, before tsup.
 export default defineConfig([
-  { ...shared, entry: { index: "src/index.ts" } },
+  { ...shared, entry: { index: "src/index.ts", loader: "src/loader.ts" } },
+  // The <script> path: one self-contained file a merchant pastes into a page
+  // with no build step. IIFE and minified because it is served to browsers
+  // directly, and `dts: false` because nothing imports it.
+  {
+    // tsup suffixes IIFE output with `.global`, so this lands at
+    // dist/loader.global.js and does not collide with the esm/cjs `loader`
+    // entry above.
+    entry: { loader: "src/loader.iife.ts" },
+    format: ["iife"],
+    minify: true,
+    sourcemap: true,
+    dts: false,
+    target: "es2020",
+    outDir: "dist",
+  },
   {
     ...shared,
     entry: { "react/index": "src/react/index.ts" },

@@ -109,7 +109,53 @@ const checkout = useCheckoutEmbedControls();
 
 `submit()`, `getEmail()`, `setEmail()`, `getTaxId()`, `setTaxId()`.
 
+## Without a build step
+
+Framer, Webflow, WordPress, a hand-written page — paste two things:
+
+```html
+<script async defer src="https://app.beinfi.com/checkout/v1/loader.js"></script>
+
+<div
+  id="checkout"
+  data-infi-checkout-link-token="plink_…"
+  data-infi-checkout-environment="production"
+></div>
+```
+
+Every React prop has a `data-infi-checkout-*` twin: `link-token`, `invoice-id`,
+`slug`, `href`, `environment`, `locale`, `theme`, `theme-accent-color`,
+`theme-background-color`, `hide-price`, `prefill-email`, `prefill-name`,
+`prefill-tax-id`, `return-url`, `skip-redirect`, `app-url`.
+
+Callbacks name a function on `window`:
+
+```html
+<script>
+  window.onDone = (payload) => console.log(payload);
+</script>
+<div … data-infi-checkout-on-complete="onDone"></div>
+```
+
+Also `on-state-change`, `on-payment-pending`, `on-payment-error`. A name that
+does not resolve to a function is warned about in the console rather than
+dropped — that typo is otherwise indistinguishable from a checkout that never
+completed.
+
+Drive it from your own button through the global:
+
+```js
+infiCheckout.submit("checkout");
+await infiCheckout.getEmail("checkout");
+infiCheckout.setTaxId("checkout", "52998224725");
+```
+
+Elements added to the page later are picked up automatically, which is what
+makes this work in page builders that inject DOM after load. `environment` has
+no default: a missing one refuses to mount rather than guessing production.
+
 ## Without React
+
 
 ```ts
 import { createCheckoutEmbed } from "@beinfi/checkout";

@@ -7,9 +7,11 @@ export default defineConfig({
     // cross-origin origins, so origin rejection is tested by faking the event.
     environment: "happy-dom",
     environmentOptions: {
-      // Otherwise happy-dom really fetches the iframe src and floods stderr
-      // with aborted-request traces. We assert on the URL, never load it.
-      happyDOM: { settings: { disableIframePageLoading: true } },
+      // Otherwise happy-dom really fetches every iframe src and floods stderr
+      // with aborted-request traces, which hides real failures. We assert on
+      // the URL, never load it. `disableIframePageLoading` is deprecated in
+      // happy-dom 15 — this is the key it forwards to.
+      happyDOM: { settings: { navigation: { disableChildFrameNavigation: true } } },
     },
   },
 });
