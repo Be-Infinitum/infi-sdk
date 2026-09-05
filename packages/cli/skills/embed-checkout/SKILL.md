@@ -160,9 +160,15 @@ Either, or both:
 
 - Stay put — handle `onComplete` and swap the screen yourself.
 - `returnUrl="/obrigado?order=42"` — the embed navigates the **top** window and
-  appends `?status=success` or `?status=error`, so post-payment code branches
-  like it would after any redirect. `skipRedirect` keeps the buyer on the page
-  with the URL still recorded.
+  appends `?status=success&invoice=<id>`, or `?status=error&code=<code>` when the
+  checkout is over for this payer (`payment_expired`, `session_expired`,
+  `invoice_not_open`, `unavailable`; a declined card retries inline and never
+  redirects). `skipRedirect` keeps the buyer on the page with the URL still
+  recorded.
+- Hosted page instead of the embed? `links.create(productId, { slug, successUrl,
+  cancelUrl })` (or `checkout({ successUrl, cancelUrl })`) makes `/pay` redirect
+  to `successUrl?status=success&invoice=…` after payment and show `cancelUrl` as
+  "back to the merchant". Absolute http(s) URLs only.
 
 Other callbacks: `onStateChange(state, method)` (`loading | ready | disabled`),
 `onPaymentPending({ method, paymentId, expiresAt })` — `expiresAt` is the

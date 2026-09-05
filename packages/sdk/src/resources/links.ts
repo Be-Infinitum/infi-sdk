@@ -7,6 +7,15 @@ const enc = encodeURIComponent;
 /** A created link plus the URL you actually send someone. */
 export type PaymentLinkWithUrl = PaymentLink & { url: string };
 
+export type CreateLinkOptions = {
+  /** Your tenant slug — part of the public URL. */
+  slug: string;
+  /** Absolute http(s). The payer lands here after paying: `?status=success&invoice=…`. */
+  successUrl?: string;
+  /** Absolute http(s). "Back to the merchant" while open; `?status=error&code=…` from the embed. */
+  cancelUrl?: string;
+};
+
 /**
  * Payment links — the shortest path from "I have a product" to "someone paid me".
  *
@@ -29,17 +38,28 @@ export class LinksResource {
    * `slug` is your tenant slug — it is part of the public URL, so the SDK cannot
    * infer it from a secret key alone. Throws `missing_slug` (400) when it is
    * empty, checked before the link is created.
+   *
+   * `successUrl` is where the hosted checkout sends the payer after paying,
+   * with `?status=success&invoice=…` appended; `cancelUrl` is offered as "back
+   * to the merchant" while the checkout is open, and is where the embed sends
+   * them with `?status=error&code=…` when the charge expires. Both must be
+   * absolute http(s) URLs — the API answers 422 otherwise. Omit both and the
+   * payer stays on our receipt.
    */
   async create(
     productId: string,
-    opts: { slug: string },
+    opts: CreateLinkOptions,
     idempotencyKey?: string,
   ): Promise<PaymentLinkWithUrl> {
     const slug = requireSlug(opts?.slug, "links.create");
+    const body =
+      opts.successUrl || opts.cancelUrl
+        ? { successUrl: opts.successUrl, cancelUrl: opts.cancelUrl }
+        : undefined;
     const link = await this.t.request<PaymentLink>(
       "POST",
       `/metering/products/${enc(productId)}/payment-links`,
-      { requireSecret: true, idempotencyKey },
+      { requireSecret: true, idempotencyKey, body },
     );
     return { ...link, url: this.urlFor(slug, link.token!) };
   }

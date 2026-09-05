@@ -80,10 +80,17 @@ const REQUEST_TIMEOUT_MS = 10_000;
  * A relative URL is resolved against the current page, which is what a merchant
  * passing `/obrigado` means.
  */
-function withStatus(returnUrl: string, status: "success" | "error"): string {
+function withStatus(
+  returnUrl: string,
+  status: "success" | "error",
+  extra: Record<string, string | null | undefined> = {},
+): string {
   try {
     const url = new URL(returnUrl, globalThis.location?.href);
     url.searchParams.set("status", status);
+    for (const [key, value] of Object.entries(extra)) {
+      if (value) url.searchParams.set(key, value);
+    }
     return url.toString();
   } catch {
     // An unparseable returnUrl is the merchant's typo, and swallowing it here
@@ -92,6 +99,18 @@ function withStatus(returnUrl: string, status: "success" | "error"): string {
     return returnUrl;
   }
 }
+
+/**
+ * Error codes after which the payer cannot continue in this embed: the pix code
+ * expired, the link session expired, the invoice closed, the link is gone.
+ * These — and only these — send the buyer to `returnUrl` with `?status=error`.
+ */
+const TERMINAL_ERRORS: ReadonlySet<EmbedErrorCode> = new Set<EmbedErrorCode>([
+  "payment_expired",
+  "session_expired",
+  "invoice_not_open",
+  "unavailable",
+]);
 
 function randomId(): string {
   const bytes = new Uint8Array(8);
@@ -211,12 +230,20 @@ export function createCheckoutEmbed(
       case "complete": {
         options.onComplete?.(frame.payload);
         if (options.returnUrl && !options.skipRedirect) {
-          navigateTop(withStatus(options.returnUrl, "success"));
+          navigateTop(
+            withStatus(options.returnUrl, "success", { invoice: frame.payload.invoiceId }),
+          );
         }
         break;
       }
       case "error": {
         options.onPaymentError?.({ message: frame.message, code: frame.code });
+        // Only when the checkout is over for this payer. A declined card or a
+        // missing CPF is retried inline; sending the buyer away on those would
+        // turn every typo into an abandoned purchase.
+        if (options.returnUrl && !options.skipRedirect && TERMINAL_ERRORS.has(frame.code)) {
+          navigateTop(withStatus(options.returnUrl, "error", { code: frame.code }));
+        }
         break;
       }
       case "navigate": {

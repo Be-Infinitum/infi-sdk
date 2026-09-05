@@ -50,6 +50,9 @@ export type EmbedErrorCode =
   | "charge_in_progress"
   | "client_key_missing"
   | "session_expired"
+  /** The server's own deadline for the pending charge (a pix code) passed
+   *  with nothing confirmed. Terminal for that charge, not for the checkout. */
+  | "payment_expired"
   | "unavailable"
   | "handshake_timeout"
   | "unknown";

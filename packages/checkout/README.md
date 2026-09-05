@@ -54,18 +54,30 @@ Two ways to react, and you can use either or both.
 ```
 
 **Send the buyer somewhere.** Pass `returnUrl` and the embed navigates the top
-window to it with the outcome appended — `?status=success` or `?status=error`,
-so your post-payment code branches the same way it would after any redirect.
-Query params you already have are preserved, and a relative path resolves
-against the current page:
+window to it with the outcome appended, so your post-payment code branches the
+same way it would after any redirect. Query params you already have are
+preserved, and a relative path resolves against the current page:
 
 ```tsx
 <InfiCheckoutEmbed … returnUrl="/obrigado?order=42" />
-// → /obrigado?order=42&status=success
+// paid      → /obrigado?order=42&status=success&invoice=<invoiceId>
+// gave up   → /obrigado?order=42&status=error&code=payment_expired
 ```
+
+`status=error` fires only when the checkout is over for this payer — the pix
+code expired (`payment_expired`), the link session expired (`session_expired`),
+the invoice closed (`invoice_not_open`) or the link is gone (`unavailable`). A
+declined card or a missing CPF is retried inline and never redirects; you still
+hear about those in `onPaymentError`.
 
 `skipRedirect` keeps the buyer put even with `returnUrl` set, for when you want
 the URL recorded as a fallback but intend to react in `onComplete`.
+
+**Hosted page, same contract.** A payment link created with
+`links.create(productId, { slug, successUrl, cancelUrl })` — or an invoice from
+`checkout({ successUrl, cancelUrl })` — redirects from the hosted `/pay` page
+too, with the same `?status=success&invoice=…`. `cancelUrl` is offered as
+"back to the merchant" while the checkout is open.
 
 ## One product, or a cart
 

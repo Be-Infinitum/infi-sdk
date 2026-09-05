@@ -53,6 +53,38 @@ describe("infi.links", () => {
     expect(headers.get("Idempotency-Key")).toBe("idem-1");
   });
 
+  it("create sends no body unless a return URL is given — the auto-mint path never did", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "lnk_1", token: "t" }, 201));
+    await client().links.create("prd_1", { slug: "acme" });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(init.body ?? undefined).toBeUndefined();
+  });
+
+  it("create forwards successUrl and cancelUrl, and returns them on the link", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          id: "lnk_1",
+          token: "t",
+          successUrl: "https://shop.acme.com/obrigado",
+          cancelUrl: "https://shop.acme.com/carrinho",
+        },
+        201,
+      ),
+    );
+    const link = await client().links.create("prd_1", {
+      slug: "acme",
+      successUrl: "https://shop.acme.com/obrigado",
+      cancelUrl: "https://shop.acme.com/carrinho",
+    });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toEqual({
+      successUrl: "https://shop.acme.com/obrigado",
+      cancelUrl: "https://shop.acme.com/carrinho",
+    });
+    expect(link.successUrl).toBe("https://shop.acme.com/obrigado");
+  });
+
   it("list unwraps the links envelope", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({ links: [{ id: "lnk_1", token: "t1" }, { id: "lnk_2", token: "t2" }] }),

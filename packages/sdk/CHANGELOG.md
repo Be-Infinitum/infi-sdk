@@ -23,6 +23,19 @@
   do not.
 
 ### Added
+- **`links.create(productId, { slug, successUrl, cancelUrl })`** — where the
+  hosted checkout sends the payer afterwards. `successUrl` gets
+  `?status=success&invoice=<id>` appended once the payment confirms;
+  `cancelUrl` is offered as "back to the merchant" while the checkout is open.
+  Both must be absolute http(s) URLs (422 otherwise). The `PaymentLink` type
+  carries them back. The hosted `/pay` page now honours the same two fields on
+  invoices created with `checkout({ successUrl, cancelUrl })`, which it stored
+  and ignored until now.
+- **`@beinfi/checkout`**: `returnUrl` now appends `invoice=<id>` on success and
+  redirects with `?status=error&code=<code>` when the checkout is over for the
+  payer — `payment_expired` (new protocol code: the server's pix deadline
+  passed), `session_expired`, `invoice_not_open`, `unavailable`. Retryable
+  errors (declined card, missing CPF) never redirect.
 - `@beinfi/checkout` ships a runnable example — `examples/index.html`, served over
   http from a plain directory. `localhost:5173` is an origin Infi could never have
   allowlisted, which is the point: it logs every protocol message a merchant's

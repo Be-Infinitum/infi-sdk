@@ -171,9 +171,11 @@ describe("returnUrl", () => {
     return { assign, handle };
   }
 
-  it("navigates the top window with the outcome appended", () => {
+  it("navigates the top window with the outcome and the invoice appended", () => {
     const { assign, handle } = completeWith({ returnUrl: "https://shop.acme.com/obrigado" });
-    expect(assign).toHaveBeenCalledWith("https://shop.acme.com/obrigado?status=success");
+    expect(assign).toHaveBeenCalledWith(
+      "https://shop.acme.com/obrigado?status=success&invoice=inv_1",
+    );
     handle.destroy();
   });
 
@@ -213,6 +215,62 @@ describe("returnUrl", () => {
 
   it("does not navigate at all without a returnUrl", () => {
     const { assign, handle } = completeWith({});
+    expect(assign).not.toHaveBeenCalled();
+    handle.destroy();
+  });
+
+  function errorWith(code: string, extra: Record<string, unknown>) {
+    const { handle } = mount(extra);
+    const original = globalThis.location.assign;
+    const assign = vi.fn();
+    Object.defineProperty(globalThis.location, "assign", {
+      configurable: true,
+      writable: true,
+      value: assign,
+    });
+    restoreAssign = () => {
+      Object.defineProperty(globalThis.location, "assign", {
+        configurable: true,
+        writable: true,
+        value: original,
+      });
+    };
+    deliver({ __infi: PROTOCOL, embedId: handle.embedId, type: "error", message: "x", code });
+    return { assign, handle };
+  }
+
+  // The pix code expired with nothing paid: the buyer cannot continue here, so
+  // the merchant's page gets them back with the outcome named.
+  it("sends the buyer to returnUrl with status=error when the checkout is over", () => {
+    const onPaymentError = vi.fn();
+    const { assign, handle } = errorWith("payment_expired", {
+      returnUrl: "https://shop.acme.com/obrigado?order=42",
+      onPaymentError,
+    });
+    const url = new URL(assign.mock.calls[0]![0] as string);
+    expect(url.searchParams.get("order")).toBe("42");
+    expect(url.searchParams.get("status")).toBe("error");
+    expect(url.searchParams.get("code")).toBe("payment_expired");
+    expect(onPaymentError).toHaveBeenCalledWith({ message: "x", code: "payment_expired" });
+    handle.destroy();
+  });
+
+  // A declined card or a missing CPF is retried inline. Redirecting there would
+  // turn every typo into an abandoned purchase.
+  it("stays put on a retryable error even with a returnUrl", () => {
+    for (const code of ["customer_tax_id_required", "charge_in_progress", "unknown"]) {
+      const { assign, handle } = errorWith(code, { returnUrl: "https://shop.acme.com/obrigado" });
+      expect(assign).not.toHaveBeenCalled();
+      handle.destroy();
+      restoreAssign?.();
+    }
+  });
+
+  it("stays put on a terminal error when skipRedirect is set", () => {
+    const { assign, handle } = errorWith("session_expired", {
+      returnUrl: "https://shop.acme.com/obrigado",
+      skipRedirect: true,
+    });
     expect(assign).not.toHaveBeenCalled();
     handle.destroy();
   });

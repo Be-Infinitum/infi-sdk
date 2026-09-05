@@ -935,7 +935,7 @@ export interface paths {
         /**
          * Create a payment link for a product
          * @description Mints a reusable, revocable link bound to this product. The response carries an opaque `token`; the payer-facing URL is `{appBaseUrl}/pay/{tenantSlug}/links/{token}`, and the public checkout materializes the customer + invoice (or subscription) when they submit. No payer is known at creation time.
-         *     Requires a published version. `POST .../versions/{versionID}/publish` already mints the first link, so this is for issuing additional ones.
+         *     Requires a published version. `POST .../versions/{versionID}/publish` already mints the first link, so this is for issuing additional ones — or for one that carries `successUrl` / `cancelUrl`, which the auto-minted link does not.
          */
         post: operations["createPaymentLink"];
         delete?: never;
@@ -2702,7 +2702,10 @@ export interface components {
             productId: string;
             /** @description `sk_test_*`, returned once and never again. */
             apiKeySecret: string;
-            /** @description Browser-safe Infi pk_test_ key; never a payment-provider key. */
+            /**
+             * @description An Infi `pk_test_` key, returned and RESERVED: **no route accepts it today.** Secret-key authentication rejects the `pk_` prefix outright, and nothing is mounted that takes one, so it authorizes nothing anywhere in this API. Never a payment-provider key.
+             *     The embedded checkout needs no key at all — the `plink_` payment-link token is the capability. Do not build against this field yet.
+             */
             publishableKey: string;
             /**
              * Format: uri
@@ -3057,6 +3060,15 @@ export interface components {
             revokedAt?: string | null;
             /** Format: date-time */
             createdAt?: string;
+            /** @description Where the hosted checkout sends the payer after paying, with `?status=success&invoice=…` appended. Stamped onto the invoice the link materializes. */
+            successUrl?: string | null;
+            /** @description Offered to the payer as "back to the merchant" while the checkout is open, and used by the embed as the `?status=error` destination when the charge expires. */
+            cancelUrl?: string | null;
+        };
+        /** @description Optional. A link needs no configuration; send a body only to set where the payer goes afterwards. Both URLs must be absolute http(s). */
+        CreatePaymentLinkRequest: {
+            successUrl?: string | null;
+            cancelUrl?: string | null;
         };
         CreateMeterRequest: {
             name: string;
@@ -3719,6 +3731,10 @@ export interface components {
             paymentOptions: components["schemas"]["PublicPaymentOption"][];
             cardEnabled: boolean;
             cryptoEnabled: boolean;
+            /** @description Where the merchant sends the payer after paying, if set on the link. */
+            successUrl?: string | null;
+            /** @description Where "back to the merchant" goes, if set on the link. */
+            cancelUrl?: string | null;
         };
         PaymentLinkProduct: {
             name: string;
@@ -5853,7 +5869,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreatePaymentLinkRequest"];
+            };
+        };
         responses: {
             /** @description Payment link created */
             201: {
@@ -5866,7 +5886,7 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            /** @description The product has no published version — publish one first (`errors[0].field` is `productId`). */
+            /** @description The product has no published version — publish one first (`errors[0].field` is `productId`) — or `successUrl` / `cancelUrl` is not an absolute http(s) URL. */
             422: {
                 headers: {
                     [name: string]: unknown;
