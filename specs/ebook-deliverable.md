@@ -1,6 +1,9 @@
 # Spec — Example: Ebook sale page with deliverable fulfillment
 
-**Status:** Spec (planned). Target dir: `infi-sdk/examples/ebook-sale/`.
+**Status:** Spec (planned). Target dir: `infi-sdk/examples/ebook-sale/`. The delivery mechanism
+this example rides on is specified in `specs/digital-delivery.md` (2026-09-07), which also records
+the change to **per-line** fulfilment that `specs/infi-store.md`'s cart requires; this example is a
+one-product case and is unaffected by it.
 
 ## Goal
 

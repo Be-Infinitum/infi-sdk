@@ -37,6 +37,8 @@ of knobs — `theme`, `themeOptions.accentColor`, `themeOptions.backgroundColor`
 `locale`, `hidePrice` — not your own CSS. Card fields are rendered by the payment
 provider inside their own frame, which is what keeps card data off your site and
 your PCI scope unchanged.
+The logo next to your name is not a knob either: it is the one you upload in the
+dashboard (**Settings → Brand**), and every checkout — hosted or embedded — shows it.
 
 ## After the payment
 
