@@ -10,7 +10,7 @@ BACKEND_DIR="$(cd "$(dirname "$0")/../../backend" && pwd)"
 if [[ -z "${INFI_SECRET_KEY:-}" ]]; then
   echo "Bootstrapping keys for tenant $TENANT_SLUG..."
   eval "$(
-    PULSE_DATABASE_URL="${PULSE_DATABASE_URL:-postgres://postgres:postgres@localhost:5432/payments?sslmode=disable}" \
+    PULSE_DATABASE_URL="${PULSE_DATABASE_URL:-postgres://postgres:postgres@localhost:5433/payments?sslmode=disable}" \
       go run "$BACKEND_DIR/scripts/bootstrap-keys" "$TENANT_SLUG"
   )"
   export INFI_SECRET_KEY INFI_APP_SLUG

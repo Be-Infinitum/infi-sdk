@@ -373,6 +373,12 @@ unstyled; the section counts were spans pretending to be badges.
 1. **The visual pass.** Roughly 25 dashboard screens have still never been
    opened in a browser. Type checks, lint and tests do not catch what a look
    catches — the green logo and the small type each got through all three.
+   `npm run shots` now renders every route to `.shots/` in both themes; the
+   dev server's Clerk instance is production, so `npm run shots:login` opens a
+   window for a person to log in once before the run. Login, signup and the
+   hosted checkout were checked this way on 2026-09-08 and read correctly;
+   dark mode came out identical to light, which confirms the `.dark` block is
+   still inert.
 2. **`space-y-*` in layout positions**, 110 left, none of them a field stack.
    Plain Tailwind, not a house idiom; converting them to flex + gap is tidying,
    not migration.
@@ -390,6 +396,18 @@ unstyled; the section counts were spans pretending to be badges.
   never a variant in a CLI-owned file.
 - **Dark mode**: the `.dark` block is generated and inert. Shipping it is one
   doc page and zero design work.
+
+### Branch logistics, closed
+
+`feat/stock-shadcn` was merged to `main` on 2026-09-08 and pushed, together
+with the managed branches in `backend` and `frontend` (the `backoffice` half
+had already gone in as its PR #9). Every checkout is on `main`. The merge into
+the migration branch resolved to the branch's own side everywhere the two
+disagreed, which is provably right: `origin/main`'s tree was byte-identical to
+the managed tip the branch had already merged, and the only semantic change on
+main — `isManagedAvailable` — was already present. The one genuinely new
+screen, the merchant logo card, was composed on stock parts as part of the
+merge.
 
 ### Open in the same tree, not this migration
 
