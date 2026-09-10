@@ -1,4 +1,12 @@
-import { useEffect, useImperativeHandle, useRef, type CSSProperties, type ReactNode, type Ref } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+  type Ref,
+} from "react";
 import {
   createCheckoutEmbed,
   type CheckoutEmbedHandle,
@@ -28,7 +36,10 @@ export interface InfiCheckoutEmbedProps
    * integration quietly charges live cards.
    */
   environment: "sandbox" | "production";
-  /** Rendered until the checkout has loaded. */
+  /**
+   * Rendered until the checkout has loaded, and removed as soon as the frame
+   * reports any state other than `loading`.
+   */
   fallback?: ReactNode;
   className?: string;
   style?: CSSProperties;
@@ -68,6 +79,11 @@ export function InfiCheckoutEmbed({
   ...options
 }: InfiCheckoutEmbedProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  // The fallback is documented as "rendered UNTIL the checkout has loaded", and
+  // nothing used to end that: it was a child of the very element the iframe is
+  // appended to, so it stayed on top of a working checkout forever. The frame's
+  // own handshake is what ends it.
+  const [loaded, setLoaded] = useState(false);
   const handleRef = useRef<CheckoutEmbedHandle | null>(null);
   // Callbacks are usually inline arrows, so a new identity every render. Keep
   // them in a ref and the effect never re-runs — remounting the iframe mid-
@@ -99,13 +115,21 @@ export function InfiCheckoutEmbed({
     const handle = createCheckoutEmbed(host, source, {
       ...optionsRef.current,
       mode,
-      onStateChange: (state, method) => optionsRef.current.onStateChange?.(state, method),
+      onStateChange: (state, method) => {
+        // Any state other than `loading` means the wait is over — `disabled`
+        // included. Leaving a spinner up for a checkout that will never offer a
+        // method says "wait" about something that is not coming.
+        if (state !== "loading") setLoaded(true);
+        optionsRef.current.onStateChange?.(state, method);
+      },
       onComplete: (payload) => optionsRef.current.onComplete?.(payload),
       onPaymentPending: (info) => optionsRef.current.onPaymentPending?.(info),
       onPaymentError: (error) => optionsRef.current.onPaymentError?.(error),
       onResize: (height) => optionsRef.current.onResize?.(height),
     });
     handleRef.current = handle;
+    // A remount starts a new handshake, so the fallback is owed again.
+    setLoaded(false);
 
     return () => {
       handleRef.current = null;
@@ -116,8 +140,13 @@ export function InfiCheckoutEmbed({
   }, [sourceKey, mode, href, slug, linkToken, invoiceId]);
 
   return (
-    <div ref={hostRef} className={className} style={style} data-infi-checkout>
-      {fallback}
+    // Two nodes on purpose. The inner host is where the core appends the iframe
+    // imperatively, and React must own NOTHING inside it — a re-render of that
+    // subtree could drop the iframe mid-payment. The fallback is its sibling,
+    // so showing and hiding it never touches the frame.
+    <div className={className} style={style} data-infi-checkout>
+      {loaded ? null : fallback}
+      <div ref={hostRef} data-infi-checkout-frame />
     </div>
   );
 }
