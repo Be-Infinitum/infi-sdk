@@ -70,6 +70,17 @@ export {
   type WebhookInput,
 } from "./webhooks.js";
 export { LinksResource, type PaymentLinkWithUrl } from "./resources/links.js";
+export {
+  StorefrontsResource,
+  type Storefront,
+  type StorefrontWithUrl,
+  type StorefrontInput,
+  type StorefrontTheme,
+  type FulfillmentMode,
+  type ShelfItem,
+  type ShelfRow,
+  type PresignedImage,
+} from "./resources/storefronts.js";
 export type { UsageQuery } from "./resources/usage.js";
 export type { FromUsageInput, DeliverableGrant } from "./resources/invoices.js";
 export type { PresignedUpload } from "./resources/products.js";
