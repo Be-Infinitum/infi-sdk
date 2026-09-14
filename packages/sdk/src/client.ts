@@ -15,6 +15,7 @@ import { InvoicesResource } from "./resources/invoices.js";
 import { PaymentsResource } from "./resources/payments.js";
 import { CouponsResource } from "./resources/coupons.js";
 import { LinksResource } from "./resources/links.js";
+import { StorefrontsResource } from "./resources/storefronts.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
 import { WebhooksResource } from "./resources/webhooks-resource.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
@@ -127,6 +128,9 @@ export class Infi {
   readonly coupons: CouponsResource;
   /** Payment links: share a URL, get paid. */
   readonly links: LinksResource;
+  /** Storefronts: a public shop page for products you already have. Where a
+   * link sells one product, a shop is a place a buyer picks several from. */
+  readonly storefronts: StorefrontsResource;
   /** Subscriptions: create (with anchor), get, list per enrollment. */
   readonly subscriptions: SubscriptionsResource;
   /**
@@ -181,6 +185,7 @@ export class Infi {
     this.payments = new PaymentsResource(transport);
     this.coupons = new CouponsResource(transport);
     this.links = new LinksResource(transport, this.#appBase);
+    this.storefronts = new StorefrontsResource(transport, this.#appBase);
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
     this.webhooks = new WebhooksResource(transport);
