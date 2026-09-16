@@ -24,6 +24,36 @@ describe("infi.links", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
+  // list() needed a slug to produce any url at all, and returned "" without one.
+  // The server sends the url now, so the slug is a fallback, not a requirement.
+  it("list returns the server url with no slug passed", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        links: [{ id: "lnk_1", token: "plink_abc", url: `${APP}/pay/acme/links/plink_abc` }],
+      }),
+    );
+
+    const links = await client().links.list("prd_1");
+    expect(links[0]?.url).toBe(`${APP}/pay/acme/links/plink_abc`);
+  });
+
+  // A promotional price reaches a buyer only through a link that names its
+  // version — nothing resolves into a non-default version on its own.
+  it("create(productId, { productVersionId }) sells the named version", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ id: "lnk_1", token: "plink_abc", productVersionId: "ver_promo" }, 201),
+    );
+
+    const link = await client().links.create("prd_1", {
+      slug: "acme",
+      productVersionId: "ver_promo",
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({ productVersionId: "ver_promo" });
+    expect(link.productVersionId).toBe("ver_promo");
+  });
+
   // The inline form is one call from nothing to a payable URL: no productId to
   // look up first, and no slug, because the secret key already says who you are.
   it("create({ product }) posts the inline form and returns the server's url", async () => {

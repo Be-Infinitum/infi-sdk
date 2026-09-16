@@ -10,6 +10,15 @@ export type PaymentLinkWithUrl = PaymentLink & { url: string };
 export type CreateLinkOptions = {
   /** Your tenant slug — part of the public URL. */
   slug: string;
+  /**
+   * Sell a specific published version instead of the product's default.
+   *
+   * This is how a promotional price reaches a buyer: publish the version with
+   * `products.versions.publish(..., { default: false })`, then name it here.
+   * Nothing else resolves into a non-default version, so the promotion never
+   * reaches whoever buys the product the ordinary way.
+   */
+  productVersionId?: string;
   /** Absolute http(s). The payer lands here after paying: `?status=success&invoice=…`. */
   successUrl?: string;
   /** Absolute http(s). "Back to the merchant" while open; `?status=error&code=…` from the embed. */
@@ -123,8 +132,12 @@ export class LinksResource {
   ): Promise<PaymentLinkWithUrl> {
     const slug = requireSlug(opts?.slug, "links.create");
     const body =
-      opts.successUrl || opts.cancelUrl
-        ? { successUrl: opts.successUrl, cancelUrl: opts.cancelUrl }
+      opts.successUrl || opts.cancelUrl || opts.productVersionId
+        ? {
+            successUrl: opts.successUrl,
+            cancelUrl: opts.cancelUrl,
+            productVersionId: opts.productVersionId,
+          }
         : undefined;
     const link = await this.t.request<PaymentLink & { url?: string }>(
       "POST",
@@ -136,9 +149,15 @@ export class LinksResource {
     return { ...link, url: link.url || this.urlFor(slug, link.token!) };
   }
 
-  /** List a product's links. Without a `slug` each `url` is `""` — never a broken URL. */
+  /**
+   * List a product's links.
+   *
+   * `url` comes from the server, which knows the tenant slug — the `slug`
+   * option is only a fallback for an API older than that field. It used to be
+   * required to get a URL at all, and without it every `url` came back `""`.
+   */
   async list(productId: string, opts?: { slug?: string }): Promise<PaymentLinkWithUrl[]> {
-    const res = await this.t.request<{ links?: PaymentLink[] }>(
+    const res = await this.t.request<{ links?: (PaymentLink & { url?: string })[] }>(
       "GET",
       `/metering/products/${enc(productId)}/payment-links`,
       { requireSecret: true },
@@ -146,7 +165,7 @@ export class LinksResource {
     const slug = opts?.slug?.trim();
     return (res.links ?? []).map((l) => ({
       ...l,
-      url: slug ? this.urlFor(slug, l.token!) : "",
+      url: l.url || (slug ? this.urlFor(slug, l.token!) : ""),
     }));
   }
 

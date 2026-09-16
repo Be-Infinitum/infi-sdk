@@ -974,7 +974,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Publish a draft version (makes pricing immutable) */
+        /**
+         * Publish a draft version (makes pricing immutable)
+         * @description Freezes the snapshot. By default the published version also becomes the product's default — what a buyer gets when nothing names a version.
+         *
+         *     Send `{"default": false}` to publish an OFFER version instead: published and therefore sellable, but reachable only by a payment link created with `productVersionId`. That is how a product carries a promotional price alongside its standard one without the promotion reaching the shelf.
+         *
+         *     Refused with 422 before the product has a default version — the first published version has to be the one buyers get, or the product is published and unsellable.
+         */
         post: operations["publishVersion"];
         delete?: never;
         options?: never;
@@ -3213,6 +3220,8 @@ export interface components {
             basePrice?: string | null;
             /** @enum {string} */
             status?: "draft" | "published" | "archived";
+            /** @description Among a product's published versions, whether this is the one a buyer gets when nothing names a specific version. A published version with `isDefault: false` is an offer reachable only by an explicit pin — a payment link created with `productVersionId` — which is how a product carries a promotional price without it reaching the shelf. */
+            isDefault?: boolean;
             /** Format: date-time */
             publishedAt?: string | null;
             commitmentAmount?: string | null;
@@ -3421,10 +3430,25 @@ export interface components {
             /** @description Offered to the payer as "back to the merchant" while the checkout is open, and used by the embed as the `?status=error` destination when the charge expires. */
             cancelUrl?: string | null;
         };
+        /** @description Optional. Omit the body to publish the ordinary way. */
+        PublishVersionRequest: {
+            /**
+             * @description True (or omitted) makes this the product's default version. False publishes it as an offer, sellable only by a link that names it.
+             * @default true
+             */
+            default: boolean;
+        };
         /** @description Optional. A link needs no configuration; send a body only to set where the payer goes afterwards. Both URLs must be absolute http(s). */
         CreatePaymentLinkRequest: {
             successUrl?: string | null;
             cancelUrl?: string | null;
+            /**
+             * Format: uuid
+             * @description Sell a specific published version instead of the product's default. This is how a promotional price reaches a buyer: the version is published but not default, so nothing resolves into it by accident and only a link that names it can sell it.
+             *
+             *     Omit for the default version, which is what an ordinary link sells. Refused if the version is not a published version of this product.
+             */
+            productVersionId?: string | null;
         };
         /** @description A product defined inline on a link create, resolved by its natural `key`. A new key creates the product; a known key reuses it, and pricing that differs from the current version publishes a NEW version. That bump is safe because the link created here pins the version it got, so links already in circulation keep selling what they advertised. */
         InlineProductSpec: {
@@ -6545,7 +6569,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PublishVersionRequest"];
+            };
+        };
         responses: {
             /** @description Published version */
             200: {
