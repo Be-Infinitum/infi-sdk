@@ -210,40 +210,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/plan/upgrade": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Confirm Scale as the account's minimum economic tier */
-        post: operations["upgradeAccountPlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/plan/downgrade": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Schedule a paid self-service tier to Free at the next cycle boundary */
-        post: operations["downgradeAccountPlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -418,6 +384,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pay/{slug}/logo/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The file segment of `merchant.logoUrl`, `{uuid}.{png|jpg|webp}`. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * The merchant logo the checkout renders
+         * @description Unauthenticated; the URL comes from `merchant.logoUrl` on the checkout session and payment link reads. Immutable: a new upload is a new URL, and an old URL is a 404 rather than a redirect, so it is served with a one-year `Cache-Control` and `nosniff`.
+         */
+        get: operations["getMerchantLogo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pay/links/{token}": {
         parameters: {
             query?: never;
@@ -517,6 +508,32 @@ export interface paths {
         get: operations["getLinkCheckoutSession"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/links/{token}/sessions/{sessionID}/coupon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a coupon to a checkout session (unauthenticated)
+         * @description Holds a discount code on the session and answers with the discounted total. A link has no invoice until `.../charge` materializes one, so `POST /pay/{slug}/invoices/{invoiceID}/coupon` cannot serve this screen. This is a PREVIEW: no redemption is reserved, and the coupon is validated again — and actually applied, with its discount line and ledger movement — when the invoice is materialized. A coupon that stops being redeemable in between fails the charge rather than silently billing full price.
+         */
+        post: operations["applyLinkCheckoutSessionCoupon"];
         delete?: never;
         options?: never;
         head?: never;
@@ -733,6 +750,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/storefronts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List this account's storefronts */
+        get: operations["listStorefronts"];
+        put?: never;
+        /**
+         * Create a storefront
+         * @description A storefront is a public page listing products the merchant already has in the catalog. The slug is the public address and is unique across the deployment — a taken one is a 409, not a 500.
+         */
+        post: operations["createStorefront"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/storefronts/{storefrontID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storefrontID: string;
+            };
+            cookie?: never;
+        };
+        /** Read one storefront */
+        get: operations["getStorefront"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update a storefront
+         * @description Partial. Absent fields keep their value; `status: disabled` takes the shop off the air immediately and is reversible — there is no delete, because a shop whose address is already printed on a counter cannot be un-printed.
+         */
+        patch: operations["updateStorefront"];
+        trace?: never;
+    };
+    "/storefronts/{storefrontID}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storefrontID: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * The shelf, as the merchant edits it
+         * @description Unlike the public read, this shows hidden rows and archived products — which is exactly what the editor has to be able to fix.
+         */
+        get: operations["listStorefrontItems"];
+        /**
+         * Replace the shelf
+         * @description The whole shelf as one ordered list, because that is what a drag-and-drop editor saves. Position is the index in the array, never a number the client computes. A product id that is not this account's is a 404.
+         */
+        put: operations["replaceStorefrontItems"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/catalog/images/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Presign a catalog image upload
+         * @description One presign for every merchant image — shop logo, shop banner, product photo. The browser PUTs the bytes to `uploadUrl`; `objectKey` is then attached by the owning resource (`PATCH /storefronts/{id}` or `PATCH /products/{id}`). PNG, JPEG and WebP only, 2 MB max: SVG is refused because it runs script when served inline from our origin. 503 when the deployment has no object storage.
+         */
+        post: operations["presignCatalogImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/storefronts/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * The shop page a buyer opens (unauthenticated)
+         * @description Only an active storefront resolves, and only its visible items whose product is active and has a published version. A disabled shop is a 404, indistinguishable from one that never existed.
+         */
+        get: operations["getPublicStorefront"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/media/{tenantID}/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantID: string;
+                /** @description The file segment of an `imageUrl`, `{uuid}.{png|jpg|webp}`. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * A catalog image
+         * @description Addressed by tenant id rather than shop slug on purpose: renaming a shop must not break image URLs already cached or printed. Immutable — a new upload is a new URL — so it is served with a one-year `Cache-Control` and `nosniff`.
+         */
+        get: operations["getCatalogImage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/products": {
         parameters: {
             query?: never;
@@ -743,7 +896,22 @@ export interface paths {
         /** List products */
         get: operations["listProducts"];
         put?: never;
-        /** Create a product (with its first draft version) */
+        /**
+         * Create a product (with its first draft version)
+         * @description Creates a product and its first draft version.
+         *
+         *     With a `key`, the call is an idempotent upsert. A key that is already
+         *     taken resolves to the product it names instead of failing: mutable
+         *     catalog metadata (name, description) is brought to what the request
+         *     asks for, and the product plus its current version come back.
+         *
+         *     Pricing is not metadata. A version's `basePrice` and `billingCycle` are
+         *     fixed when the version is created — no route edits them — so a request
+         *     naming pricing the current version does not carry is refused with 422
+         *     (`pricing_immutable`). Create a new version instead:
+         *     `POST /products/{productID}/versions`. A request that names no pricing
+         *     is not asking to change it.
+         */
         post: operations["createProduct"];
         delete?: never;
         options?: never;
@@ -914,6 +1082,30 @@ export interface paths {
         put?: never;
         /** Create a meter (billable metric) */
         post: operations["createMeter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payment-links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a payment link, defining the product inline
+         * @description One call from nothing to a payable URL. The product is resolved by its natural `key`: a new key creates it, a known one reuses it, and pricing that differs publishes a new version.
+         *
+         *     Every call mints a NEW link — links are not deduplicated, so per-campaign URLs work. Each link pins the version it was created against, which is what makes the version bump safe: a link already shared keeps selling what it advertised, and publishing a new price never reaches it.
+         *
+         *     No tenant slug is needed. The response carries the payer-facing `url`.
+         */
+        post: operations["createPaymentLinkWithProduct"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2052,6 +2244,149 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/collection-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How this tenant collects, and its Infi Managed application
+         * @description Two ways a production tenant collects money (ADR 0031): `byop`, on the merchant's own provider accounts, or `managed`, on Infi's — simpler to run, and gated on a KYC/KYB application a reviewer approves. Sandbox always answers `byop` with `managedAvailable: false`: it already collects through Infi for everyone.
+         */
+        get: operations["getCollectionMode"];
+        put?: never;
+        /**
+         * Switch collection mode
+         * @description `managed` requires an approved application and a deployment with the Infi provider configured. `byop` requires the enterprise permission (`byopEnabled`, ADR 0065) — it used to be always allowed and is not any more. Either refusal is a 409; a deployment with no Infi provider is 503.
+         */
+        post: operations["setCollectionMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/managed/application": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save the Infi Managed application (draft)
+         * @description Upserts the KYB (company), KYC (legal representative) and payout-account parts. Partial is fine — only the fields present are validated; completeness is checked at submit. Refused with 409 while the application is under review or approved. Tax ids and CEP may carry punctuation; they are stored as digits.
+         */
+        put: operations["saveManagedApplication"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/byop/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for access to bring your own payment provider
+         * @description Files one request for the enterprise BYOP permission (ADR 0065) and answers with it, so the dashboard can switch to "we will be in touch" from the same call. Idempotent: one pending request per tenant, and a second call returns the first one with its original note rather than replacing it. When the caller is a dashboard session, the reply-to address is the session's verified e-mail and `contactEmail` in the body is ignored — a merchant should not be able to send our answer somewhere they will never read it.
+         */
+        post: operations["requestByopAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/managed/documents/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Presign a document upload
+         * @description Returns a short-lived PUT URL straight to private object storage. The browser uploads there, then records the file with `POST …/documents`. PDF or image (jpeg, png, heic, webp), at most 15 MB.
+         */
+        post: operations["presignManagedDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/managed/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record an uploaded document
+         * @description Call after the presigned PUT succeeds. The key must be one this tenant was issued for that document type, and the object must exist. One file per type: a second upload of the same type replaces the first.
+         */
+        post: operations["attachManagedDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/managed/documents/{docID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a document from the application */
+        delete: operations["removeManagedDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/managed/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit the Infi Managed application for review
+         * @description Freezes the application as `pending_review`. Every required field and document must be present — the 422 lists every gap at once (`documents.<type>` for a missing file). Submitting records acceptance of the terms with the caller's IP.
+         */
+        post: operations["submitManagedApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/tenant": {
         parameters: {
             query?: never;
@@ -2068,6 +2403,26 @@ export interface paths {
         head?: never;
         /** Update the authenticated tenant */
         patch: operations["patchTenant"];
+        trace?: never;
+    };
+    "/account/tenant/logo/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Presign an upload URL for the merchant logo
+         * @description Step 1 of 3. PUT the file to `uploadUrl` (step 2), then send `objectKey` as `logoObjectKey` on `PATCH /account/tenant` (step 3). The upload URL is valid for 15 minutes and is bound to the declared type and size.
+         */
+        post: operations["presignTenantLogo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/account/api-keys": {
@@ -2497,8 +2852,8 @@ export interface components {
         };
         PlatformPlanTier: {
             /** @enum {string} */
-            key: "free" | "scale" | "pro" | "enterprise";
-            /** @description BRL monthly base; absent for Enterprise */
+            key: "free" | "enterprise";
+            /** @description Monthly base; always "0.00" on the public plan */
             monthly?: string;
             /** @description Fraction of approved BRL payment volume; 0.02 means 2%; absent for Enterprise */
             unitAmount?: string;
@@ -2544,18 +2899,12 @@ export interface components {
             currency: string;
             /** @constant */
             meter: "approved_transactions";
-            /** Format: int64 */
-            crossover: number;
-            /** Format: int64 */
-            proCrossover: number;
             tiers: components["schemas"]["PlatformPlanTier"][];
             features: components["schemas"]["PlatformFeatureCatalog"][];
         };
         AccountPlan: {
             /** @enum {string} */
-            plan: "free" | "scale" | "pro" | "enterprise";
-            /** @enum {string} */
-            minimumTier: "free" | "scale" | "pro" | "enterprise";
+            plan: "free" | "enterprise";
             /** Format: uuid */
             subscriptionId: string;
             /** @description BRL volume confirmed in the current billing period */
@@ -2563,20 +2912,12 @@ export interface components {
             /** @description Fraction applied to approved volume; absent for Enterprise */
             takeRate?: string;
             accumulatedCost?: string;
-            /** Format: int64 */
-            crossover: number;
-            /** Format: int64 */
-            proCrossover: number;
             /** Format: date-time */
             nextInvoiceAt: string;
             /** @enum {string} */
             billingStatus: "active" | "grace" | "suspended";
             /** Format: date-time */
             graceExpiresAt?: string | null;
-            /** @enum {string|null} */
-            pendingChange?: "free" | null;
-            /** Format: date-time */
-            pendingChangeAt?: string | null;
             /** Format: uuid */
             pendingPriceVersionId?: string | null;
             /** Format: date-time */
@@ -2587,7 +2928,7 @@ export interface components {
         };
         ActivateAccountPlanRequest: {
             /** @enum {string} */
-            plan: "free" | "scale" | "pro";
+            plan: "free";
             /** @constant */
             termsVersion: "2026-08-22";
             /** Format: email */
@@ -2630,6 +2971,11 @@ export interface components {
             merchant: {
                 slug: string;
                 name: string;
+                /**
+                 * Format: uri
+                 * @description Absent when the merchant has no logo. Absolute, on this API's host (`/pay/{slug}/logo/{file}`), immutable per upload.
+                 */
+                logoUrl?: string;
             };
             invoice: components["schemas"]["Invoice"];
             testMode: boolean;
@@ -2833,13 +3179,16 @@ export interface components {
             currency?: string;
             /** @example active */
             status?: string;
+            /** @description Rendered address of the product photo, served by GET /public/media/{tenantID}/{file}. */
+            imageUrl?: string | null;
+            requiresShipping?: boolean;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
         };
         CreateProductRequest: {
-            /** @description Stable per-tenant natural key for idempotent upsert. */
+            /** @description Stable per-tenant natural key. Creating twice with the same key returns the same product rather than failing; pricing that differs from its current version is refused with 422 (`pricing_immutable`). */
             key?: string | null;
             name: string;
             /** @enum {string} */
@@ -3055,6 +3404,13 @@ export interface components {
             productId?: string;
             /** @description Opaque public token; the payer URL is /pay/{tenantSlug}/links/{token}. */
             token?: string;
+            /** @description The payer-facing address, built server-side. Present so no caller has to re-supply the tenant slug the server already stores in order to learn where to send someone. */
+            url?: string;
+            /**
+             * Format: uuid
+             * @description The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on links created before pinning existed: those resolve the latest published version at pay time.
+             */
+            productVersionId?: string | null;
             active?: boolean;
             /** Format: date-time */
             revokedAt?: string | null;
@@ -3067,6 +3423,57 @@ export interface components {
         };
         /** @description Optional. A link needs no configuration; send a body only to set where the payer goes afterwards. Both URLs must be absolute http(s). */
         CreatePaymentLinkRequest: {
+            successUrl?: string | null;
+            cancelUrl?: string | null;
+        };
+        /** @description A product defined inline on a link create, resolved by its natural `key`. A new key creates the product; a known key reuses it, and pricing that differs from the current version publishes a NEW version. That bump is safe because the link created here pins the version it got, so links already in circulation keep selling what they advertised. */
+        InlineProductSpec: {
+            /** @description Stable per-tenant natural key. Required — it is what makes creating a link for the same product twice resolve to one product, not two. */
+            key: string;
+            /** @description Display name. Defaults to `key` when omitted. */
+            name?: string;
+            /** @enum {string} */
+            type?: "agent" | "item";
+            description?: string | null;
+            /** @enum {string} */
+            pricingModel: "subscription" | "one_time" | "usage" | "prepaid";
+            currency?: string;
+            /**
+             * @description Required for subscription/prepaid, forbidden otherwise.
+             * @enum {string|null}
+             */
+            billingCycle?: "weekly" | "monthly" | "annual" | null;
+            /** @description Decimal string. Money never crosses the wire as a float. */
+            basePrice?: string | null;
+            /** @description Meters defined on the product, created once by name. An existing meter is never rewritten: its `name` is the key `track()` ingests against and its `aggregation` decides how past events were counted, so changing either here would retroactively alter what recorded usage meant. */
+            meters?: components["schemas"]["InlineMeterSpec"][];
+            /** @description Prices on the version being published, declared in full. A set that differs from what the current version carries publishes a NEW version, the same as a differing `basePrice` — pricing is immutable once published. Omit the field entirely to say nothing about prices; an empty array means "no prices". */
+            prices?: components["schemas"]["InlinePriceSpec"][];
+        };
+        InlineMeterSpec: {
+            /** @description Slug `track()` sends against. Immutable once created. */
+            name: string;
+            displayName?: string;
+            /** @enum {string} */
+            unit?: "token" | "request" | "unit";
+            /** @enum {string} */
+            aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
+            /** @description JSON path on the event carrying the numeric value; unused by `count`. */
+            valueProperty?: string | null;
+        };
+        InlinePriceSpec: {
+            /** @description The meter this price rates, by slug. Required — a price with no meter is the product's `basePrice`, and two ways to say the same thing lets a product disagree with itself. */
+            meter: string;
+            /** @enum {string} */
+            model: "flat" | "per_unit" | "tiered" | "volume" | "package";
+            /** @description Decimal string. */
+            unitAmount?: string | null;
+            /** @description Tier configuration for tiered/volume/package. */
+            tiers?: Record<string, never>;
+            currency?: string;
+        };
+        CreatePaymentLinkWithProductRequest: {
+            product: components["schemas"]["InlineProductSpec"];
             successUrl?: string | null;
             cancelUrl?: string | null;
         };
@@ -3547,7 +3954,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
             /** @enum {string} */
-            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi" | "stub";
+            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi_asaas" | "stub";
             /** @enum {string} */
             method: "pix" | "boleto" | "card";
             invoiceStatus: string;
@@ -3632,6 +4039,16 @@ export interface components {
             status?: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
             /** @description Total succeeded, non-reversed refunds so far, as a decimal string; absent when nothing was refunded. Partial refunds leave payment status `confirmed`; only a fully refunded aggregate sets `refunded`. Present on tenant-facing reads only. */
             refundedAmount?: string;
+            /**
+             * @description Why a failed charge failed, normalized. Never the provider's own message — that stops at the adapter. `superseded` is not a refusal: the buyer abandoned this charge to pay the same invoice another way. Null on a payment that did not fail, and on one that failed before the reason was recorded. Append-only vocabulary: an unrecognized value must render as a generic failure, never break the client.
+             * @enum {string|null}
+             */
+            failureCode?: "insufficient_funds" | "do_not_honor" | "card_declined" | "authentication_required" | "card_expired" | "card_stolen" | "card_invalid" | "mandate_revoked" | "mandate_refused" | "brand_changed" | "provider_error" | "provider_timeout" | "superseded" | null;
+            /**
+             * Format: date-time
+             * @description When the charge first moved to `failed`. Distinct from the provider's own event clock, which later events move.
+             */
+            failedAt?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** @description Who paid, resolved through the invoice (ad-hoc invoices name a tenant customer directly, subscription invoices name a product enrollment). Present only on the tenant-facing dashboard reads — GET /billing/payments and GET /billing/payments/{paymentID}. Null when the invoice has no resolvable customer. */
@@ -3720,11 +4137,115 @@ export interface components {
             /** @description Whether a stored card could be charged off-session at all here. Card auto-charge is Stripe-only (storing an Asaas card token for reuse would require PCI level 1 on our side), so this is false wherever no card provider is configured — and autoChargeEnabled would then be a switch with nothing to charge. */
             readonly cardAutoChargeAvailable?: boolean;
         };
+        /** @description The closed list of looks a merchant may choose. Closed on purpose: a free colour picker produces shops nobody can read, and we inherit the support call for every broken layout. */
+        StorefrontTheme: {
+            /** @enum {string} */
+            accent?: "purple" | "teal" | "amber" | "rose" | "blue" | "green" | "brown" | "slate";
+            /** @enum {string} */
+            mode?: "light" | "dark";
+            /** @enum {string} */
+            layout?: "grid" | "list";
+            whatsapp?: string;
+            instagram?: string;
+        };
+        /** @description Create or patch. On PATCH every field is optional and absent means unchanged; `logoObjectKey`/`bannerObjectKey` accept "" as an explicit clear. */
+        StorefrontWrite: {
+            name?: string;
+            /** @description The public address, 3-40 chars, lowercase letters, digits and single dashes. Unique across the deployment and not a reserved word. */
+            slug?: string;
+            description?: string | null;
+            logoObjectKey?: string | null;
+            bannerObjectKey?: string | null;
+            theme?: components["schemas"]["StorefrontTheme"];
+            /** @enum {string} */
+            status?: "active" | "disabled";
+            /**
+             * @description How the buyer receives what they bought. A `pickup` shop never asks for an address; `both` lets the buyer choose at checkout.
+             * @enum {string}
+             */
+            fulfillmentMode?: "pickup" | "shipping" | "both";
+            pickupNote?: string | null;
+            /** @description Flat shipping. "0" is free, null is "arranged outside". Refused on a pickup-only shop, which has nothing to ship. Carrier quoting is a later, separate thing (Infi Fulfillment). */
+            shippingFlatAmount?: string | null;
+            /** @description Collect an address even on pickup, for merchants whose accountant wants one on the invoice. NFC-e does not require it; NF-e does, and that path already has an address because it ships. */
+            requireAddress?: boolean;
+        };
+        Storefront: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            description?: string | null;
+            /** @description Rendered address of the stored key; both shapes are returned so the editor does not have to parse our own URL to recover the key. */
+            logoUrl?: string | null;
+            logoObjectKey?: string | null;
+            bannerUrl?: string | null;
+            bannerObjectKey?: string | null;
+            theme: components["schemas"]["StorefrontTheme"];
+            /** @enum {string} */
+            status: "active" | "disabled";
+            /** @enum {string} */
+            fulfillmentMode: "pickup" | "shipping" | "both";
+            pickupNote?: string | null;
+            shippingFlatAmount?: string | null;
+            requireAddress: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description One row of the shelf as the merchant edits it. */
+        StorefrontShelfItem: {
+            /** Format: uuid */
+            productId: string;
+            name: string;
+            imageUrl?: string | null;
+            position: number;
+            visible: boolean;
+            availableOnsite: boolean;
+            /** @enum {string} */
+            productStatus: "active" | "archived";
+        };
+        PublicStorefrontItem: {
+            /** Format: uuid */
+            productId: string;
+            name: string;
+            description?: string | null;
+            imageUrl?: string | null;
+            /** @description The PUBLISHED version's base price, as a decimal string. A draft price is not a price, and a product without a published version is not on the shelf. */
+            price: string;
+            currency: string;
+            /**
+             * @description Present when the item is a subscription.
+             * @enum {string|null}
+             */
+            billingCycle?: "weekly" | "monthly" | "annual" | null;
+            requiresShipping: boolean;
+            availableOnsite: boolean;
+        };
+        /** @description The shop as a buyer's browser receives it. No tenant, no price version, no ids of the merchant's internal graph. */
+        PublicStorefront: {
+            slug: string;
+            name: string;
+            description?: string | null;
+            logoUrl?: string | null;
+            bannerUrl?: string | null;
+            theme: components["schemas"]["StorefrontTheme"];
+            /** @enum {string} */
+            fulfillmentMode: "pickup" | "shipping" | "both";
+            pickupNote?: string | null;
+            /** @description Flat shipping for this shop. Never present on a pickup-only shop, where it would read as a delivery option that does not exist. */
+            shippingAmount?: string | null;
+            items: components["schemas"]["PublicStorefrontItem"][];
+        };
         /** @description Public display payload for a payment link's landing page. */
         PaymentLinkView: {
             merchant: {
                 slug: string;
                 name: string;
+                /**
+                 * Format: uri
+                 * @description Absent when the merchant has no logo. Absolute, on this API's host (`/pay/{slug}/logo/{file}`), immutable per upload.
+                 */
+                logoUrl?: string;
             };
             product: components["schemas"]["PaymentLinkProduct"];
             testMode: boolean;
@@ -3783,6 +4304,25 @@ export interface components {
              */
             paymentId?: string;
         };
+        /** @description What a coupon does to a payment-link purchase, computed server-side. The browser renders these figures; it must not derive a total of its own, because the invoice is priced by the backend at materialization. */
+        LinkCheckoutSessionCoupon: {
+            /**
+             * @description The code as stored — upper-cased and trimmed.
+             * @example PROMO10
+             */
+            code: string;
+            /** @example 100.00 */
+            subtotal: string;
+            /** @example 10.00 */
+            discount: string;
+            /**
+             * @description What the buyer will be charged.
+             * @example 90.00
+             */
+            total: string;
+            /** @example BRL */
+            currency: string;
+        };
         /** @description `method` is validated server-side and answers **422** (not 400) when missing or outside the enum. */
         CheckoutChargeRequest: {
             /** @enum {string} */
@@ -3816,6 +4356,115 @@ export interface components {
             holderAddressNumber: string;
             holderPhone?: string;
         };
+        /**
+         * @description The first five are required; `bank_statement` is optional and speeds up review.
+         * @enum {string}
+         */
+        ManagedDocumentType: "cnpj_card" | "social_contract" | "rep_identity" | "rep_selfie" | "address_proof" | "bank_statement";
+        /** @description KYB — the company. Tax id and CEP are returned as digits. */
+        ManagedCompany: {
+            legalName?: string;
+            tradeName?: string;
+            /** @description CNPJ */
+            taxId?: string;
+            /** @enum {string} */
+            companyType?: "" | "mei" | "ltda" | "sa" | "eireli" | "association" | "other";
+            /** @description Declared monthly revenue in BRL, decimal string; empty when undeclared. */
+            monthlyRevenue?: string;
+            website?: string;
+            /** @description CEP */
+            postalCode?: string;
+            address?: string;
+            addressNumber?: string;
+            complement?: string;
+            district?: string;
+            city?: string;
+            /** @description UF */
+            state?: string;
+        };
+        /** @description KYC — the legal representative who answers for the company. */
+        ManagedRepresentative: {
+            fullName?: string;
+            /** @description CPF */
+            taxId?: string;
+            /** @description YYYY-MM-DD; empty when unset. */
+            birthDate?: string;
+            email?: string;
+            phone?: string;
+            role?: string;
+        };
+        /** @description Where a managed merchant's payouts go — one Pix key, declared in the application and reviewed with it. A CNPJ key must be the company's own; a CPF key is accepted only for an MEI and must be the representative's. E-mail, phone and random keys are checked for shape here and for ownership by the reviewer. Stored normalized (digits for CPF/CNPJ/PHONE, lower-case otherwise). Once approved, it is the only destination a managed payout may name — `POST /billing/payouts` answers 409 `payout_destination_not_registered` for any other key. */
+        ManagedPayoutAccount: {
+            pixKey?: string;
+            /** @enum {string} */
+            pixKeyType?: "" | "CPF" | "CNPJ" | "EMAIL" | "PHONE" | "EVP";
+        };
+        ManagedApplicationInput: {
+            company?: components["schemas"]["ManagedCompany"];
+            representative?: components["schemas"]["ManagedRepresentative"];
+            payoutAccount?: components["schemas"]["ManagedPayoutAccount"];
+        };
+        ManagedApplication: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            status: "draft" | "pending_review" | "approved" | "rejected";
+            company: components["schemas"]["ManagedCompany"];
+            representative: components["schemas"]["ManagedRepresentative"];
+            payoutAccount: components["schemas"]["ManagedPayoutAccount"];
+            /** @description Present after a rejection; what to fix. */
+            rejectionReason?: string;
+            /** Format: date-time */
+            tosAcceptedAt?: string;
+            /** Format: date-time */
+            submittedAt?: string;
+            /** Format: date-time */
+            reviewedAt?: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ManagedDocument: {
+            /** Format: uuid */
+            id: string;
+            docType: components["schemas"]["ManagedDocumentType"];
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            sizeBytes: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CollectionModeView: {
+            /** @enum {string} */
+            mode: "byop" | "managed";
+            /** @description Live deployment with the Infi provider configured. False in sandbox. */
+            managedAvailable: boolean;
+            /** @description May this tenant connect its own provider accounts? Managed is the way every account activates production; bringing your own provider is an enterprise feature granted per account (ADR 0065). False means `POST /account/collection-mode` with `byop` answers 409 — ask instead, with `POST /account/collection-mode/byop/request`. */
+            byopEnabled: boolean;
+            /** @description The tenant's open request for BYOP, or null. Present means someone is waiting on us, so offer "we will be in touch" rather than the button. */
+            byopRequest?: components["schemas"]["ByopAccessRequest"] | null;
+            /** @description The application, or null before the merchant started one. */
+            activation?: components["schemas"]["ManagedApplication"] | null;
+            documents: components["schemas"]["ManagedDocument"][];
+            requiredDocuments: components["schemas"]["ManagedDocumentType"][];
+            missingDocuments: components["schemas"]["ManagedDocumentType"][];
+            canSubmit: boolean;
+        };
+        ByopAccessRequest: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description `contacted` is not a verdict — it means the conversation started and the merchant is still waiting. `granted` is the one that flips `byopEnabled`.
+             * @enum {string}
+             */
+            status: "pending" | "contacted" | "granted" | "declined";
+            /** @description What the merchant said they need it for, in their words. */
+            note?: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
         Tenant: {
             /** Format: uuid */
             id?: string;
@@ -3824,15 +4473,45 @@ export interface components {
             /** @enum {string} */
             status?: "active" | "suspended" | "closed";
             /**
+             * @description How this tenant collects in production (ADR 0031). `byop` runs on the merchant's own connected provider accounts; `managed` runs on Infi's, after an approved KYC/KYB application. Always `byop` in sandbox.
+             * @enum {string}
+             */
+            collectionMode?: "byop" | "managed";
+            /**
              * Format: uri
              * @description The merchant's terms of use, quoted in the payment mandate a payer accepts before being charged off-session. null when unset.
              * @example https://acme.ai/termos
              */
             termsUrl?: string | null;
+            /**
+             * Format: uri
+             * @description The merchant logo the hosted checkout and the embed render next to the merchant name. Absolute, served by `GET /pay/{slug}/logo/{file}`, and immutable per upload (a new upload is a new URL). null when unset; the checkout then shows the merchant's initials.
+             */
+            logoUrl?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
+        };
+        PresignTenantLogoRequest: {
+            /**
+             * @description SVG is refused on purpose: it is a document that runs script when served inline, and the logo route serves inline.
+             * @enum {string}
+             */
+            contentType: "image/png" | "image/jpeg" | "image/webp";
+            /**
+             * Format: int64
+             * @description Exact size of the file; signed into the upload URL. At most 1 MiB.
+             */
+            sizeBytes: number;
+        };
+        PresignTenantLogoResponse: {
+            /** @description PUT the file here with the same Content-Type, no auth headers. */
+            uploadUrl: string;
+            /** @description Echo it back as `logoObjectKey` on `PATCH /account/tenant` once the PUT succeeds. */
+            objectKey: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
         ApiKey: {
             /** Format: uuid */
@@ -4562,58 +5241,6 @@ export interface operations {
             422: components["responses"]["ValidationFailed"];
         };
     };
-    upgradeAccountPlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /**
-                     * @deprecated
-                     * @description Ignored compatibility field; features never require a paid tier
-                     */
-                    feature?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Upgraded plan (idempotent) */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountPlan"];
-                };
-            };
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    downgradeAccountPlan: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Plan with its pending change */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountPlan"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-        };
-    };
     getHealthz: {
         parameters: {
             query?: never;
@@ -4769,9 +5396,17 @@ export interface operations {
                     "application/json": components["schemas"]["ConflictError"];
                 };
             };
-            422: components["responses"]["ValidationFailed"];
+            /** @description The request names something the caller can fix. Besides the generic `validation_failed`: `customer_tax_id_required` (pix and boleto need a CPF/CNPJ), and `amount_below_minimum` — every routable provider enforces a minimum charge amount above `amountDue`, with the floor itself in `errors[]` against the `amount` field. Asaas, which carries managed pix, refuses anything under R$ 5,00, so a deep discount can take a total below what any rail will collect. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
             429: components["responses"]["RateLimited"];
-            /** @description Every routable provider failed, routing is unavailable, or releasing the in-flight charge to switch method failed. */
+            /** @description Every routable provider failed, routing is unavailable, or releasing the in-flight charge to switch method failed. An amount no provider accepts is NOT this case — it is the 422 above. */
             502: {
                 headers: {
                     [name: string]: unknown;
@@ -4895,6 +5530,34 @@ export interface operations {
             };
             404: components["responses"]["NotFound"];
             429: components["responses"]["RateLimited"];
+        };
+    };
+    getMerchantLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The file segment of `merchant.logoUrl`, `{uuid}.{png|jpg|webp}`. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image, as png, jpeg or webp */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                    "image/jpeg": string;
+                    "image/webp": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
         };
     };
     getPaymentLinkByTokenPublic: {
@@ -5056,6 +5719,60 @@ export interface operations {
             429: components["responses"]["RateLimited"];
         };
     };
+    applyLinkCheckoutSessionCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
+                slug: components["parameters"]["PaySlug"];
+                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
+                token: components["parameters"]["LinkToken"];
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example PROMO10 */
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The code, and what the buyer will be charged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCheckoutSessionCoupon"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            /** @description Link, session, or coupon not found. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The coupon is exhausted, or the session already has an invoice and can no longer take one. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
     chargeLinkCheckoutSession: {
         parameters: {
             query?: never;
@@ -5104,7 +5821,15 @@ export interface operations {
                     "application/json": components["schemas"]["ConflictError"];
                 };
             };
-            422: components["responses"]["ValidationFailed"];
+            /** @description Same codes as the public checkout charge, including `amount_below_minimum` (the floor is in `errors[]`; Asaas refuses under R$ 5,00, which a deep coupon can drop the total below) and `customer_tax_id_required`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
             429: components["responses"]["RateLimited"];
             /** @description Every routable provider failed, or routing is unavailable. */
             502: {
@@ -5358,6 +6083,266 @@ export interface operations {
             403: components["responses"]["Forbidden"];
         };
     };
+    listStorefronts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Storefronts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        storefronts: components["schemas"]["Storefront"][];
+                    };
+                };
+            };
+        };
+    };
+    createStorefront: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorefrontWrite"];
+            };
+        };
+        responses: {
+            /** @description The storefront */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Storefront"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getStorefront: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storefrontID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The storefront */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Storefront"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateStorefront: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storefrontID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StorefrontWrite"];
+            };
+        };
+        responses: {
+            /** @description The storefront */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Storefront"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listStorefrontItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storefrontID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Shelf */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["StorefrontShelfItem"][];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    replaceStorefrontItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                storefrontID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    items: {
+                        /** Format: uuid */
+                        productId: string;
+                        /** @default true */
+                        visible?: boolean;
+                        /**
+                         * @description On the shelf physically — a boolean, not a count. There is no stock. In a `both` storefront, an item without it forces the whole order to shipping.
+                         * @default false
+                         */
+                        availableOnsite?: boolean;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description The shelf after the write */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: components["schemas"]["StorefrontShelfItem"][];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    presignCatalogImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    contentType: "image/png" | "image/jpeg" | "image/webp";
+                    /** Format: int64 */
+                    sizeBytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Upload target */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        uploadUrl: string;
+                        objectKey: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+            /** @description Object storage is not configured */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getPublicStorefront: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The shop */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicStorefront"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getCatalogImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantID: string;
+                /** @description The file segment of an `imageUrl`, `{uuid}.{png|jpg|webp}`. */
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/png": string;
+                    "image/jpeg": string;
+                    "image/webp": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
     listProducts: {
         parameters: {
             query?: {
@@ -5413,6 +6398,7 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -5459,6 +6445,10 @@ export interface operations {
                     description?: string | null;
                     /** @enum {string} */
                     status?: "active" | "archived";
+                    /** @description The `objectKey` from `POST /catalog/images/presign`. Absent leaves the photo; "" clears it. Refused when the key was not minted for this account. Unlike name/description this one IS a partial field. */
+                    imageObjectKey?: string | null;
+                    /** @description Whether buying this obliges a physical delivery. `type` (agent|item) does not answer that, and the checkout has to know before deciding to ask for an address. Absent leaves it. */
+                    requiresShipping?: boolean | null;
                 };
             };
         };
@@ -5832,6 +6822,40 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createPaymentLinkWithProduct: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePaymentLinkWithProductRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The product definition is invalid — a missing `key`, a billing cycle that contradicts the pricing model, or a price the model requires and the request omits. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
         };
     };
     listPaymentLinks: {
@@ -7276,7 +8300,15 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
-            422: components["responses"]["ValidationFailed"];
+            /** @description Same codes as the public checkout charge, including `amount_below_minimum` (the floor is in `errors[]`; Asaas refuses under R$ 5,00) and `customer_tax_id_required`. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
         };
     };
     listPayments: {
@@ -7882,6 +8914,341 @@ export interface operations {
             };
         };
     };
+    getCollectionMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current mode and application */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionModeView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    setCollectionMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    mode: "byop" | "managed";
+                };
+            };
+        };
+        responses: {
+            /** @description Updated view */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionModeView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Managed requested without an approved application, or in sandbox; or `byop` requested by a tenant without the permission, in which case the fix is `POST /account/collection-mode/byop/request`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    saveManagedApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManagedApplicationInput"];
+            };
+        };
+        responses: {
+            /** @description Updated view */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionModeView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The application is frozen (pending_review or approved). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description A present field is invalid (`company.taxId`, `representative.email`, …). */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    requestByopAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: email
+                     * @description Where to reply. Required for API-key callers; ignored for a dashboard session, which carries a verified address.
+                     */
+                    contactEmail?: string;
+                    /** @description What you need your own provider account for. */
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The request, new or the one already open */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ByopAccessRequest"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description BYOP is already enabled for this tenant — nothing to ask for. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No usable reply-to address. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    presignManagedDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    docType: components["schemas"]["ManagedDocumentType"];
+                    fileName: string;
+                    contentType: string;
+                    /** Format: int64 */
+                    sizeBytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Presigned upload */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        uploadUrl: string;
+                        objectKey: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The application is frozen. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Unsupported type, content type or size. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Document storage is not configured on this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    attachManagedDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    docType: components["schemas"]["ManagedDocumentType"];
+                    objectKey: string;
+                    fileName: string;
+                    contentType: string;
+                    /** Format: int64 */
+                    sizeBytes: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Document recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedDocument"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The application is frozen. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description The key was not issued for this document, or the upload did not complete. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    removeManagedDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                docID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            /** @description The application is frozen. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    submitManagedApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated view */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionModeView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Not editable (already under review or approved), or sandbox. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Incomplete application. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
     getTenant: {
         parameters: {
             query?: never;
@@ -7926,6 +9293,8 @@ export interface operations {
                      * @example https://acme.ai/termos
                      */
                     termsUrl?: string | null;
+                    /** @description The `objectKey` a `POST /account/tenant/logo/presign` returned, after the file was PUT there. Attaches that upload as the merchant logo; the bytes are checked to be the declared image before the row changes, and the previous logo is deleted. An empty string clears the logo; null leaves it unchanged. */
+                    logoObjectKey?: string | null;
                 };
             };
         };
@@ -7942,6 +9311,39 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    presignTenantLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresignTenantLogoRequest"];
+            };
+        };
+        responses: {
+            /** @description Presigned upload target */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresignTenantLogoResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            /** @description Object storage is not configured on this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     listApiKeys: {

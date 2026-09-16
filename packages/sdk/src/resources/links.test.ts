@@ -24,6 +24,75 @@ describe("infi.links", () => {
   });
   afterEach(() => vi.restoreAllMocks());
 
+  // The inline form is one call from nothing to a payable URL: no productId to
+  // look up first, and no slug, because the secret key already says who you are.
+  it("create({ product }) posts the inline form and returns the server's url", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          id: "lnk_1",
+          productId: "prd_1",
+          token: "plink_abc",
+          active: true,
+          url: `${APP}/pay/acme/links/plink_abc`,
+          productVersionId: "ver_1",
+        },
+        201,
+      ),
+    );
+
+    const link = await client().links.create({
+      product: {
+        key: "pro",
+        name: "Pro",
+        pricingModel: "subscription",
+        billingCycle: "monthly",
+        basePrice: "299.00",
+      },
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] as [URL, RequestInit];
+    expect(String(url)).toBe(`${BASE}/metering/payment-links`);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      product: { key: "pro", basePrice: "299.00" },
+    });
+    expect(link.url).toBe(`${APP}/pay/acme/links/plink_abc`);
+    // The pin is what makes a later price change miss links already shared.
+    expect(link.productVersionId).toBe("ver_1");
+  });
+
+  // Building the URL locally is exactly what this form exists to avoid, so a
+  // response without one has to fail loudly rather than be guessed at.
+  it("create({ product }) refuses a response that carries no url", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ id: "lnk_1", token: "plink_abc" }, 201));
+
+    await expect(
+      client().links.create({ product: { key: "pro", pricingModel: "one_time" } }),
+    ).rejects.toMatchObject({ code: "invalid_response" });
+  });
+
+  it("create({ product }) never asks for a slug", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ id: "lnk_1", token: "plink_abc", url: `${APP}/pay/acme/links/plink_abc` }, 201),
+    );
+
+    await expect(
+      client().links.create({ product: { key: "pro", pricingModel: "one_time" } }),
+    ).resolves.toBeTruthy();
+  });
+
+  // The positional form predates the server sending a url; when it does send
+  // one, that is the address of record rather than the locally built guess.
+  it("create(productId, opts) prefers the server url over the local build", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ id: "lnk_1", token: "plink_abc", url: `${APP}/pay/real-slug/links/plink_abc` }, 201),
+    );
+
+    const link = await client().links.create("prd_1", { slug: "stale-slug" });
+    expect(link.url).toBe(`${APP}/pay/real-slug/links/plink_abc`);
+  });
+
   it("create POSTs the product's payment-links and returns a shareable url", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse(

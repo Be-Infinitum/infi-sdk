@@ -1,6 +1,6 @@
-import { requireSlug } from "../errors.js";
+import { InfiError, requireSlug } from "../errors.js";
 import type { Transport } from "../http.js";
-import type { PaymentLink } from "../types.js";
+import type { InlineProductSpec, PaymentLink } from "../types.js";
 
 const enc = encodeURIComponent;
 
@@ -15,6 +15,36 @@ export type CreateLinkOptions = {
   /** Absolute http(s). "Back to the merchant" while open; `?status=error&code=…` from the embed. */
   cancelUrl?: string;
 };
+
+/**
+ * Create a link and define its product in the same call.
+ *
+ * No `slug`: your secret key already says which tenant you are, and the URL
+ * comes back from the server.
+ */
+export type CreateLinkWithProductOptions = {
+  /**
+   * The product, resolved by its natural `key`. A new key creates it; a known
+   * one reuses it, and pricing that differs publishes a new version.
+   *
+   * Every call mints a NEW link, and each link keeps selling the version it was
+   * created against — so a later price change never reaches a link you already
+   * shared.
+   */
+  product: InlineProductSpec;
+  successUrl?: string;
+  cancelUrl?: string;
+  /** Deduplicates intent. Retries are already safe without it. */
+  idempotencyKey?: string;
+};
+
+/** Discriminates the two call shapes. Kept separate and pure so it is testable
+ *  on its own, like wallet.ts's parseAmountArgs. */
+function isWithProduct(
+  arg: string | CreateLinkWithProductOptions,
+): arg is CreateLinkWithProductOptions {
+  return typeof arg === "object" && arg !== null && "product" in arg;
+}
 
 /**
  * Payment links — the shortest path from "I have a product" to "someone paid me".
@@ -46,7 +76,47 @@ export class LinksResource {
    * absolute http(s) URLs — the API answers 422 otherwise. Omit both and the
    * payer stays on our receipt.
    */
+  async create(input: CreateLinkWithProductOptions): Promise<PaymentLinkWithUrl>;
   async create(
+    productId: string,
+    opts: CreateLinkOptions,
+    idempotencyKey?: string,
+  ): Promise<PaymentLinkWithUrl>;
+  async create(
+    a: string | CreateLinkWithProductOptions,
+    b?: CreateLinkOptions,
+    c?: string,
+  ): Promise<PaymentLinkWithUrl> {
+    if (isWithProduct(a)) return this.#createWithProduct(a);
+    return this.#createForProductId(a, b as CreateLinkOptions, c);
+  }
+
+  /** The inline-product form. The server resolves the product, publishes a
+   *  version, mints the link and hands back the payer URL. */
+  async #createWithProduct(input: CreateLinkWithProductOptions): Promise<PaymentLinkWithUrl> {
+    const link = await this.t.request<PaymentLink & { url?: string }>("POST", "/metering/payment-links", {
+      requireSecret: true,
+      idempotencyKey: input.idempotencyKey,
+      body: {
+        product: input.product,
+        successUrl: input.successUrl,
+        cancelUrl: input.cancelUrl,
+      },
+    });
+    if (!link.url) {
+      // The whole point of this form is not needing a slug to build the URL. A
+      // response without one means the API is older than this SDK, and guessing
+      // would hand back an address we cannot vouch for.
+      throw new InfiError(
+        "links.create({ product }) needs an API that returns the link `url`; this one did not.",
+        502,
+        "invalid_response",
+      );
+    }
+    return { ...link, url: link.url };
+  }
+
+  async #createForProductId(
     productId: string,
     opts: CreateLinkOptions,
     idempotencyKey?: string,
@@ -56,12 +126,14 @@ export class LinksResource {
       opts.successUrl || opts.cancelUrl
         ? { successUrl: opts.successUrl, cancelUrl: opts.cancelUrl }
         : undefined;
-    const link = await this.t.request<PaymentLink>(
+    const link = await this.t.request<PaymentLink & { url?: string }>(
       "POST",
       `/metering/products/${enc(productId)}/payment-links`,
       { requireSecret: true, idempotencyKey, body },
     );
-    return { ...link, url: this.urlFor(slug, link.token!) };
+    // Prefer the server's URL now that it sends one; fall back to building it
+    // locally so this overload keeps working against an older API.
+    return { ...link, url: link.url || this.urlFor(slug, link.token!) };
   }
 
   /** List a product's links. Without a `slug` each `url` is `""` — never a broken URL. */
