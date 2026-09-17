@@ -63,11 +63,34 @@ class VersionsResource {
     return res.versions ?? [];
   }
 
-  publish(productId: string, versionId: string, idempotencyKey?: string): Promise<Version> {
+  /**
+   * Freeze a draft version. By default it also becomes the product's default —
+   * what a buyer gets when nothing names a version.
+   *
+   * `{ default: false }` publishes an OFFER version instead: sellable, but only
+   * by a payment link created with `productVersionId`. That is how a product
+   * carries a promotional price alongside its standard one without the
+   * promotion reaching the shelf.
+   *
+   * Note the third positional argument stays `idempotencyKey`, so existing
+   * calls keep working unchanged.
+   */
+  publish(
+    productId: string,
+    versionId: string,
+    idempotencyKey?: string,
+    opts?: { default?: boolean },
+  ): Promise<Version> {
     return this.t.request(
       "POST",
       `/metering/products/${enc(productId)}/versions/${enc(versionId)}/publish`,
-      { requireSecret: true },
+      {
+        requireSecret: true,
+        idempotencyKey,
+        // Omitted entirely when the caller said nothing, so the request stays
+        // byte-identical to what every existing integration sends.
+        body: opts?.default === undefined ? undefined : { default: opts.default },
+      },
     );
   }
 }

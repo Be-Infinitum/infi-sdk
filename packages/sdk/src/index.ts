@@ -69,7 +69,12 @@ export {
   type WebhookEventType,
   type WebhookInput,
 } from "./webhooks.js";
-export { LinksResource, type PaymentLinkWithUrl } from "./resources/links.js";
+export {
+  LinksResource,
+  type CreateLinkOptions,
+  type CreateLinkWithProductOptions,
+  type PaymentLinkWithUrl,
+} from "./resources/links.js";
 export {
   StorefrontsResource,
   type Storefront,

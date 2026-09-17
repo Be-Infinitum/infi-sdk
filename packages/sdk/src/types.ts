@@ -30,6 +30,8 @@ export type UsageReport = components["schemas"]["UsageReport"];
 export type CustomerState = components["schemas"]["CustomerState"];
 export type Coupon = components["schemas"]["Coupon"];
 export type PaymentLink = components["schemas"]["PaymentLink"];
+/** A product defined inline on a link create, resolved by its natural `key`. */
+export type InlineProductSpec = components["schemas"]["InlineProductSpec"];
 export type CreateCouponRequest = components["schemas"]["CreateCouponRequest"];
 export type Invoice = components["schemas"]["Invoice"];
 export type CreateInvoiceRequest = components["schemas"]["CreateInvoiceRequest"];
