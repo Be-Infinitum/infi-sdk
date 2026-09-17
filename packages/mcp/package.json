@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/mcp",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "MCP server for Infi — claim, sync, doctor, pull for Cursor/Claude agents",
   "license": "MIT",
   "type": "module",
@@ -25,8 +25,8 @@
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
-    "@beinfi/sdk": ">=0.9.0 <0.12.0",
-    "@beinfi/cli": ">=0.2.6 <0.3.0",
+    "@beinfi/sdk": ">=0.9.0 <0.13.0",
+    "@beinfi/cli": ">=0.2.7 <0.3.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
     "zod": "^3.25.76"
   },
