@@ -113,6 +113,18 @@ describe("mount", () => {
     expect(src.searchParams.get("taxId")).toBe("52998224725");
     handle?.destroy();
   });
+
+  it("carrega telefone do prefill para a URL", () => {
+    const el = div({
+      "data-infi-checkout-link-token": "plink_1",
+      "data-infi-checkout-environment": "sandbox",
+      "data-infi-checkout-prefill-phone": "(11) 98888-7766",
+    });
+    const handle = mount(el);
+    const src = new URL(el.querySelector("iframe")!.getAttribute("src")!);
+    expect(src.searchParams.get("phone")).toBe("(11) 98888-7766");
+    handle?.destroy();
+  });
 });
 
 describe("scan", () => {

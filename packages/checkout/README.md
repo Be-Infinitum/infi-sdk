@@ -121,7 +121,7 @@ const checkout = useCheckoutEmbedControls();
 <button onClick={() => checkout.current?.submit()}>Pagar</button>
 ```
 
-`submit()`, `getEmail()`, `setEmail()`, `getTaxId()`, `setTaxId()`.
+`submit()`, `getEmail()`, `setEmail()`, `getTaxId()`, `setTaxId()`, `setPhone()`.
 
 ## Without a build step
 
@@ -140,7 +140,7 @@ Framer, Webflow, WordPress, a hand-written page — paste two things:
 Every React prop has a `data-infi-checkout-*` twin: `link-token`, `invoice-id`,
 `slug`, `href`, `environment`, `locale`, `theme`, `theme-accent-color`,
 `theme-background-color`, `hide-price`, `prefill-email`, `prefill-name`,
-`prefill-tax-id`, `return-url`, `skip-redirect`, `app-url`.
+`prefill-tax-id`, `prefill-phone`, `return-url`, `skip-redirect`, `app-url`.
 
 Callbacks name a function on `window`:
 
@@ -162,6 +162,7 @@ Drive it from your own button through the global:
 infiCheckout.submit("checkout");
 await infiCheckout.getEmail("checkout");
 infiCheckout.setTaxId("checkout", "52998224725");
+infiCheckout.setPhone("checkout", "(11) 98888-7766");
 ```
 
 Elements added to the page later are picked up automatically, which is what

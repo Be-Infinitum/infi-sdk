@@ -116,6 +116,7 @@ export function mount(el: Element): CheckoutEmbedHandle | null {
       email: attr(el, "prefill-email"),
       name: attr(el, "prefill-name"),
       taxId: attr(el, "prefill-tax-id"),
+      phone: attr(el, "prefill-phone"),
     },
     returnUrl: attr(el, "return-url"),
     skipRedirect: bool(el, "skip-redirect"),

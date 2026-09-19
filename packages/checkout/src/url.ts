@@ -54,6 +54,7 @@ export interface EmbedUrlOptions {
     readonly name?: string;
     /** CPF or CNPJ. Pix on Asaas refuses a payer without one. */
     readonly taxId?: string;
+    readonly phone?: string;
   };
 }
 
@@ -181,6 +182,7 @@ export function buildEmbedUrl(source: EmbedSource, options: EmbedUrlOptions): st
   if (options.prefill?.email) q.set("email", options.prefill.email);
   if (options.prefill?.name) q.set("name", options.prefill.name);
   if (options.prefill?.taxId) q.set("taxId", options.prefill.taxId);
+  if (options.prefill?.phone) q.set("phone", options.prefill.phone);
 
   return `${base}${path}?${q.toString()}`;
 }
