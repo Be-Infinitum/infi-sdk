@@ -62,7 +62,6 @@ export interface CheckoutEmbedHandle {
   setEmail(email: string): Promise<void>;
   getTaxId(): Promise<string>;
   setTaxId(taxId: string): Promise<void>;
-  setPhone(phone: string): Promise<void>;
   /** Remove the listener and the iframe. Safe to call twice. */
   destroy(): void;
 }
@@ -288,9 +287,6 @@ export function createCheckoutEmbed(
     },
     async setTaxId(taxId: string) {
       await request("setTaxId", taxId);
-    },
-    async setPhone(phone: string) {
-      await request("setPhone", phone);
     },
     destroy() {
       if (destroyed) return;

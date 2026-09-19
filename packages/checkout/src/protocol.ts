@@ -125,8 +125,7 @@ export type EmbedRequestMethod =
   | "getEmail"
   | "setEmail"
   | "getTaxId"
-  | "setTaxId"
-  | "setPhone";
+  | "setTaxId";
 
 /** Sent by the merchant's page to the iframe. */
 export type ParentToEmbed = Envelope &

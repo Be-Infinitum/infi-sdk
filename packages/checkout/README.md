@@ -121,7 +121,7 @@ const checkout = useCheckoutEmbedControls();
 <button onClick={() => checkout.current?.submit()}>Pagar</button>
 ```
 
-`submit()`, `getEmail()`, `setEmail()`, `getTaxId()`, `setTaxId()`, `setPhone()`.
+`submit()`, `getEmail()`, `setEmail()`, `getTaxId()`, `setTaxId()`.
 
 ## Without a build step
 
@@ -162,7 +162,6 @@ Drive it from your own button through the global:
 infiCheckout.submit("checkout");
 await infiCheckout.getEmail("checkout");
 infiCheckout.setTaxId("checkout", "52998224725");
-infiCheckout.setPhone("checkout", "(11) 98888-7766");
 ```
 
 Elements added to the page later are picked up automatically, which is what
