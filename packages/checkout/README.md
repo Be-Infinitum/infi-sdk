@@ -140,7 +140,7 @@ Framer, Webflow, WordPress, a hand-written page — paste two things:
 Every React prop has a `data-infi-checkout-*` twin: `link-token`, `invoice-id`,
 `slug`, `href`, `environment`, `locale`, `theme`, `theme-accent-color`,
 `theme-background-color`, `hide-price`, `prefill-email`, `prefill-name`,
-`prefill-tax-id`, `return-url`, `skip-redirect`, `app-url`.
+`prefill-tax-id`, `prefill-phone`, `return-url`, `skip-redirect`, `app-url`.
 
 Callbacks name a function on `window`:
 
