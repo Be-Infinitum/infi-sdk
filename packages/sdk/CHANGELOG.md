@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Fixed
+- **The wallet reached routes the API no longer has.** `customers.credits.balance`,
+  `grant` and `consume` — and everything built on them: `bindWallet`,
+  `walletForCustomer`, `checkCredit` without a meter — called
+  `/metering/customers/{id}/credit*`, which the backend removed with the
+  single credits pool. Every call answered 404. They now use
+  `/customers/{id}/wallet`, `/wallet/credit` and `/wallet/debit`.
+  `walletForCustomer`'s starter grant also stops sending an idempotency key the
+  wallet refuses (it contained `:`), which is why starter credits never landed.
+- **`providers.requestHelp()` sent a body the API rejects.** It posted
+  `{ provider, note }`; the route needs `{ name, email }` and answered 422.
+- `WEBHOOK_EVENT_TYPES` gains `plan.changed`, which the backend already emits.
+
+### BREAKING
+- **`GrantCreditInput` requires `meter`.** A balance belongs to a meter; there is
+  no default pool to fall back to. `credits.balance(id)` without a meter answers
+  only when the wallet holds a single meter, and throws `meter_required`
+  otherwise. `consume` never fails for lack of balance — the balance may go
+  negative; gate with `assertCredit` first. `CreditSummary.entries` is gone: the
+  API never returned it on these routes.
+- **`providers.requestHelp(input)`** now takes `{ name, email, phone?, notes? }`
+  and resolves to `{ received: true }`.
+
 ### BREAKING
 - **`checkout()` now requires `customer.taxId`** in purchase mode, validated as a
   CPF (11 digits) or CNPJ (14). Pix and boleto on Asaas refuse to create a payer

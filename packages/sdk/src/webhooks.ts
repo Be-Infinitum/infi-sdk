@@ -35,6 +35,7 @@ export const WEBHOOK_EVENT_TYPES = [
   "payment.chargeback",
   "payment.chargeback_reversed",
   "usage.threshold_reached",
+  "plan.changed",
 ] as const satisfies readonly GeneratedEventType[];
 
 /**
