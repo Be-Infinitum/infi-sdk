@@ -51,13 +51,18 @@ export class ProvidersResource {
   }
 
   /**
-   * "I don't have an account with this provider — help me." The one action
+   * "I don't have a payment provider account — help me." The one action
    * available to a merchant who cannot connect anything yet, so it is not gated.
+   * Infi's team gets in touch at `email`.
    */
-  requestHelp(input: { provider?: string; note?: string } = {}): Promise<{ status: string }> {
+  requestHelp(
+    input: { name: string; email: string; phone?: string; notes?: string },
+    idempotencyKey?: string,
+  ): Promise<{ received: boolean }> {
     return this.t.request("POST", "/account/providers/help", {
       body: input,
       requireSecret: true,
+      idempotencyKey,
     });
   }
 }

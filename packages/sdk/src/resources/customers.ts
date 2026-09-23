@@ -1,3 +1,4 @@
+import { InfiError } from "../errors.js";
 import type { Transport } from "../http.js";
 import type {
   CreateCustomerRequest,
@@ -44,42 +45,70 @@ class RateCardsResource {
 class CreditsResource {
   constructor(private readonly t: Transport) {}
 
-  /** Read the customer's credit balance + ledger. */
-  balance(customerId: string): Promise<CreditSummary> {
-    return this.t.request("GET", `/metering/customers/${enc(customerId)}/credit`, {
-      requireSecret: true,
-    });
+  /**
+   * A customer's wallet balance for one meter.
+   *
+   * Every balance belongs to a meter (`tokens`, `exports`, …). Without `meter`
+   * this answers only when the wallet holds a single one, and throws
+   * `meter_required` otherwise, rather than guessing which balance you meant.
+   */
+  async balance(customerId: string, meter?: string): Promise<CreditSummary> {
+    if (meter) return this.meterBalance(customerId, meter);
+    const res = await this.t.request<{ balances?: CreditSummary[] }>(
+      "GET",
+      `/customers/${enc(customerId)}/wallet`,
+      { requireSecret: true },
+    );
+    const balances = res.balances ?? [];
+    if (balances.length === 0) return { balance: "0", total: "0" };
+    if (balances.length === 1) return balances[0]!;
+    throw new InfiError(
+      `Customer ${customerId} has balances on ${balances.length} meters; pass the meter to read.`,
+      400,
+      "meter_required",
+      { hint: `Call credits.balance(customerId, meter) with one of: ${balances.map((b) => b.meter).join(", ")}.` },
+    );
   }
 
-  /**
-   * Balance of ONE meter's wallet.
-   *
-   * `/credit` above is the legacy shim: the backend documents it as always
-   * reading the default credits (CRD) pool, so a wallet holding 50,000
-   * `tokens` answers "0" there. Anything gating a real prepaid product has to
-   * ask per meter.
-   */
+  /** Balance of ONE meter's wallet. */
   meterBalance(customerId: string, meter: string): Promise<CreditSummary> {
     return this.t.request(
       "GET",
-      `/metering/customers/${enc(customerId)}/wallet?meter=${encodeURIComponent(meter)}`,
+      `/customers/${enc(customerId)}/wallet?meter=${encodeURIComponent(meter)}`,
       { requireSecret: true },
     );
   }
 
-  /** Grant credit (e.g. after a credit-pack payment is confirmed). */
+  /** Add units to a meter's wallet (e.g. after a credit-pack payment is confirmed). */
   grant(customerId: string, input: GrantCreditInput, idempotencyKey?: string): Promise<CreditSummary> {
-    return this.t.request("POST", `/metering/customers/${enc(customerId)}/credit`, {
-      body: input,
-      requireSecret: true,
-      idempotencyKey,
-    });
+    return this.mutate("credit", customerId, input, idempotencyKey);
   }
 
-  /** Consume (deduct) credit; rejects (409) if it would overdraw the balance. */
+  /**
+   * Take units from a meter's wallet. Never refused for lack of balance: the
+   * balance may go negative. Gate with `balance` / `assertCredit` before the
+   * work if you need to stop at zero.
+   */
   consume(customerId: string, input: GrantCreditInput, idempotencyKey?: string): Promise<CreditSummary> {
-    return this.t.request("POST", `/metering/customers/${enc(customerId)}/credit/consume`, {
-      body: input,
+    return this.mutate("debit", customerId, input, idempotencyKey);
+  }
+
+  private mutate(
+    op: "credit" | "debit",
+    customerId: string,
+    input: GrantCreditInput,
+    idempotencyKey?: string,
+  ): Promise<CreditSummary> {
+    return this.t.request("POST", `/customers/${enc(customerId)}/wallet/${op}`, {
+      body: {
+        meter: input.meter,
+        amount: input.amount,
+        ...(input.reference ? { reason: input.reference } : {}),
+        // The header makes a retry replay the response; the body key is what
+        // stops the wallet itself from booking the entry twice. The wallet
+        // refuses ':' in its key, which callers routinely use ("pay_1:tokens").
+        ...(idempotencyKey ? { idempotencyKey: idempotencyKey.replaceAll(":", "_") } : {}),
+      },
       requireSecret: true,
       idempotencyKey,
     });
