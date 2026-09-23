@@ -89,15 +89,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/platform-plans": {
+    "/public/plans": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Published Infi platform plans for the landing and calculators */
-        get: operations["getPublicPlatformPlans"];
+        /** Published Infi plans read from plans/plan_components (BE-403) — the landing and the sandbox plan screen read this. Published only, never draft or archived; no plan/component/price/tenant id in the response. */
+        get: operations["getPublicPlans"];
         put?: never;
         post?: never;
         delete?: never;
@@ -113,7 +113,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Effective plan, approved payment volume, invoice projection and entitlements */
+        /** The tenant's current Infi plan, the period and plan segment in course, and any pending change */
         get: operations["getAccountPlan"];
         put?: never;
         post?: never;
@@ -123,7 +123,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/plan/activate": {
+    "/account/plan/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The tenant's plan changes, one status at a time, most recent first
+         * @description Keyset-paged, ordered by `requestedAt` descending then `id`. Applied, scheduled and canceled changes are listed separately, by `status` (default `applied` — the history of what took effect and when). Pass `nextCursor` back as `cursor` for the next page; its absence means the list ended.
+         */
+        get: operations["listAccountPlanChanges"];
+        put?: never;
+        /**
+         * Ask to move to another published plan
+         * @description An upgrade (a target whose recurring fee is greater than the current one) is applied at once and takes effect at the top of the hour in course — never before the period in course starts. Anything else, an equal fee included, is scheduled for the end of the period in course. One change is pending at a time: a new request replaces the scheduled one, an upgrade cancels a scheduled downgrade, and the same target as the scheduled change returns that change. Asking for the plan the tenant is already on withdraws whatever is pending and answers 204. Requires an `Idempotency-Key`: a retry with the same key replays the first response and never records a second change.
+         */
+        post: operations["changeAccountPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/plan/changes/{changeID}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,8 +156,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Accept the current Terms and activate a postpaid live plan */
-        post: operations["activateAccountPlan"];
+        /**
+         * Withdraw a scheduled plan change
+         * @description Canceling a change already canceled returns it unchanged. Another tenant's change id answers exactly like an id that does not exist.
+         */
+        post: operations["cancelAccountPlanChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -170,6 +197,48 @@ export interface paths {
         put?: never;
         /** Connect a merchant-owned provider account */
         post: operations["connectProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/providers/{provider}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-check a connected provider account
+         * @description Calls the provider with the stored credential and refreshes the connection's status. Use it after fixing something on the provider's side (a key, a webhook) to see the connection move to `connected`.
+         */
+        post: operations["verifyProviderConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/providers/help": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask Infi for help getting a provider account
+         * @description For a merchant who has no payment provider account yet. Records the request and notifies Infi's team, who get in touch at `email`.
+         */
+        post: operations["requestProviderHelp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -696,6 +765,15 @@ export interface paths {
          * @description Verifies a CIAM session token and creates a Pulse tenant, default app, and
          *     users row for the operator. Idempotent when the subject already has a tenant
          *     (MVP: one tenant per subject). Does not create API keys; the dashboard uses the CIAM session.
+         *
+         *     **On live** nothing is provisioned (ADR 0003). A subject with no membership
+         *     is attached to the tenant its open invite names, and only with a
+         *     CIAM-verified address and `acceptedTermsVersion` equal to the current Terms
+         *     version (`termsVersion` on `POST /auth/session/sync`). One transaction
+         *     writes the membership, consumes the invite, records the acceptance and
+         *     starts the tenant's active payg subscription, whose period begins at the
+         *     acceptance. There is no pending state: a refusal writes nothing. A replay by
+         *     an attached subject answers 200 with the existing membership.
          */
         post: operations["bootstrapSession"];
         delete?: never;
@@ -1406,7 +1484,7 @@ export interface paths {
         put?: never;
         /**
          * Debit a meter balance
-         * @description Decreases the enrollment's balance for the given meter. Rejects with 409 when the balance is insufficient. Idempotent when `idempotencyKey` is supplied.
+         * @description Decreases the enrollment's balance for the given meter. Never refused for lack of balance: the balance may go negative, and the deficit at cycle close is overage. To stop at zero, gate before the work with `GET /customers/{customerID}/state` or the product's consumption floor. Idempotent when `idempotencyKey` is supplied.
          */
         post: operations["walletDebit"];
         delete?: never;
@@ -1523,6 +1601,26 @@ export interface paths {
         };
         /** Get usage totals for a customer */
         get: operations["getUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/account/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consumption in the tenant's own OPEN Infi billing cycle, against its plan
+         * @description How much of each metered item this tenant has consumed in the OPEN billing cycle of its own account with Infi, and how much its plan includes. Never the merchant's own customers' usage — that is `GET /metering/usage`. `hasPlan` and `hasQuota` answer different questions: `hasPlan: false` means the subscription predates plans altogether (every subscription created before this layer), so no item on it has a franchise at all; `hasPlan: true` with one item's `hasQuota: false` means the plan itself simply does not cover that item, so every unit of it is overage from the first one.
+         */
+        get: operations["getAccountUsage"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2315,6 +2413,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/collection-mode/stripe/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create (or fetch) the tenant's Stripe Connect account
+         * @description Idempotent: reads before it creates, and this route also sits behind the `/account` group's Idempotency-Key replay guard. Requires a contact email on the tenant (409 otherwise) and a platform account for the tenant's country (422 otherwise, currently BR-only).
+         */
+        post: operations["createStripeAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/stripe/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint an Account Session for the embedded onboarding components
+         * @description The browser renders `account_onboarding`, `notification_banner` and `account_management` against `clientSecret`. Refuses rather than creating: the account is `POST .../stripe/account`'s job, and minting a session for one that does not exist would report a Stripe error for our own ordering mistake.
+         *
+         *     Unlike every other mutation under `/account`, this route takes no `Idempotency-Key` and stores nothing: the response is a live client secret, and persisting it for replay would keep it long after it was meant to expire. Minting a second one instead is harmless.
+         */
+        post: operations["createStripeSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * This tenant's standing ask to move real money
+         * @description Sandbox deployment only — a live tenant is already live and has nothing to ask for, so this route is not mounted there at all. `request` is null when the tenant never asked; an answered request keeps showing its status and reason rather than reverting to "never asked".
+         */
+        get: operations["getGoLiveRequest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask to go live
+         * @description Files one request to reach the live deployment and answers with it, so the dashboard can switch to "we'll be in touch" from the same call. Sandbox only. Idempotent: one pending request per tenant, and a second call returns the first one with its original note rather than replacing it. When the caller is a dashboard session the reply-to address is the session's verified e-mail and `contactEmail` in the body is ignored — a merchant should not be able to send our answer somewhere they will never read it.
+         *
+         *     Approval grants nothing by itself: an operator then creates the live tenant and invites the merchant, who signs in with the credential they already have. The live tenant starts empty — nothing is copied from sandbox.
+         */
+        post: operations["createGoLiveRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/account/collection-mode/managed/documents/presign": {
         parameters: {
             query?: never;
@@ -2608,6 +2790,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rail/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify an agent's payment before serving the request
+         * @description Called by the merchant's middleware (`@beinfi/sdk/rail`) with the agent's
+         *     `X-PAYMENT` header, before doing the work. A verdict is always a `200`:
+         *     `isValid: false` carries the protocol's `invalidReason`, which the agent's
+         *     client dispatches on, and `detail`, which says which misconfiguration
+         *     produced it, for the merchant's logs.
+         *
+         *     `drawnFromBalance: true` means the call was paid from the agent's prepaid
+         *     balance: release the response right away and do not call `/rail/settle`.
+         */
+        post: operations["railVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rail/settle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Settle a verified payment after the work is done
+         * @description Called with the payment the middleware is holding a response for,
+         *     addressed by `network` + `payer` + `nonce`. The `status` decides what to
+         *     do with that response:
+         *
+         *     - `settled` — the money moved. Release it.
+         *     - `refused` — nothing moved. Withhold it and tell the agent to pay.
+         *     - `unknown` — sent and never answered. Withhold it, but do not report a
+         *       refusal and do not retry: the payment may have landed.
+         *
+         *     No `Idempotency-Key`: the authorization's nonce is what makes a repeat
+         *     settle the same payment rather than a second one.
+         */
+        post: operations["railSettle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rail/config": {
         parameters: {
             query?: never;
@@ -2857,24 +3096,6 @@ export interface components {
                 neutral?: boolean;
             }[];
         };
-        PlatformPlanTier: {
-            /** @enum {string} */
-            key: "free" | "enterprise";
-            /** @description Monthly base; always "0.00" on the public plan */
-            monthly?: string;
-            /** @description Fraction of approved BRL payment volume; 0.02 means 2%; absent for Enterprise */
-            unitAmount?: string;
-            automatic: boolean;
-        };
-        PlatformEntitlement: {
-            key: string;
-            /** @enum {string} */
-            type: "boolean" | "limit";
-            value: unknown;
-            meter?: string;
-            /** @enum {string} */
-            action: "notify" | "overage" | "upgrade" | "block";
-        };
         PlatformFeatureCatalog: {
             key: string;
             /** @enum {string} */
@@ -2896,51 +3117,124 @@ export interface components {
             /** @enum {string} */
             action: "notify" | "overage" | "upgrade" | "block";
         };
-        PlatformPlanCatalog: {
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            versionId: string;
-            version: number;
+        /** @description BE-403's public catalog: every published plan of one product, in one currency, read from plans/plan_components. */
+        PublishedPlanCatalog: {
             /** @example BRL */
             currency: string;
-            /** @constant */
-            meter: "approved_transactions";
-            tiers: components["schemas"]["PlatformPlanTier"][];
-            features: components["schemas"]["PlatformFeatureCatalog"][];
+            plans: components["schemas"]["PublishedPlan"][];
         };
+        /** @description No plan/component/price/tenant id anywhere on this object — `key` + `version` is the plan's own public, stable identity. */
+        PublishedPlan: {
+            /** @example pro */
+            key: string;
+            version: number;
+            /** Format: date-time */
+            publishedAt: string;
+            /** @description Mensalidade (recurring_fee component); "0" when the plan has none. */
+            monthlyFee: string;
+            meteredComponents: components["schemas"]["PublishedPlanMeteredComponent"][];
+        };
+        PublishedPlanMeteredComponent: {
+            /** @description The meter's NAME */
+            meter: string;
+            /** @description Price per unit above the allowance */
+            rate: string;
+            /** @description Free units included per cycle. A component with no declared allowance (payg, charged from the first unit) reads as "0" here — the public catalog does not distinguish that from an explicit zero allowance. */
+            allowance: string;
+        };
+        /** @description What Infi bills the tenant by right now (BE-413). No subscription, plan or tenant id: plans are named by key and version. */
         AccountPlan: {
+            /** @description The plan the subscription is pinned to. Null only for a subscription that predates plans (an account enrolled before the generic engine, until it is migrated to payg). */
+            plan: components["schemas"]["AccountPlanVersion"] | null;
             /** @enum {string} */
-            plan: "free" | "enterprise";
-            /** Format: uuid */
-            subscriptionId: string;
-            /** @description BRL volume confirmed in the current billing period */
-            approvedVolume: string;
-            /** @description Fraction applied to approved volume; absent for Enterprise */
-            takeRate?: string;
-            accumulatedCost?: string;
-            /** Format: date-time */
-            nextInvoiceAt: string;
-            /** @enum {string} */
-            billingStatus: "active" | "grace" | "suspended";
-            /** Format: date-time */
-            graceExpiresAt?: string | null;
-            /** Format: uuid */
-            pendingPriceVersionId?: string | null;
-            /** Format: date-time */
-            pendingPriceVersionAt?: string | null;
-            entitlements: {
-                [key: string]: components["schemas"]["PlatformEntitlement"];
-            };
+            subscriptionStatus: "incomplete" | "trialing" | "active" | "past_due" | "paused" | "canceled";
+            /**
+             * @description When the period is billed. A plan change never moves a subscription to the other mode (`plan_change_clock_mismatch`).
+             * @enum {string}
+             */
+            billingMode: "arrears" | "advance";
+            period: components["schemas"]["TimeWindow"];
+            /** @description The plan segment in course: the part of the period billed by the current plan. It starts where the last upgrade took effect (the period start when there was none) and ends with the period. */
+            segment: components["schemas"]["TimeWindow"];
+            /** @description The scheduled change, if any; it takes effect at `period.end`. */
+            pendingChange: components["schemas"]["PlanChange"] | null;
         };
-        ActivateAccountPlanRequest: {
+        AccountPlanVersion: {
+            /** @example payg */
+            key: string;
+            /** @example 1 */
+            version: number;
+            /**
+             * @description An archived version keeps billing the subscriptions pinned to it; it is only no longer offered.
+             * @enum {string}
+             */
+            status: "published" | "archived";
+        };
+        TimeWindow: {
+            /** Format: date-time */
+            start: string;
+            /**
+             * Format: date-time
+             * @description Exclusive.
+             */
+            end: string;
+        };
+        PlanChangeRequest: {
+            /** @description A plan key as GET /public/plans lists it. */
+            key: string;
+            version: number;
+        };
+        PlanChange: {
+            /** Format: uuid */
+            id: string;
+            /** @description The plan changed from; null for the move of an account from the model before plans to payg. */
+            from: components["schemas"]["PlanIdentity"] | null;
+            to: components["schemas"]["PlanIdentity"];
+            /**
+             * @description upgrade is a target with a greater recurring fee; everything else, an equal fee included, is downgrade.
+             * @enum {string}
+             */
+            direction: "upgrade" | "downgrade";
             /** @enum {string} */
-            plan: "free";
-            /** @constant */
-            termsVersion: "2026-08-22";
-            /** Format: email */
-            billingEmail: string;
-            taxId?: string;
+            status: "scheduled" | "applied" | "canceled";
+            /**
+             * Format: date-time
+             * @description When the change takes (or took) effect: the top of the hour it was requested in for an upgrade, the end of the period in course otherwise.
+             */
+            effectiveAt: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            appliedAt: string | null;
+            /** Format: date-time */
+            canceledAt: string | null;
+        };
+        PlanChangePage: {
+            changes: components["schemas"]["PlanChange"][];
+            /** @description Present only when another page may exist. */
+            nextCursor?: string;
+        };
+        /** @description The tenant's consumption against its OWN Infi plan, for the currently open billing cycle. Not `UsageReport` (`GET /metering/usage`) — that is the merchant's own customers' consumption. */
+        AccountUsage: {
+            /** Format: date-time */
+            periodStart: string;
+            /** Format: date-time */
+            periodEnd: string;
+            /** @description False only when the subscription predates plans entirely (every subscription created before this layer) — a property of the SUBSCRIPTION, not of any one item. "Not on a plan at all" (`hasPlan: false`) is a different sentence from "this plan doesn't cover this item" (`hasPlan: true`, that item's `hasQuota: false`). */
+            hasPlan: boolean;
+            items: components["schemas"]["AccountUsageItem"][];
+        };
+        AccountUsageItem: {
+            /** @example event_ingestions */
+            meter: string;
+            /** @description Decimal string, like every quantity in this contract. */
+            used: string;
+            /** @description Decimal string. */
+            freeUnits: string;
+            /** @description max(0, used - freeUnits), as a decimal string. Never negative — remaining balance is a different question, and a negative overage would become a credit in the hand of whoever multiplies it by a price without checking the sign. */
+            overage: string;
+            /** @description Whether the plan DECLARES a franchise for this item. False means the component charges from the very first unit — different from a franchise declared as zero, which is `true` with `freeUnits: "0"`. */
+            hasQuota: boolean;
         };
         /** @description Browser-safe BYOP connection metadata. Secret keys and KYB documents are never returned. */
         ProviderConnection: {
@@ -3288,7 +3582,7 @@ export interface components {
          * @description Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.
          * @enum {string}
          */
-        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "usage.threshold_reached";
+        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached";
         /** @description Body of customer.created. */
         CustomerCreatedData: {
             /** Format: uuid */
@@ -3370,6 +3664,19 @@ export interface components {
             amount: string;
             currency: string;
             accessRevoked: boolean;
+        };
+        /** @description Body of plan.changed — a subscription's plan change took effect. Plans are named by their public key and version, never by id. effectiveAt is when the new plan starts rating the subscription: for an upgrade, the top of the hour it was requested in, announced at once; for any other change, the end of the period it was requested in, announced when that period closes. from is null when the subscription had no plan before (a move off the model before plans, which takes effect at a period boundary like any scheduled change). */
+        PlanChangedData: {
+            /** Format: uuid */
+            subscriptionId: string;
+            from: components["schemas"]["PlanIdentity"] | null;
+            to: components["schemas"]["PlanIdentity"];
+            /** Format: date-time */
+            effectiveAt: string;
+        };
+        PlanIdentity: {
+            key: string;
+            version: number;
         };
         WalletMutationRequest: {
             meter: string;
@@ -3630,6 +3937,8 @@ export interface components {
             email?: string | null;
             /** @description CPF/CNPJ. */
             taxId?: string | null;
+            /** @description Contact phone (E.164 digits, no leading `+`). Data for reaching, finding or weighing the buyer (dunning, LGPD, antifraud) — never an identifier: a phone typed into a public checkout proves nothing about who typed it, so nothing resolves an identity from it. */
+            phone?: string | null;
             pspRef?: string | null;
             /** Format: date-time */
             createdAt?: string;
@@ -3671,6 +3980,11 @@ export interface components {
             name?: string | null;
             email?: string | null;
             taxId?: string | null;
+            /**
+             * @description ISO 3166-1 alpha-2 code (`BR`, `US`), normalized to upper case. Used to route the customer's charges; unset means routing by currency and method only.
+             * @example BR
+             */
+            country?: string | null;
             pspRef?: string | null;
             metadata?: {
                 [key: string]: unknown;
@@ -4475,6 +4789,8 @@ export interface components {
             requiredDocuments: components["schemas"]["ManagedDocumentType"][];
             missingDocuments: components["schemas"]["ManagedDocumentType"][];
             canSubmit: boolean;
+            /** @description The Stripe Connect mirror, or null before the tenant starts onboarding (or on a deployment with no Connect wired). Mirrors what `POST .../stripe/account` returns, so the read side never re-derives it and drifts. */
+            stripe?: components["schemas"]["StripeAccountView"] | null;
         };
         ByopAccessRequest: {
             /** Format: uuid */
@@ -4488,6 +4804,39 @@ export interface components {
             note?: string;
             /** Format: date-time */
             createdAt: string;
+        };
+        GoLiveRequest: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * @description `contacted` is not a verdict — it means the conversation started and the merchant is still waiting. `approved` does not itself grant anything: an operator then creates the live tenant and invites them.
+             * @enum {string}
+             */
+            status: "pending" | "contacted" | "approved" | "declined";
+            /** Format: email */
+            contactEmail: string;
+            companyName?: string;
+            website?: string;
+            /** @description Decimal string, e.g. "15000.00". Never a number. */
+            monthlyVolume: string | null;
+            note?: string;
+            /** @description Required when declined, and written for the merchant to read. */
+            declineReason: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            answeredAt: string | null;
+        };
+        /** @description Only what the dashboard branches on. The raw requirement codes are deliberately not here — they are provider vocabulary and are never rendered to a tenant outside the embedded component — and neither is the connected-account id nor pixAllowed, which is hardcoded false until the payout-destination match ships. Each returns additively when something consumes it. */
+        StripeAccountView: {
+            /** @description Live capability state. Flips when a requirement is re-raised. */
+            cardAllowed: boolean;
+            /** @description Something is outstanding on the account. May be true while cardAllowed is still true: a requirement with a future deadline has not disabled the capability yet, and that is when the tenant most needs to be told. */
+            requirementsDue: boolean;
+        };
+        StripeSessionView: {
+            /** @description Short-lived; minted per component mount and never cached. */
+            clientSecret: string;
         };
         Tenant: {
             /** Format: uuid */
@@ -4507,6 +4856,12 @@ export interface components {
              * @example https://acme.ai/termos
              */
             termsUrl?: string | null;
+            /**
+             * Format: email
+             * @description The merchant's contact address: Reply-To on payer-facing email and where Infi sends the merchant's own account notices. null when unset, in which case the owner's login email is used instead.
+             * @example contato@acme.ai
+             */
+            supportEmail?: string | null;
             /**
              * Format: uri
              * @description The merchant logo the hosted checkout and the embed render next to the merchant name. Absolute, served by `GET /pay/{slug}/logo/{file}`, and immutable per upload (a new upload is a new URL). null when unset; the checkout then shows the merchant's initials.
@@ -4582,6 +4937,8 @@ export interface components {
             slug?: string;
             /** @description Partner or channel attribution (e.g. lovable, cli, web) */
             signupSource?: string;
+            /** @description The Infi Terms version the operator accepted. Required on live for the first login (the invite attach) and must equal `termsVersion` from `POST /auth/session/sync`; sending it is the acceptance. Ignored on sandbox and for a subject already attached. */
+            acceptedTermsVersion?: string;
         };
         SessionBootstrapResponse: {
             /** Format: email */
@@ -4627,6 +4984,34 @@ export interface components {
                 /** @description Providers in the `connected` state, the same set charges route on. */
                 providers: string[];
             };
+            /**
+             * @description Which of the two deployments answered, so the dashboard need not be told at build time.
+             * @enum {string}
+             */
+            mode?: "sandbox" | "live";
+            /**
+             * @description What THIS deployment can say about the caller, and only that: sandbox answers ["sandbox"], live answers ["production"]. Neither computes the union — sandbox cannot read the live database and there is deliberately no cross-deployment call — so a client assembles it by calling the other host, where 403 is the answer "not granted".
+             *
+             *     Never read from a token claim. Both deployments share one CIAM instance, so a claim travels to both hosts and would BE production access; the grant is a membership row in the database the request landed on.
+             */
+            environments?: ("sandbox" | "production")[];
+            /** @description The tenant's standing ask to move real money, for the dashboard pill. Absent when they never asked AND whenever the lookup fails — same posture as liveReadiness: it must not be able to fail a login. */
+            goLive?: {
+                /** @enum {string} */
+                status: "pending" | "contacted" | "approved" | "declined";
+                /** Format: date-time */
+                requestedAt: string;
+                /** Format: date-time */
+                answeredAt: string | null;
+            };
+            /** @description Live only, only while `needsBootstrap` is true, and only when `hasLiveInvite` is true: the Infi Terms version the first live login must accept. Show that version and send it back as `acceptedTermsVersion` on `POST /auth/session/bootstrap`. */
+            termsVersion?: string;
+            /**
+             * @description Live only, and only while `needsBootstrap` is true: whether this verified address is expected on live at all — an open invite, or one that has since expired or been spent. False for an address golive has never heard of.
+             *
+             *     This is the signal a client reads BEFORE `POST /auth/session/bootstrap` is ever called, to decide whether to switch into live mode in the first place: `memberships` alone cannot tell an invited-but-unattached merchant apart from a stranger, since both have none.
+             */
+            hasLiveInvite?: boolean;
         };
         WebhookEndpoint: {
             /** Format: uuid */
@@ -4689,6 +5074,87 @@ export interface components {
          * @example eip155:8453
          */
         RailNetwork: string;
+        RailVerifyRequest: {
+            /** @description The agent's `X-PAYMENT` header, verbatim (base64). */
+            payment: string;
+            /** @description Product key whose meter prices this route. */
+            product: string;
+            /** @description Meter key the route consumes. */
+            meter: string;
+            /** @description Units the route consumed, as a decimal string. Absent means one. */
+            quantity?: string;
+            /** @description The protocol's payment payload, passed through as-is. */
+            paymentPayload?: {
+                [key: string]: unknown;
+            };
+            /** @description The protocol's payment requirements the middleware quoted. `resource` and `maxAmountRequired` are read from it. */
+            paymentRequirements?: {
+                [key: string]: unknown;
+            };
+            /** @description The resource URL, for callers that do not send `paymentRequirements`. */
+            resource?: string;
+            /**
+             * @description `grace` when the middleware already served this call during an outage and is reporting it afterwards. Any other value is ignored.
+             * @enum {string}
+             */
+            verifiedBy?: "grace";
+        };
+        RailVerifyResponse: {
+            isValid: boolean;
+            /**
+             * @description The protocol's reason code when `isValid` is false.
+             * @example insufficient_funds
+             */
+            invalidReason?: string;
+            /** @description Which cause produced `invalidReason`, for your logs. */
+            detail?: string;
+            /** @description The paying wallet address. */
+            payer?: string;
+            agent?: {
+                /** Format: uuid */
+                id?: string;
+                /**
+                 * Format: uuid
+                 * @description The agent's enrollment; read its usage with `GET /metering/usage`.
+                 */
+                enrollmentId?: string;
+                address?: string;
+                network?: string;
+            };
+            /** @description The outage allowance the middleware may serve under. */
+            grace?: {
+                window?: string;
+                maxPerAgent?: string;
+                maxTotal?: string;
+            };
+            /** @description Paid from the agent's prepaid balance; do not call `/rail/settle`. */
+            drawnFromBalance?: boolean;
+        };
+        RailSettleRequest: {
+            /** @example eip155:8453 */
+            network: string;
+            /** @description The paying wallet address, as returned by `/rail/verify`. */
+            payer: string;
+            /** @description The authorization's nonce. */
+            nonce: string;
+            /** @description What to settle, in the asset's atomic units, for partial settlement. `"0"` charges nothing; omitting it settles the authorized amount. */
+            settleAmount?: string;
+            /** @description Units consumed. Accepted; not used to price yet. */
+            quantity?: string;
+            meter?: string;
+            /** @description Settle a payment that buys prepaid balance: what settles is credited to the agent, and later calls draw from it instead of settling again. */
+            grantBalance?: boolean;
+        };
+        RailSettleResponse: {
+            /** @enum {string} */
+            status: "settled" | "refused" | "unknown";
+            /** @description Why it was refused or is unknown. */
+            reason?: string;
+            /** @description The on-chain transaction when `settled`. */
+            transaction?: string;
+            /** @description What actually moved, in atomic units. */
+            settled?: string;
+        };
         RailConfig: {
             network: components["schemas"]["RailNetwork"];
             /** @description ERC-20 contract address on EVM, mint on SVM. Never a ticker. */
@@ -5071,25 +5537,28 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    getPublicPlatformPlans: {
+    getPublicPlans: {
         parameters: {
-            query?: never;
+            query?: {
+                currency?: "BRL" | "USD";
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Current immutable published platform catalog version */
+            /** @description Every published plan of the platform's product in this currency */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlatformPlanCatalog"];
+                    "application/json": components["schemas"]["PublishedPlanCatalog"];
                 };
             };
-            /** @description No complete published platform catalog is configured */
+            400: components["responses"]["BadRequest"];
+            /** @description No platform product is configured for this currency */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -5107,7 +5576,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current tenant plan */
+            /** @description What the tenant is billed by right now */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5116,45 +5585,168 @@ export interface operations {
                     "application/json": components["schemas"]["AccountPlan"];
                 };
             };
-            /** @description Terms and a live plan have not been activated */
-            428: {
+            401: components["responses"]["Unauthorized"];
+            /** @description `platform_account_not_found` — the tenant has no Infi subscription (a sandbox tenant, or one that never entered live). `no_open_period` — the subscription has no open billing period right now (canceled, or a boundary still running). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
             };
         };
     };
-    activateAccountPlan: {
+    listAccountPlanChanges: {
+        parameters: {
+            query?: {
+                status?: "applied" | "scheduled" | "canceled";
+                limit?: number;
+                /** @description Opaque; only a `nextCursor` this endpoint returned. */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of changes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanChangePage"];
+                };
+            };
+            /** @description `bad_request` — the cursor is not one this endpoint issued, or the status is not one of the three. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description `platform_account_not_found`, as on GET /account/plan. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    changeAccountPlan: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ActivateAccountPlanRequest"];
+                "application/json": components["schemas"]["PlanChangeRequest"];
             };
         };
         responses: {
-            /** @description Idempotently activated plan; no initial charge is created */
-            201: {
+            /** @description The change: `effectiveAt` is when it takes effect; `status` is `applied` for an upgrade and `scheduled` otherwise. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccountPlan"];
+                    "application/json": components["schemas"]["PlanChange"];
                 };
             };
-            /** @description Sandbox does not require or create a subscription */
-            409: {
+            /** @description The target is the current plan; any pending change was withdrawn */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            422: components["responses"]["ValidationFailed"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description `platform_account_not_found`, as on GET /account/plan. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description `plan_change_boundary_pending` — the period in course has ended and its boundary has not been billed yet; an upgrade waits for it, so retry in a few minutes. `subscription_not_on_plan` — the subscription predates plans and has none to change from. `invalid_transition` — the subscription is canceled or has no open period. `idempotency_key_reused` (nested middleware envelope) — the key was used with another body. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"] | components["schemas"]["MiddlewareError"];
+                };
+            };
+            /** @description `validation_failed` — no published plan of the tenant's product has that key and version (field `plan`). The change would move the subscription somewhere it cannot go: `plan_change_currency_mismatch`, `plan_change_product_mismatch`, `plan_change_cadence_mismatch`, or `plan_change_clock_mismatch` — the target bills its recurring fee on the other clock (in advance vs in arrears; a plan with included credit always bills in advance), so e.g. payg cannot move to a plan with included credit. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    cancelAccountPlanChange: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                changeID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The canceled change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanChange"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description `not_found` — no such change on this tenant's subscription; or `platform_account_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description `plan_change_already_applied` — it already took effect. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"] | components["schemas"]["MiddlewareError"];
+                };
+            };
         };
     };
     listProviderConnections: {
@@ -5211,6 +5803,71 @@ export interface operations {
                     "application/json": components["schemas"]["ProviderConnection"];
                 };
             };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    verifyProviderConnection: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refreshed connection state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderConnection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    requestProviderHelp: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** Format: email */
+                    email: string;
+                    phone?: string | null;
+                    notes?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Request recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        received: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -5629,6 +6286,8 @@ export interface operations {
                     name?: string;
                     /** @description Payer CPF (11 digits) or CNPJ (14). Optional here but needed before a pix charge can succeed on Asaas — punctuation is stripped. */
                     taxId?: string;
+                    /** @description Contact phone, optional. Data for reaching, finding or weighing the buyer later (dunning, LGPD, antifraud) — never an identifier, and never required to check out. */
+                    phone?: string | null;
                 };
             };
         };
@@ -5680,6 +6339,8 @@ export interface operations {
                     name?: string;
                     /** @description CPF (11 digits) or CNPJ (14) — required. Punctuation is stripped; anything that does not normalize to 11 or 14 digits is a 400. */
                     taxId: string;
+                    /** @description Contact phone, optional. Data for reaching, finding or weighing the buyer later (dunning, LGPD, antifraud) — never an identifier, and never required to check out. */
+                    phone?: string | null;
                 };
             };
         };
@@ -6044,7 +6705,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessionBootstrapResponse"];
                 };
             };
-            /** @description Tenant provisioned */
+            /** @description Tenant provisioned (sandbox), or invite accepted (live) */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6054,8 +6715,47 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+            /**
+             * @description Live only. `live_signup_closed` — no open invite for a verified address;
+             *     `live_invite_expired` — the address was invited and the invite expired;
+             *     `live_invite_used` — the address's invite was already consumed by another
+             *     account.
+             */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationFailed"];
+            /**
+             * @description `validation_failed` (sandbox: missing accountName), or on live
+             *     `terms_acceptance_required` — `acceptedTermsVersion` is missing or is not
+             *     the current version. Nothing was written; show the current Terms and retry.
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /**
+             * @description Live only. `live_billing_unavailable` — live cannot start the merchant's
+             *     plan (no billable entry plan configured). An Infi fault; nothing was written
+             *     and the invite stays open.
+             */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     syncSession: {
@@ -7402,7 +8102,6 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -7530,6 +8229,15 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            /** @description `consumption_blocked`: the customer's balance is exhausted and the product's consumption floor blocks further usage. The event is not recorded; the customer has to top up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -7610,6 +8318,36 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    getAccountUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The open cycle, item by item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountUsage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No platform billing account at all (`platform_account_not_found` — this tenant never activated Infi's own plan), or the account exists and is active but has no OPEN billing period right now (`platform_no_open_period` — the cycle rollover job has not run yet). The two are distinct codes on purpose: the second must never read as "never activated". */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
         };
     };
     listTenantSubscriptions: {
@@ -8190,7 +8928,15 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
+            /** @description `invalid_transition`: allowed only from `draft`, `open` or `uncollectible`. A paid invoice is undone by refunding its payment, not by voiding it. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     markInvoiceUncollectible: {
@@ -8218,7 +8964,15 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
+            /** @description `invalid_transition`: allowed only from `open`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     getInvoicePdf: {
@@ -9094,6 +9848,172 @@ export interface operations {
             };
         };
     };
+    createStripeAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tenant's account mirror, new or the one that already exists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeAccountView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The tenant has no contact email to onboard with. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No Stripe platform account serves the tenant's country yet. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Stripe Connect is not configured on this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createStripeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A freshly minted session secret */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeSessionView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Onboarding was never started — call `POST .../stripe/account` first. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description The platform account the tenant's connected account belongs to no longer exists. Only reachable if that row is deleted out from under a live mirror, but the mint genuinely cannot proceed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Stripe Connect is not configured on this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getGoLiveRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request, or null */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        request: components["schemas"]["GoLiveRequest"] | null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createGoLiveRequest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: email
+                     * @description Where to reply. Required for API-key callers; ignored for a dashboard session, which carries a verified address.
+                     */
+                    contactEmail?: string;
+                    companyName?: string;
+                    website?: string;
+                    /** @description Decimal string, e.g. "15000.00". Never a number. */
+                    monthlyVolume?: string;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The request, new or the one already open */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        request: components["schemas"]["GoLiveRequest"];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No usable reply-to address. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
     presignManagedDocument: {
         parameters: {
             query?: never;
@@ -9321,6 +10241,12 @@ export interface operations {
                      * @example https://acme.ai/termos
                      */
                     termsUrl?: string | null;
+                    /**
+                     * Format: email
+                     * @description Where this merchant is reached: Reply-To on every payer-facing email, and the destination for Infi's own notices to the merchant (payment received, payout held). An empty string clears it; null leaves it unchanged. When unset, Infi falls back to the owner's login email, which is only an address if the identity provider supplied one.
+                     * @example contato@acme.ai
+                     */
+                    supportEmail?: string | null;
                     /** @description The `objectKey` a `POST /account/tenant/logo/presign` returned, after the file was PUT there. Attaches that upload as the merchant logo; the bytes are checked to be the declared image before the row changes, and the previous logo is deleted. An empty string clears the logo; null leaves it unchanged. */
                     logoObjectKey?: string | null;
                 };
@@ -9824,6 +10750,60 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    railVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RailVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description The verdict */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RailVerifyResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    railSettle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RailSettleRequest"];
+            };
+        };
+        responses: {
+            /** @description What happened to the payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RailSettleResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getRailConfig: {

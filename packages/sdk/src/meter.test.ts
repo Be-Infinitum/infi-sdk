@@ -94,7 +94,7 @@ describe("infi.meter", () => {
     const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
     // Antes era /credit — o shim legado do pool CRD, que respondia 0 para uma
     // carteira cheia de `tokens`.
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/wallet?meter=tokens`);
+    expect(String(gateUrl)).toBe(`${BASE}/customers/c1/wallet?meter=tokens`);
 
     const [trackUrl, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(String(trackUrl)).toBe(`${BASE}/metering/events`);
@@ -117,7 +117,7 @@ describe("infi.meter", () => {
     }));
 
     const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr1/wallet?meter=tokens`);
+    expect(String(gateUrl)).toBe(`${BASE}/customers/enr1/wallet?meter=tokens`);
     const [, trackInit] = fetchMock.mock.calls[1] as [string, RequestInit];
     expect(JSON.parse(trackInit.body as string)).toEqual({
       eventId: expect.any(String),
@@ -204,7 +204,7 @@ describe("infi.meter", () => {
     const [gateUrl] = fetchMock.mock.calls[0] as [string, RequestInit];
     // Antes era /credit — o shim legado do pool CRD, que respondia 0 para uma
     // carteira cheia de `tokens`.
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/c1/wallet?meter=tokens`);
+    expect(String(gateUrl)).toBe(`${BASE}/customers/c1/wallet?meter=tokens`);
   });
 
   it('mode "streaming" still throws when out of credit', async () => {
@@ -258,7 +258,7 @@ describe("infi.meter — o gate lê a carteira do meter, não o pool legado", ()
     }));
 
     const [gateUrl] = fetchMock.mock.calls[0] as [string];
-    expect(String(gateUrl)).toBe(`${BASE}/metering/customers/enr_1/wallet?meter=tokens`);
+    expect(String(gateUrl)).toBe(`${BASE}/customers/enr_1/wallet?meter=tokens`);
   });
 
   it("não deixa passar quando a carteira daquele meter está zerada", async () => {
@@ -272,13 +272,22 @@ describe("infi.meter — o gate lê a carteira do meter, não o pool legado", ()
     expect(ran).not.toHaveBeenCalled();
   });
 
-  it("checkCredit sem meter continua no endpoint legado", async () => {
-    // Chamador antigo que gateia fora de meter() não pode quebrar.
-    fetchMock.mockResolvedValueOnce(jsonResponse({ balance: "5", total: "5" }));
+  it("checkCredit sem meter lê a carteira inteira e responde quando só há um meter", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ balances: [{ meter: "tokens", balance: "5", total: "5" }] }));
     const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
 
-    await infi.checkCredit("enr_1");
+    const summary = await infi.checkCredit("enr_1");
     const [url] = fetchMock.mock.calls[0] as [string];
-    expect(String(url)).toBe(`${BASE}/metering/customers/enr_1/credit`);
+    expect(String(url)).toBe(`${BASE}/customers/enr_1/wallet`);
+    expect(summary.balance).toBe("5");
+  });
+
+  it("checkCredit sem meter recusa adivinhar quando há vários", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({ balances: [{ meter: "tokens", balance: "5" }, { meter: "exports", balance: "1" }] }),
+    );
+    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
+
+    await expect(infi.checkCredit("enr_1")).rejects.toMatchObject({ code: "meter_required" });
   });
 });

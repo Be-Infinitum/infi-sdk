@@ -16,10 +16,12 @@ export type CreateMeterRequest = components["schemas"]["CreateMeterRequest"];
 export type UpdateMeterRequest = components["schemas"]["UpdateMeterRequest"];
 export type RateCard = components["schemas"]["RateCard"];
 /** @deprecated Legacy credit endpoints. New integrations use per-meter WalletBalance. */
+/** One meter's wallet balance (`GET /customers/{id}/wallet?meter=`). */
 export type CreditSummary = {
+  meter?: string;
   balance?: string;
+  /** Lifetime units credited to this meter. */
   total?: string;
-  entries?: { id?: string; kind?: "grant" | "consumption" | "expiry" | "refund"; amount?: string; reference?: string | null; createdAt?: string }[];
 };
 export type UsageReport = components["schemas"]["UsageReport"];
 
@@ -70,8 +72,11 @@ export interface VersionInput {
   creditsPerCycle?: string | null;
 }
 export interface GrantCreditInput {
-  /** Decimal string amount to grant. */
+  /** The meter whose wallet moves (`tokens`, `exports`, …). */
+  meter: string;
+  /** Decimal string amount. */
   amount: string;
+  /** Free-form note stored on the entry. */
   reference?: string | null;
 }
 export type PaymentMethod = "pix" | "boleto" | "card";

@@ -19,16 +19,14 @@ export interface MeterBalance {
   meter: string;
   balance: string;
   total?: string;
-  /** Raw credit summary when the backend still uses the single-wallet shim. */
+  /** The balance as the API returned it. */
   summary: CreditSummary;
 }
 
 /**
  * Bound meter wallet for one enrollment.
  *
- * Today the API is a single credit ledger — `debit`/`credit`/`balance` shim to
- * `credits.*` and tag the meter in `reference`. When the backend ships
- * per-meter routes, this client switches without changing app code.
+ * Each call moves or reads that meter's wallet through `customers.credits.*`.
  */
 export interface BoundWallet {
   /** Enrollment id — billing subject for credits / meter / state. */
@@ -52,7 +50,7 @@ export interface WalletForCustomerOptions {
   /** Optional email carried onto the customer record. */
   email?: string;
   /**
-   * Grant this many units on first enroll (shim: credits.grant).
+   * Grant this many units on first enroll (`credits.grant`).
    * Prefer plan `grants[]` once the backend applies them.
    */
   starterCredits?: string;
@@ -116,7 +114,7 @@ export function bindWallet(
     const { meter, amount, opts } = parseAmountArgs(a, b, c, defaultMeter);
     const summary = await infi.customers.credits.consume(
       enrollmentId,
-      { amount, reference: opts.reason ?? `meter:${meter}` },
+      { meter, amount, reference: opts.reason },
       opts.idempotencyKey,
     );
     return toMeterBalance(meter, summary);
@@ -130,14 +128,14 @@ export function bindWallet(
     const { meter, amount, opts } = parseAmountArgs(a, b, c, defaultMeter);
     const summary = await infi.customers.credits.grant(
       enrollmentId,
-      { amount, reference: opts.reason ?? `meter:${meter}` },
+      { meter, amount, reference: opts.reason },
       opts.idempotencyKey,
     );
     return toMeterBalance(meter, summary);
   }
 
   async function balance(meter: string = defaultMeter): Promise<MeterBalance> {
-    const summary = await infi.customers.credits.balance(enrollmentId);
+    const summary = await infi.customers.credits.meterBalance(enrollmentId, meter);
     return toMeterBalance(meter, summary);
   }
 
@@ -193,7 +191,7 @@ export async function walletForCustomer(
         meter: defaultMeter,
         amount: options.starterCredits,
         reason: "starter",
-        idempotencyKey: `starter:${enrollmentId}:${defaultMeter}`,
+        idempotencyKey: `starter-${enrollmentId}-${defaultMeter}`,
       })
       .catch(() => {});
   }

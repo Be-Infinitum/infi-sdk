@@ -312,7 +312,7 @@ export class Infi {
    */
   async checkCredit(customerId: string, meter?: string): Promise<CreditSummary> {
     this.#requireSecretKey("checkCredit");
-    // Sem meter cai no endpoint legado, para não quebrar quem já chamava assim.
+    // Sem meter só responde se a carteira tiver um único meter; senão pede o meter.
     return meter
       ? this.customers.credits.meterBalance(customerId, meter)
       : this.customers.credits.balance(customerId);
