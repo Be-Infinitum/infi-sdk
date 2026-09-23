@@ -2709,7 +2709,10 @@ export interface paths {
         delete: operations["deleteWebhook"];
         options?: never;
         head?: never;
-        /** Activate or deactivate a webhook endpoint */
+        /**
+         * Update a webhook endpoint's events or active state
+         * @description Send `isActive`, `events`, or both; what is not sent is left as it is. `events` replaces the whole list. The URL and the signing secret do not change here (the secret is `rotate-secret`).
+         */
         patch: operations["patchWebhook"];
         trace?: never;
     };
@@ -10549,7 +10552,13 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    active: boolean;
+                    isActive?: boolean;
+                    events?: components["schemas"]["WebhookEventType"][];
+                    /**
+                     * @deprecated
+                     * @description Older spelling of `isActive`, still accepted.
+                     */
+                    active?: boolean;
                 };
             };
         };
@@ -10566,6 +10575,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     rotateWebhookSecret: {
