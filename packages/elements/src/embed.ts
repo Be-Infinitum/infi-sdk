@@ -5,10 +5,11 @@
  * source, exact origin, namespace, embed id) — and the site hands it back on
  * every load. No third-party cookie.
  *
- * The frame is served by the Infi frontend at `{app}/embed/{slug}/portal`.
+ * The frame is served by the Infi frontend at `{app}/embed/{slug}/portal`
+ * (`{app}/embed/sandbox/{slug}/portal` on sandbox).
  */
 
-import { resolveAppBase } from "./checkout/hosts.js";
+import { embedPathPrefix, resolveAppBase } from "./checkout/hosts.js";
 
 export const PORTAL_PROTOCOL = "portal/v1";
 
@@ -64,7 +65,11 @@ function randomId(): string {
 }
 
 export function portalEmbedUrl(opts: PortalEmbedOptions & { embedId: string; parentOrigin: string }): string {
-  const u = new URL(`${resolveAppBase(opts.mode, opts.appUrl)}/embed/${encodeURIComponent(opts.slug)}/portal`);
+  // Same routing as the checkout: the host picks the deployment, the prefix
+  // the environment (/embed/sandbox on sandbox).
+  const u = new URL(
+    `${resolveAppBase(opts.mode, opts.appUrl)}${embedPathPrefix(opts.mode)}/${encodeURIComponent(opts.slug)}/portal`,
+  );
   u.searchParams.set("embedId", opts.embedId);
   u.searchParams.set("parentOrigin", opts.parentOrigin);
   if (opts.locale) u.searchParams.set("locale", opts.locale);

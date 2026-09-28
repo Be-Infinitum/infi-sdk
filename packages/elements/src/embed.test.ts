@@ -12,7 +12,7 @@ afterEach(() => {
 describe("portal embed", () => {
   it("never puts the token in the URL", () => {
     const url = portalEmbedUrl({ slug: "loja", mode: "sandbox", token: "bt_secret", embedId: "e1", parentOrigin: "https://loja.test" });
-    expect(url).toBe("https://app-sandbox.beinfi.com/embed/loja/portal?embedId=e1&parentOrigin=https%3A%2F%2Floja.test");
+    expect(url).toBe("https://app-sandbox.beinfi.com/embed/sandbox/loja/portal?embedId=e1&parentOrigin=https%3A%2F%2Floja.test");
     expect(url).not.toContain("bt_");
   });
 
