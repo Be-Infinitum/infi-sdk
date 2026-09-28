@@ -2,6 +2,15 @@ import type { Transport } from "../http.js";
 
 export type BuyerTokenScope = "portal:read" | "portal:write";
 
+export interface VerifiedBuyerToken {
+  valid: boolean;
+  origin?: "code" | "merchant";
+  scope?: BuyerTokenScope;
+  expiresAt?: string;
+  /** The person, as your server knows them: use `externalId` for your own records. */
+  customer?: { id: string; externalId: string; email?: string };
+}
+
 export interface BuyerToken {
   /** Opaque `bt_…`, shown once. Hand it to the PortalElement; never store it in the bundle or the URL. */
   token: string;
@@ -33,5 +42,24 @@ export class BuyerTokensResource {
   /** Sign the user out of the portal now (they logged out of your site). */
   revoke(input: { externalId: string }, idempotencyKey?: string): Promise<{ revoked: number }> {
     return this.t.request("POST", "/v1/buyer-tokens/revoke", { body: input, requireSecret: true, idempotencyKey });
+  }
+
+  /**
+   * Who owns a token your app received from the element (ADR 0007: the
+   * customer login for any of your apps). Checked on every call, so a
+   * sign-out stops it at once. Expired, revoked, unknown and another store's
+   * token all answer `valid: false`.
+   */
+  verify(token: string, idempotencyKey?: string): Promise<VerifiedBuyerToken> {
+    return this.t.request("POST", "/v1/buyer-tokens/verify", { body: { token }, requireSecret: true, idempotencyKey });
+  }
+
+  /** Whether a first login by a new e-mail creates the customer (on by default). */
+  loginSettings(): Promise<{ signupByLogin: boolean }> {
+    return this.t.request("GET", "/v1/customer-login/settings", { requireSecret: true });
+  }
+
+  setLoginSettings(input: { signupByLogin: boolean }, idempotencyKey?: string): Promise<{ signupByLogin: boolean }> {
+    return this.t.request("PUT", "/v1/customer-login/settings", { body: input, requireSecret: true, idempotencyKey });
   }
 }

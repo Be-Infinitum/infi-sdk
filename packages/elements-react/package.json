@@ -32,7 +32,9 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@beinfi/elements": "^0.1.0"
+    "@beinfi/elements": "^0.1.0",
+    "vimeo-video-element": "^1.7.3",
+    "youtube-video-element": "^1.9.0"
   },
   "peerDependencies": {
     "react": ">=18",

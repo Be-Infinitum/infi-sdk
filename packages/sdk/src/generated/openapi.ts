@@ -905,6 +905,614 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's access keys */
+        get: operations["listAccessKeys"];
+        put?: never;
+        /** Create an access key (what a product can grant) */
+        post: operations["createAccessKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-keys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename an access key */
+        patch: operations["renameAccessKey"];
+        trace?: never;
+    };
+    "/access-keys/{key}/holders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everyone ever granted a key, and whether it holds now */
+        get: operations["listAccessKeyHolders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{productID}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What buying a product grants */
+        get: operations["getProductAccess"];
+        /**
+         * Replace what buying a product grants
+         * @description Grants already made keep the window they were sold with. `subscription` is refused on a product that is not a subscription (422 `access_window_needs_subscription`).
+         */
+        put: operations["setProductAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant a key by hand (bonus, support case); audited */
+        post: operations["grantAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-grants/{grantID}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a grant by hand; audited */
+        post: operations["revokeAccessGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/customers/{externalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every key one customer holds or held */
+        get: operations["getCustomerAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/customers/{externalID}/keys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The gate — does this customer hold this key now?
+         * @description An unknown key is 404, never "no access".
+         */
+        get: operations["checkCustomerAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every access key the buyer holds or held at this store */
+        get: operations["portalAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/access/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One key as the buyer holds it (hasAccess false when never held) */
+        get: operations["portalAccessKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's courses (drafts included) */
+        get: operations["listCourses"];
+        put?: never;
+        /** Create a course, opened by an access key */
+        post: operations["createCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        /** The whole course tree, with content and drafts */
+        get: operations["getCourse"];
+        put?: never;
+        post?: never;
+        /** Delete a course, its lessons and everyone's progress on it */
+        delete: operations["deleteCourse"];
+        options?: never;
+        head?: never;
+        /** Edit a course (title, description, cover, key, published) */
+        patch: operations["updateCourse"];
+        trace?: never;
+    };
+    "/courses/{courseID}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a module at the end */
+        post: operations["createCourseModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder the modules (every module, once) */
+        put: operations["reorderCourseModules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/{moduleID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a module and its lessons */
+        delete: operations["deleteCourseModule"];
+        options?: never;
+        head?: never;
+        /** Rename a module */
+        patch: operations["renameCourseModule"];
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/{moduleID}/lessons/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder one module's lessons (every lesson, once) */
+        put: operations["reorderCourseLessons"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a lesson (video link from your provider, optional markdown, drip) */
+        post: operations["createCourseLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/lessons/{lessonID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        /** One lesson, with content */
+        get: operations["getCourseLesson"];
+        put?: never;
+        post?: never;
+        /** Delete a lesson and everyone's progress on it */
+        delete: operations["deleteCourseLesson"];
+        options?: never;
+        head?: never;
+        /** Edit a lesson; an empty videoUrl or bodyMarkdown removes it */
+        patch: operations["updateCourseLesson"];
+        trace?: never;
+    };
+    "/courses/{courseID}/students/{externalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The course as one of your customers sees it (access, drip, progress) */
+        get: operations["getCourseStudent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's published courses with the student's access and progress */
+        get: operations["portalCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A course's outline for the student — states, never content */
+        get: operations["portalCourse"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One lesson for the student
+         * @description `available` carries `video` and `bodyMarkdown`; `locked` (drip, with `unlocksAt`) and `no_access` carry the state only.
+         */
+        get: operations["portalLesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an available lesson done */
+        post: operations["portalCompleteLesson"];
+        /** Unmark a lesson */
+        delete: operations["portalUncompleteLesson"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/buyer-tokens/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Who owns this token? (server side, sk_ only)
+         * @description The customer login for any of your apps (ADR 0007). Your app received a token from the element; your server asks Infi who it belongs to. Opaque and checked every time, so a sign-out is refused on the next call. Expired, revoked, unknown and another store's token all answer `valid: false`.
+         */
+        post: operations["verifyBuyerToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/customer-login/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's customer-login settings */
+        get: operations["getCustomerLoginSettings"];
+        /**
+         * Turn sign-up by login on or off; audited
+         * @description On (the default), a first login by an unknown e-mail creates the customer. Off, only existing customers can log in and an unknown address is mailed nothing. Read when the code is spent.
+         */
+        put: operations["setCustomerLoginSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a Telegram group to an access key
+         * @description Make Infi's bot an admin of the group (invite users, ban members) first; otherwise 422 `telegram_bot_not_admin`. Holders of the key get a one-time invite (join request, approved only for them while they hold the key); losing the key removes them. Everyone already holding it is queued at once.
+         */
+        post: operations["connectTelegramCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's communities */
+        get: operations["listCommunityIntegrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations/{integrationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop managing a community (nobody is removed for it) */
+        delete: operations["disableCommunityIntegration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations/{integrationID}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who was invited, added and removed, and why */
+        get: operations["listCommunityMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The student's communities, with their own invite while unused */
+        get: operations["portalCommunity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/discord": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a Discord server's paid role to an access key
+         * @description Infi's Discord bot must be in the server and the role must exist there (422 `discord_guild_not_reachable`). Holders connect their Discord account from the member area and get the role once they are in the server; losing the key takes it.
+         */
+        post: operations["connectDiscordCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community/discord/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start connecting the student's Discord account (OAuth, identify) */
+        post: operations["portalDiscordAuthorize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community/discord/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish the Discord connection with the code and state Discord returned
+         * @description The state is one-time and bound to this person at this store. Only the Discord user id is kept.
+         */
+        post: operations["portalDiscordConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/refund-requests": {
         parameters: {
             query?: never;
@@ -5771,6 +6379,197 @@ export interface components {
             graceMaxPerAgent: string;
             graceMaxTotal: string;
         };
+        AccessKey: {
+            /** Format: uuid */
+            id?: string;
+            key?: string;
+            name?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AccessRule: {
+            key: string;
+            readonly name?: string;
+            /** @enum {string} */
+            window: "lifetime" | "subscription" | "days";
+            /** @description Required for `days`. */
+            days?: number;
+        };
+        AccessGrant: {
+            /** Format: uuid */
+            id?: string;
+            key?: string;
+            keyName?: string;
+            /** Format: uuid */
+            customerId?: string;
+            /** @enum {string} */
+            source?: "purchase" | "manual";
+            /** @enum {string} */
+            window?: "lifetime" | "subscription" | "days";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: uuid */
+            subscriptionId?: string;
+            subscriptionStatus?: string;
+            /** Format: uuid */
+            productId?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            /** Format: uuid */
+            paymentId?: string;
+            reason?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** @enum {string} */
+            revokedReason?: "refunded" | "charged_back" | "manual";
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            state?: "active" | "past_due" | "ended";
+        };
+        /** @description One key as a person holds it, every grant folded. `past_due` still has access, with a warning. `since` is when the earliest live grant started (a course's drip counts from it). */
+        KeyAccess: {
+            key?: string;
+            name?: string;
+            hasAccess?: boolean;
+            /** @enum {string} */
+            state?: "active" | "past_due" | "ended";
+            /** Format: date-time */
+            since?: string;
+            /**
+             * Format: date-time
+             * @description Absent for lifetime or while a subscription keeps it.
+             */
+            until?: string;
+            /** @description expired, refunded, charged_back, manual, or subscription_<status>. */
+            endedReason?: string;
+            grants?: components["schemas"]["AccessGrant"][];
+        };
+        CourseWrite: {
+            title?: string;
+            /** @description The key that opens the course. Required to create. */
+            accessKey?: string;
+            description?: string;
+            coverUrl?: string;
+            published?: boolean;
+        };
+        Course: {
+            /** Format: uuid */
+            id?: string;
+            accessKey?: string;
+            title?: string;
+            description?: string;
+            coverUrl?: string;
+            published?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            modules?: components["schemas"]["CourseModule"][];
+        };
+        CourseModule: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            position?: number;
+            lessons?: components["schemas"]["Lesson"][];
+        };
+        LessonVideo: {
+            url?: string;
+            /** @enum {string} */
+            provider?: "youtube" | "vimeo" | "panda" | "bunny" | "other";
+        };
+        LessonWrite: {
+            /**
+             * Format: uuid
+             * @description Required to create; moves the lesson on edit.
+             */
+            moduleId?: string;
+            title?: string;
+            /** @description An https link from your provider; the provider is detected. */
+            videoUrl?: string;
+            bodyMarkdown?: string;
+            /** @description Drip */
+            unlockAfterDays?: number;
+            published?: boolean;
+        };
+        Lesson: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            moduleId?: string;
+            title?: string;
+            position?: number;
+            video?: components["schemas"]["LessonVideo"];
+            bodyMarkdown?: string;
+            unlockAfterDays?: number;
+            published?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        StudentLesson: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            moduleId?: string;
+            title?: string;
+            position?: number;
+            /** @enum {string} */
+            state?: "available" | "locked" | "no_access";
+            /** Format: date-time */
+            unlocksAt?: string;
+            hasVideo?: boolean;
+            hasText?: boolean;
+            completed?: boolean;
+            /** Format: date-time */
+            completedAt?: string;
+            video?: components["schemas"]["LessonVideo"];
+            bodyMarkdown?: string;
+        };
+        StudentCourse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            description?: string;
+            coverUrl?: string;
+            access?: components["schemas"]["KeyAccess"];
+            progress?: {
+                completed?: number;
+                total?: number;
+                percent?: number;
+            };
+            continue?: {
+                /** Format: uuid */
+                lessonId?: string;
+                /** Format: uuid */
+                moduleId?: string;
+                title?: string;
+            };
+            modules?: {
+                /** Format: uuid */
+                id?: string;
+                title?: string;
+                lessons?: components["schemas"]["StudentLesson"][];
+            }[];
+        };
+        CommunityIntegration: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            provider?: "telegram" | "discord";
+            accessKey?: string;
+            /** @description Telegram chat id or Discord guild id. */
+            externalId?: string;
+            roleId?: string;
+            inviteUrl?: string;
+            title?: string;
+            /** @enum {string} */
+            status?: "active" | "disabled";
+            /** Format: date-time */
+            createdAt?: string;
+        };
     };
     responses: {
         /** @description A challenge was opened (a code is mailed only to a known address) */
@@ -5802,6 +6601,46 @@ export interface components {
                     origin?: "code" | "merchant";
                     /** @enum {string} */
                     scope?: "portal:read" | "portal:write";
+                };
+            };
+        };
+        /** @description What buying the product grants */
+        AccessRules: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    rules?: components["schemas"]["AccessRule"][];
+                };
+            };
+        };
+        /** @description The course tree */
+        CourseTree: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Course"];
+            };
+        };
+        /** @description The course as the student sees it */
+        StudentCourse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["StudentCourse"];
+            };
+        };
+        /** @description Customer-login settings */
+        CustomerLoginSettings: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    signupByLogin?: boolean;
                 };
             };
         };
@@ -5914,7 +6753,15 @@ export interface components {
         /** @description Stored payment method UUID (payment_instruments.id). */
         InstrumentID: string;
     };
-    requestBodies: never;
+    requestBodies: {
+        Order: {
+            content: {
+                "application/json": {
+                    ids: string[];
+                };
+            };
+        };
+    };
     headers: never;
     pathItems: never;
 }
@@ -7475,6 +8322,1143 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    listAccessKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Keys */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        keys?: components["schemas"]["AccessKey"][];
+                    };
+                };
+            };
+        };
+    };
+    createAccessKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example curso-x */
+                    key: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessKey"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    renameAccessKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessKey"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listAccessKeyHolders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holders?: (components["schemas"]["KeyAccess"] & {
+                            /** Format: uuid */
+                            customerId?: string;
+                            externalId?: string;
+                        })[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getProductAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AccessRules"];
+        };
+    };
+    setProductAccess: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: components["schemas"]["AccessRule"][];
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["AccessRules"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    grantAccess: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    externalId: string;
+                    key: string;
+                    /** @description Omit for lifetime. */
+                    days?: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Granted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessGrant"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    revokeAccessGrant: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                grantID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessGrant"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getCustomerAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access?: components["schemas"]["KeyAccess"][];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    checkCustomerAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalID: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key as the customer holds it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyAccess"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access?: components["schemas"]["KeyAccess"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalAccessKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyAccess"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        courses?: components["schemas"]["Course"][];
+                    };
+                };
+            };
+        };
+    };
+    createCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseWrite"];
+            };
+        };
+        responses: {
+            201: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseWrite"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    reorderCourseModules: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Order"];
+        responses: {
+            200: components["responses"]["CourseTree"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    deleteCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    renameCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    reorderCourseLessons: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Order"];
+        responses: {
+            200: components["responses"]["CourseTree"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonWrite"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonWrite"];
+            };
+        };
+        responses: {
+            /** @description Edited */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourseStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                externalID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        courses?: components["schemas"]["StudentCourse"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentLesson"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCompleteLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalUncompleteLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    verifyBuyerToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example bt_3f... */
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The owner, or valid false */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        valid?: boolean;
+                        /** @enum {string} */
+                        origin?: "code" | "merchant";
+                        /** @enum {string} */
+                        scope?: "portal:read" | "portal:write";
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        customer?: {
+                            /** Format: uuid */
+                            id?: string;
+                            externalId?: string;
+                            email?: string;
+                        };
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getCustomerLoginSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CustomerLoginSettings"];
+        };
+    };
+    setCustomerLoginSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    signupByLogin: boolean;
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["CustomerLoginSettings"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    connectTelegramCommunity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example -1001234567890 */
+                    chatId: string;
+                    accessKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Linked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityIntegration"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listCommunityIntegrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        integrations?: components["schemas"]["CommunityIntegration"][];
+                    };
+                };
+            };
+        };
+    };
+    disableCommunityIntegration: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                integrationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disabled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCommunityMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                integrationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        members?: {
+                            /** Format: uuid */
+                            id?: string;
+                            /** Format: uuid */
+                            customerId?: string;
+                            externalId?: string;
+                            /** @enum {string} */
+                            status?: "invite_pending" | "invited" | "approve_pending" | "assign_pending" | "joined" | "remove_pending" | "removed";
+                            /** Format: date-time */
+                            invitedAt?: string;
+                            /** Format: date-time */
+                            joinedAt?: string;
+                            /** Format: date-time */
+                            removedAt?: string;
+                            removalReason?: string;
+                            lastError?: string;
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCommunity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        communities?: {
+                            /** @enum {string} */
+                            provider?: "telegram" | "discord";
+                            title?: string;
+                            accessKey?: string;
+                            status?: string;
+                            /** @description Telegram */
+                            inviteLink?: string;
+                            /** @description Discord */
+                            inviteUrl?: string;
+                            /** @description Discord */
+                            needsAccount?: boolean;
+                            /** Format: date-time */
+                            joinedAt?: string;
+                            /** Format: date-time */
+                            removedAt?: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    connectDiscordCommunity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    guildId: string;
+                    roleId: string;
+                    /** @description The server's own invite */
+                    inviteUrl?: string;
+                    accessKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Linked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityIntegration"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    portalDiscordAuthorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Registered with Infi's Discord app. */
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Where the student approves Infi's app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url?: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalDiscordConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    state: string;
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The student's communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
     listRefundRequests: {

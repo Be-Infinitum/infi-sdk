@@ -45,6 +45,12 @@ export {
   type PortalCard,
   type PortalClient,
   type PortalClientOptions,
+  type PortalCommunity,
+  type PortalCourse,
+  type PortalKeyAccess,
+  type PortalLesson,
+  type LessonState,
+  type VideoProvider,
   type PortalDownload,
   type PortalOrder,
   type PortalRefundRequest,
@@ -64,3 +70,10 @@ export {
   type PortalToParent,
 } from "./embed.js";
 export { apiBaseFor, getStorefront, type PublicStorefront, type StorefrontItem } from "./storefront.js";
+export {
+  createCompletionTracker,
+  detectVideoProvider,
+  DEFAULT_COMPLETION_THRESHOLD,
+  type CompletionTracker,
+  type CompletionTrackerOptions,
+} from "./lesson.js";

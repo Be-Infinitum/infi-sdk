@@ -87,6 +87,68 @@ export interface PortalSubscription {
   canChangeCard: boolean;
 }
 
+/** One access key as the buyer holds it (the backend's KeyAccess). */
+export interface PortalKeyAccess {
+  key: string;
+  name: string;
+  hasAccess: boolean;
+  /** `past_due` still has access, with a warning: the subscription's bill is late. */
+  state: "active" | "past_due" | "ended";
+  /** When the earliest live grant started: a course's drip counts from here. */
+  since?: string;
+  /** When live access ends by itself; absent for lifetime or while a subscription keeps it. */
+  until?: string;
+  /** expired, refunded, charged_back, manual, or subscription_<status>. */
+  endedReason?: string;
+}
+
+export type LessonState = "available" | "locked" | "no_access";
+export type VideoProvider = "youtube" | "vimeo" | "panda" | "bunny" | "other";
+
+export interface PortalLesson {
+  id: string;
+  moduleId: string;
+  title: string;
+  position: number;
+  /** Decided on Infi's server: only `available` carries `video` and `bodyMarkdown`. */
+  state: LessonState;
+  unlocksAt?: string;
+  hasVideo: boolean;
+  hasText: boolean;
+  completed: boolean;
+  completedAt?: string;
+  video?: { url: string; provider: VideoProvider };
+  bodyMarkdown?: string;
+}
+
+export interface PortalCourse {
+  id: string;
+  title: string;
+  description?: string;
+  coverUrl?: string;
+  access: PortalKeyAccess;
+  progress: { completed: number; total: number; percent: number };
+  /** Where the student continues; absent when every available lesson is done. */
+  continue?: { lessonId: string; moduleId: string; title: string };
+  /** The outline (never with content). Absent on the course list. */
+  modules?: { id: string; title: string; lessons: PortalLesson[] }[];
+}
+
+export interface PortalCommunity {
+  provider: "telegram" | "discord";
+  title?: string;
+  accessKey: string;
+  status: string;
+  /** Telegram: the student's own one-time invite, while unused. */
+  inviteLink?: string;
+  /** Discord: the server's invite. */
+  inviteUrl?: string;
+  /** Discord: connect the account to get the role. */
+  needsAccount?: boolean;
+  joinedAt?: string;
+  removedAt?: string;
+}
+
 export interface CardSetup {
   provider: "stripe";
   setupId: string;
@@ -119,7 +181,7 @@ export interface PortalClientOptions {
   fetchImpl?: typeof fetch;
 }
 
-type Req = { method?: "GET" | "POST"; body?: unknown; grant?: string; idempotencyKey?: string; auth?: boolean };
+type Req = { method?: "GET" | "POST" | "DELETE"; body?: unknown; grant?: string; idempotencyKey?: string; auth?: boolean };
 
 function newKey(): string {
   const c = globalThis.crypto;
@@ -159,7 +221,7 @@ export function createPortalClient(opts: PortalClientOptions) {
     if (req.grant) headers["X-Buyer-Action-Grant"] = req.grant;
     // A write retried after a refresh carries the SAME key: if it already ran,
     // Infi answers with the stored response instead of running it twice.
-    const idempotencyKey = method === "POST" ? (req.idempotencyKey ?? newKey()) : undefined;
+    const idempotencyKey = method !== "GET" ? (req.idempotencyKey ?? newKey()) : undefined;
     if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
     const res = await doFetch(`${base}${path}`, {
       method,
@@ -245,6 +307,40 @@ export function createPortalClient(opts: PortalClientOptions) {
         body: { setupId: input.setupId, consentTextVersion: input.consentTextVersion },
         grant: input.grant,
       }),
+
+    /** Every access key the person holds or held at this store. */
+    access: async () => (await call<{ access: PortalKeyAccess[] }>("/access")).access,
+    /** One key; `hasAccess` false when never held. A typo is a 404, never "no access". */
+    accessKey: (key: string) => call<PortalKeyAccess>(`/access/${encodeURIComponent(key)}`),
+
+    /** The store's published courses with the person's access and progress (no outlines). */
+    courses: async () => (await call<{ courses: PortalCourse[] }>("/courses")).courses,
+    /** One course's outline: every published lesson with its state, never its content. */
+    course: (courseId: string) => call<PortalCourse>(`/courses/${encodeURIComponent(courseId)}`),
+    /** One lesson: with video and text only when `available`. */
+    lesson: (courseId: string, lessonId: string) =>
+      call<PortalLesson>(`/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}`),
+    /** Marks an available lesson done; answers with the course (progress and "continue"). */
+    completeLesson: (courseId: string, lessonId: string) =>
+      call<PortalCourse>(
+        `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/complete`,
+        { method: "POST", body: {} },
+      ),
+    uncompleteLesson: (courseId: string, lessonId: string) =>
+      call<PortalCourse>(
+        `/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/complete`,
+        { method: "DELETE" },
+      ),
+
+    /** The person's communities (Telegram invite, Discord role). */
+    communities: async () => (await call<{ communities: PortalCommunity[] }>("/community")).communities,
+    /** Starts the Discord connection: send the person to `url`. */
+    discordAuthorize: (redirectUri: string) =>
+      call<{ url: string }>("/community/discord/authorize", { method: "POST", body: { redirectUri } }),
+    /** Finishes it with what Discord redirected back with. */
+    discordConnect: async (input: { code: string; state: string; redirectUri: string }) =>
+      (await call<{ communities: PortalCommunity[] }>("/community/discord/connect", { method: "POST", body: input }))
+        .communities,
 
     /** Inside the guarantee it is refunded automatically; after it, the store decides. */
     requestRefund: async (orderId: string, input: { reason?: string; grant?: string } = {}) =>

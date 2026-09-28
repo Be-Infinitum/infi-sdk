@@ -38,7 +38,7 @@
     "dev": "tsx src/index.ts"
   },
   "dependencies": {
-    "@beinfi/sdk": ">=0.13.0 <0.14.0",
+    "@beinfi/sdk": ">=0.13.0 <0.15.0",
     "@clack/prompts": "^0.10.1",
     "picocolors": "^1.1.1"
   },

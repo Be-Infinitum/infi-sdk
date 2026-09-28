@@ -64,4 +64,33 @@ describe("portal client", () => {
     await both;
     expect(getToken).toHaveBeenCalledTimes(1);
   });
+
+  it("reads a lesson and unmarks it with DELETE, carrying an idempotency key", async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const answers = [
+      json({ id: "l1", state: "locked", unlocksAt: "2026-10-05T00:00:00Z", hasVideo: true, hasText: false, completed: false }),
+      json({ id: "c1", progress: { completed: 0, total: 2, percent: 0 }, continue: { lessonId: "l0" } }),
+    ];
+    const fetchImpl = vi.fn(async (url: string, init: RequestInit) => {
+      calls.push({ url, init });
+      return answers.shift()!;
+    }) as unknown as typeof fetch;
+    const portal = createPortalClient({ apiUrl: "https://api.test", slug: "loja", token: "bt_1", fetchImpl });
+    const lesson = await portal.lesson("c1", "l1");
+    expect(lesson.state).toBe("locked");
+    expect(lesson.video).toBeUndefined();
+    const course = await portal.uncompleteLesson("c1", "l0");
+    expect(course.continue?.lessonId).toBe("l0");
+    expect(calls[0]!.url).toBe("https://api.test/pay/loja/portal/courses/c1/lessons/l1");
+    expect(calls[1]!.init.method).toBe("DELETE");
+    expect((calls[1]!.init.headers as Record<string, string>)["Idempotency-Key"]).toBeTruthy();
+  });
+
+  it("surfaces an unknown access key as a 404, not as no access", async () => {
+    const fetchImpl = vi.fn(async () =>
+      json({ error_code: "access_key_not_found", message: "The access key was not found." }, 404),
+    ) as unknown as typeof fetch;
+    const portal = createPortalClient({ apiUrl: "https://api.test", slug: "loja", token: "bt_1", fetchImpl });
+    await expect(portal.accessKey("typo")).rejects.toMatchObject({ status: 404, code: "access_key_not_found" });
+  });
 });

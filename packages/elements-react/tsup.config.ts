@@ -8,6 +8,6 @@ export default defineConfig({
   dts: true,
   sourcemap: true,
   target: "es2022",
-  external: ["react", "react-dom", "@beinfi/elements"],
+  external: ["react", "react-dom", "@beinfi/elements", "youtube-video-element", "vimeo-video-element"],
   banner: { js: '"use client";' },
 });

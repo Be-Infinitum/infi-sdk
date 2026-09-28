@@ -115,7 +115,26 @@ export {
   type ProviderList,
 } from "./resources/providers.js";
 export type { CreateApiKeyInput } from "./resources/api-keys.js";
-export type { BuyerToken, BuyerTokenScope } from "./resources/buyer-tokens.js";
+export type { BuyerToken, BuyerTokenScope, VerifiedBuyerToken } from "./resources/buyer-tokens.js";
+export {
+  AccessResource,
+  type AccessGrant,
+  type AccessKey,
+  type AccessRule,
+  type AccessWindow,
+  type KeyAccess,
+} from "./resources/access.js";
+export {
+  CoursesResource,
+  type Course,
+  type CourseInput,
+  type CourseModule,
+  type Lesson,
+  type LessonInput,
+  type StudentCourse,
+  type VideoProvider,
+} from "./resources/courses.js";
+export { CommunityResource, type CommunityIntegration, type CommunityMember } from "./resources/community.js";
 export type {
   CreateWebhookInput,
   CreatedWebhookEndpoint,

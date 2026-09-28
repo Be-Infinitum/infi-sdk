@@ -12,6 +12,7 @@ import { getGoLiveStatus } from "@beinfi/cli/go-live";
 import { runBootstrap, runAgentOnboarding } from "@beinfi/cli/bootstrap";
 import { listSkills } from "@beinfi/cli/skills";
 import { readFileSync } from "node:fs";
+import { registerCourseTools } from "./courses.js";
 
 const API_BASE = (process.env.INFI_API_URL ?? "https://api-sandbox.beinfi.com").replace(/\/$/, "");
 
@@ -173,6 +174,9 @@ server.tool(
     };
   },
 );
+
+// Course, lesson, access and community: one tool per API route.
+registerCourseTools(server, client);
 
 // ── Skills as resources ─────────────────────────────────────────────────────
 //
