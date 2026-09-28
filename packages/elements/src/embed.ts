@@ -8,7 +8,7 @@
  * The frame is served by the Infi frontend at `{app}/embed/{slug}/portal`.
  */
 
-import { resolveAppBase } from "@beinfi/checkout";
+import { resolveAppBase } from "./checkout/hosts.js";
 
 export const PORTAL_PROTOCOL = "portal/v1";
 

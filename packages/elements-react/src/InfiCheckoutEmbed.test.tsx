@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { InfiCheckoutEmbed } from "./InfiCheckoutEmbed.js";
-import { PROTOCOL } from "../protocol.js";
+import { CHECKOUT_PROTOCOL as PROTOCOL } from "@beinfi/elements";
 
 // The embed talks to its iframe over postMessage, and the core validates all
 // three of source, origin and envelope before it believes a frame. The iframe

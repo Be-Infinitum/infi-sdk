@@ -25,7 +25,11 @@
     },
     "packages/checkout": {
       "name": "@beinfi/checkout",
-      "version": "0.2.0",
+      "version": "0.3.0",
+      "dependencies": {
+        "@beinfi/elements": "^0.1.0",
+        "@beinfi/elements-react": "^0.1.0",
+      },
       "devDependencies": {
         "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.1.0",
@@ -79,9 +83,6 @@
     "packages/elements": {
       "name": "@beinfi/elements",
       "version": "0.1.0",
-      "dependencies": {
-        "@beinfi/checkout": "^0.2.0",
-      },
       "devDependencies": {
         "happy-dom": "^15.11.7",
         "tsup": "^8.5.0",
@@ -93,7 +94,6 @@
       "name": "@beinfi/elements-react",
       "version": "0.1.0",
       "dependencies": {
-        "@beinfi/checkout": "^0.2.0",
         "@beinfi/elements": "^0.1.0",
       },
       "devDependencies": {

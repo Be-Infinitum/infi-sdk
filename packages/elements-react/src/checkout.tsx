@@ -1,4 +1,4 @@
-import { InfiCheckoutEmbed, type InfiCheckoutEmbedProps } from "@beinfi/checkout/react";
+import { InfiCheckoutEmbed, type InfiCheckoutEmbedProps } from "./InfiCheckoutEmbed.js";
 import { useInfi } from "./provider.js";
 
 export type CheckoutElementProps = Omit<

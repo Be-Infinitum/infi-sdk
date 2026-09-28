@@ -2,7 +2,8 @@
  * The wire between a merchant's page and the Infi checkout iframe.
  *
  * This file is duplicated byte-for-byte in the frontend that serves the embed
- * (`src/lib/embed/protocol.ts`). A `diff` between the two is a release step —
+ * (`src/lib/embed/protocol.ts`). It lives in `@beinfi/elements` since
+ * 2026-09-28 (it was `@beinfi/checkout/src/protocol.ts`). A `diff` between the two is a release step —
  * the two halves are deployed from different repos and nothing else pins them
  * together.
  *

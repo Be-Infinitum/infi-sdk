@@ -15,9 +15,16 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist", "README.md"],
-  "publishConfig": { "access": "public" },
-  "engines": { "node": ">=18" },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "rm -rf dist && tsup",
     "prepublishOnly": "npm run build && npm run typecheck && npm test",
@@ -25,7 +32,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@beinfi/checkout": "^0.2.0",
     "@beinfi/elements": "^0.1.0"
   },
   "peerDependencies": {

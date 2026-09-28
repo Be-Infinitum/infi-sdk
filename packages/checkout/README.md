@@ -1,3 +1,10 @@
+> **Legacy entry point (2026-09-28).** The checkout embed now lives in
+> [`@beinfi/elements`](../elements) and its React component in
+> [`@beinfi/elements-react`](../elements-react) (`<CheckoutElement>` inside
+> `<InfiProvider>`). This package re-exports them under the names below, so
+> nothing breaks; new code should import from the new packages. The
+> `<script>` loader stays here.
+
 # @beinfi/checkout
 
 Infi checkout, embedded in your own page. The buyer pays with pix, card or crypto

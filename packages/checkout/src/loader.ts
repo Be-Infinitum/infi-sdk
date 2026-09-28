@@ -13,9 +13,12 @@
  *
  * Built as a self-contained IIFE, so it imports nothing at runtime.
  */
-import { createCheckoutEmbed, type CheckoutEmbedHandle } from "./core.js";
-import type { CheckoutMode } from "./hosts.js";
-import type { EmbedSource } from "./url.js";
+import {
+  createCheckoutEmbed,
+  type CheckoutEmbedHandle,
+  type CheckoutMode,
+  type EmbedSource,
+} from "@beinfi/elements";
 
 const ATTR = "data-infi-checkout";
 const MOUNTED = "data-infi-checkout-mounted";

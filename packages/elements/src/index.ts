@@ -2,31 +2,42 @@
  * @beinfi/elements — Infi elements, headless (the Whop Elements model: a core
  * here, React components in @beinfi/elements-react).
  *
- * The checkout embed is re-exported from @beinfi/checkout, which stays as the
- * legacy entry point; new code imports from here.
+ * The checkout embed lives here; @beinfi/checkout is the legacy entry point and
+ * re-exports it.
  */
 export {
   createCheckoutEmbed,
+  type CheckoutEmbedCallbacks,
+  type CheckoutEmbedHandle,
+  type CreateCheckoutEmbedOptions,
+} from "./checkout/core.js";
+export {
   buildEmbedUrl,
   parseCheckoutHref,
   InvalidEmbedUrlError,
+  type EmbedSource,
+  type EmbedUrlOptions,
+  type ThemeOptions,
+} from "./checkout/url.js";
+export {
   embedPathPrefix,
   resolveAppBase,
   LIVE_APP_BASE,
   SANDBOX_APP_BASE,
+  type CheckoutMode,
+} from "./checkout/hosts.js";
+export {
   PROTOCOL as CHECKOUT_PROTOCOL,
   isEmbedFrame as isCheckoutFrame,
-  type CheckoutEmbedCallbacks,
-  type CheckoutEmbedHandle,
-  type CheckoutMode,
   type CheckoutState,
   type CompletePayload,
-  type CreateCheckoutEmbedOptions,
   type EmbedErrorCode,
-  type EmbedSource,
+  type EmbedRequestMethod,
+  type EmbedToParent,
+  type Envelope,
+  type ParentToEmbed,
   type PaymentMethod,
-  type ThemeOptions,
-} from "@beinfi/checkout";
+} from "./checkout/protocol.js";
 export {
   createPortalClient,
   PortalError,
