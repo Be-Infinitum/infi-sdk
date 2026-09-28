@@ -1,5 +1,6 @@
-import type { PublicStorefront, StorefrontItem } from "@beinfi/elements";
+import { messagesFor, type PublicStorefront, type StorefrontItem } from "@beinfi/elements";
 import type { CSSProperties, ReactNode } from "react";
+import { useElementLocale } from "./locale.js";
 
 export interface StoreElementProps {
   /**
@@ -12,8 +13,10 @@ export interface StoreElementProps {
   href: (item: StorefrontItem) => string;
   /** Replace a card entirely; the default is name, description, price, button. */
   renderItem?: (item: StorefrontItem, defaults: { price: string; href: string }) => ReactNode;
+  /** Defaults to the element's language ("Comprar" / "Buy"). */
   buyLabel?: string;
   subscribeLabel?: string;
+  /** pt-BR or en; defaults like every element (provider → <html lang> → browser). */
   locale?: string;
   className?: string;
   style?: CSSProperties;
@@ -25,8 +28,6 @@ export function formatPrice(price: string | null | undefined, currency: string, 
   return new Intl.NumberFormat(locale, { style: "currency", currency }).format(Number(price));
 }
 
-const CYCLE: Record<string, string> = { weekly: "/semana", monthly: "/mês", annual: "/ano" };
-
 /**
  * The shelf. Styled by CSS variables (`--infi-accent`, `--infi-radius`,
  * `--infi-border`, `--infi-muted`) and plain class names (`infi-store`,
@@ -36,12 +37,14 @@ export function StoreElement({
   store,
   href,
   renderItem,
-  buyLabel = "Comprar",
-  subscribeLabel = "Assinar",
-  locale,
+  buyLabel,
+  subscribeLabel,
+  locale: localeProp,
   className,
   style,
 }: StoreElementProps) {
+  const locale = useElementLocale(localeProp);
+  const words = messagesFor(locale);
   return (
     <div
       className={["infi-store", className].filter(Boolean).join(" ")}
@@ -72,7 +75,7 @@ export function StoreElement({
             ) : null}
             <p className="infi-store-price" style={{ margin: "0.75rem 0 0", fontSize: "1.5rem", fontWeight: 600 }}>
               {price}
-              {item.billingCycle ? <span style={{ fontSize: "0.875rem", fontWeight: 400 }}> {CYCLE[item.billingCycle] ?? ""}</span> : null}
+              {item.billingCycle ? <span style={{ fontSize: "0.875rem", fontWeight: 400 }}> {words.cycle[item.billingCycle as keyof typeof words.cycle] ?? ""}</span> : null}
             </p>
             <a
               className="infi-store-action"
@@ -87,7 +90,7 @@ export function StoreElement({
                 textDecoration: "none",
               }}
             >
-              {item.billingCycle ? subscribeLabel : buyLabel}
+              {item.billingCycle ? (subscribeLabel ?? words.subscribe) : (buyLabel ?? words.buy)}
             </a>
           </article>
         );

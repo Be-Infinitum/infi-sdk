@@ -10,6 +10,7 @@
  */
 
 import { embedPathPrefix, resolveAppBase } from "./checkout/hosts.js";
+import { messagesFor, resolveLocale } from "./locale.js";
 
 export const PORTAL_PROTOCOL = "portal/v1";
 
@@ -74,7 +75,9 @@ export function portalEmbedUrl(opts: PortalEmbedOptions & { embedId: string; par
   );
   u.searchParams.set("embedId", opts.embedId);
   u.searchParams.set("parentOrigin", opts.parentOrigin);
-  if (opts.locale) u.searchParams.set("locale", opts.locale);
+  // Always sent: the frame cannot see the site's <html lang>, and its own
+  // fallback (Accept-Language) is the browser, not the store.
+  u.searchParams.set("locale", resolveLocale(opts.locale));
   // The token NEVER goes in the URL: it is posted after the handshake.
   return u.toString();
 }
@@ -84,7 +87,8 @@ export function createPortalEmbed(target: HTMLElement, opts: PortalEmbedOptions)
   const expectedOrigin = resolveAppBase(opts.mode, opts.appUrl);
   const iframe = document.createElement("iframe");
   iframe.src = portalEmbedUrl({ ...opts, embedId, parentOrigin: globalThis.location?.origin ?? "" });
-  iframe.title = opts.view === "login" ? "Entrar" : "Minhas compras";
+  const words = messagesFor(resolveLocale(opts.locale));
+  iframe.title = opts.view === "login" ? words.loginTitle : words.portalTitle;
   iframe.style.width = "100%";
   iframe.style.border = "0";
   iframe.style.display = "block";

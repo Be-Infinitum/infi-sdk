@@ -39,6 +39,17 @@ The Infi pieces come from `@beinfi/elements-react`: `<InfiProvider>` (in
 props, and with CSS (the `--infi-*` variables and the `infi-store*` classes).
 Update them by bumping the package version. Do not fork their code.
 
+**Language.** The elements speak Portuguese (pt-BR) and English (en). This covers the checkout,
+the portal, the login, the code e-mail and the store's buttons. They pick one in this order:
+1. the element's `locale` prop,
+2. the `<InfiProvider locale>`,
+3. the site's `<html lang>`,
+4. the buyer's browser,
+5. pt-BR.
+
+For an English store, set `<html lang="en">`. The texts this template writes itself (header,
+`/clube`) are the store's own copy, so translate those yourself.
+
 ## Login
 
 Anyone can sign in to the store with a 6-digit code Infi mails (no password,

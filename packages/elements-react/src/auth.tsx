@@ -1,5 +1,6 @@
 import { createPortalEmbed } from "@beinfi/elements";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useElementLocale } from "./locale.js";
 import { useInfi } from "./provider.js";
 
 /**
@@ -99,6 +100,8 @@ export interface LoginElementProps {
   redirectTo?: string;
   onSignedIn?: (buyer: InfiBuyer) => void;
   onError?: (error: Error) => void;
+  /** pt-BR or en; defaults to the provider's, then <html lang>, then the browser. */
+  locale?: string;
   className?: string;
   style?: CSSProperties;
 }
@@ -109,6 +112,7 @@ export function LoginElement(props: LoginElementProps) {
   const latest = useRef(props);
   latest.current = props;
   const mode = infi.environment === "production" ? "live" : "sandbox";
+  const locale = useElementLocale(props.locale);
 
   useEffect(() => {
     if (!host.current) return;
@@ -117,7 +121,7 @@ export function LoginElement(props: LoginElementProps) {
       mode,
       view: "login",
       appUrl: infi.appUrl,
-      locale: infi.locale,
+      locale,
       onToken: (token) => {
         const p = latest.current;
         void (async () => {
@@ -136,7 +140,7 @@ export function LoginElement(props: LoginElementProps) {
       },
     });
     return () => handle.destroy();
-  }, [infi.slug, mode, infi.appUrl, infi.locale]);
+  }, [infi.slug, mode, infi.appUrl, locale]);
 
   return <div ref={host} className={props.className} style={props.style} />;
 }

@@ -64,3 +64,14 @@ export {
   type PortalToParent,
 } from "./embed.js";
 export { apiBaseFor, getStorefront, type PublicStorefront, type StorefrontItem } from "./storefront.js";
+export {
+  FALLBACK_LOCALE,
+  MESSAGES,
+  SUPPORTED_LOCALES,
+  detectLocale,
+  matchLocale,
+  messagesFor,
+  resolveLocale,
+  type ElementMessages,
+  type InfiLocale,
+} from "./locale.js";

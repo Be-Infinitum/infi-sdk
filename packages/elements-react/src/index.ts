@@ -1,3 +1,4 @@
+export { useElementLocale } from "./locale.js";
 export { InfiProvider, useInfi, type InfiAppearance, type InfiContextValue } from "./provider.js";
 export { CheckoutElement, type CheckoutElementProps } from "./checkout.js";
 export { InfiCheckoutEmbed, type InfiCheckoutEmbedProps } from "./InfiCheckoutEmbed.js";
@@ -17,6 +18,7 @@ export {
 } from "./auth.js";
 export { StoreElement, formatPrice, type StoreElementProps } from "./store.js";
 export type {
+  InfiLocale,
   CheckoutEmbedHandle,
   CheckoutState,
   CompletePayload,

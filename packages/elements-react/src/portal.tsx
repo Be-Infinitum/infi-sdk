@@ -1,5 +1,6 @@
 import { createPortalEmbed } from "@beinfi/elements";
 import { useEffect, useRef, type CSSProperties } from "react";
+import { useElementLocale } from "./locale.js";
 import { useInfi } from "./provider.js";
 
 export interface PortalElementProps {
@@ -10,6 +11,8 @@ export interface PortalElementProps {
   /** The buyer logged in or the token was renewed: keep it first-party. */
   onToken?: (token: string, expiresAt: string) => void;
   onSignedOut?: () => void;
+  /** pt-BR or en; defaults to the provider's, then <html lang>, then the browser. */
+  locale?: string;
   className?: string;
   style?: CSSProperties;
 }
@@ -28,6 +31,7 @@ export function PortalElement(props: PortalElementProps) {
   const latest = useRef(props);
   latest.current = props;
   const mode = infi.environment === "production" ? "live" : "sandbox";
+  const locale = useElementLocale(props.locale);
 
   useEffect(() => {
     if (!host.current) return;
@@ -35,14 +39,14 @@ export function PortalElement(props: PortalElementProps) {
       slug: infi.slug,
       mode,
       appUrl: infi.appUrl,
-      locale: infi.locale,
+      locale,
       token: latest.current.token ?? null,
       getToken: latest.current.getToken ? () => latest.current.getToken!() : undefined,
       onToken: (t, exp) => latest.current.onToken?.(t, exp),
       onSignedOut: () => latest.current.onSignedOut?.(),
     });
     return () => handle.destroy();
-  }, [infi.slug, mode, infi.appUrl, infi.locale]);
+  }, [infi.slug, mode, infi.appUrl, locale]);
 
   return <div ref={host} className={props.className} style={props.style} />;
 }
