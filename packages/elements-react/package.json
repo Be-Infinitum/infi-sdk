@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/elements-react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Infi elements for React: <InfiProvider>, <CheckoutElement>, <PortalElement>, <StoreElement>.",
   "license": "MIT",
   "type": "module",
@@ -32,7 +32,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@beinfi/elements": "^0.1.0",
+    "@beinfi/elements": "^0.2.0",
     "vimeo-video-element": "^1.7.3",
     "youtube-video-element": "^1.9.0"
   },

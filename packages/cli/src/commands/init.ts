@@ -90,7 +90,7 @@ ${pc.dim("Usage:")}
   npm create infi-app [project-name] [options]
 
 ${pc.dim("Options:")}
-  --template <id>     Template: ecommerce
+  --template <id>     Template: ecommerce | curso
   --port <n>          Dev server port (default: 3000)
   --local             Use local Infi API (:8088)
   --device            Log in with a code instead of the browser (agents)

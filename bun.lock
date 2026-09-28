@@ -82,7 +82,7 @@
     },
     "packages/elements": {
       "name": "@beinfi/elements",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "happy-dom": "^15.11.7",
         "tsup": "^8.5.0",
@@ -92,7 +92,7 @@
     },
     "packages/elements-react": {
       "name": "@beinfi/elements-react",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@beinfi/elements": "^0.1.0",
         "vimeo-video-element": "^1.7.3",

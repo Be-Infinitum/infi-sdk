@@ -111,7 +111,7 @@ export async function run(argv: string[]): Promise<void> {
       const { templatePath } = await import("./lib/scaffold.js");
       const fs = await import("node:fs");
       const out = typeof parsed.flags.out === "string" ? parsed.flags.out : `${id}.zip`;
-      fs.writeFileSync(out, packTemplate(templatePath(id as "ecommerce"), id));
+      fs.writeFileSync(out, packTemplate(templatePath(id as "ecommerce" | "curso"), id));
       console.log(out);
       break;
     }

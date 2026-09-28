@@ -3,10 +3,10 @@ import path from "node:path";
 
 /**
  * The templates `infi init` scaffolds. Ecommerce digital is the first (Caio,
- * 2026-09-26); CRM and Marketplace are retired, and the rest of the old
- * starters were never rebuilt. Next: course/members, AI agent, SaaS.
+ * 2026-09-26), then the course and member area (2026-09-28); CRM and
+ * Marketplace are retired. Next: AI agent, SaaS.
  */
-export type TemplateId = "ecommerce";
+export type TemplateId = "ecommerce" | "curso";
 
 export type TemplateMeta = { label: string; hint: string };
 
@@ -14,6 +14,10 @@ export const TEMPLATE_META: Record<TemplateId, TemplateMeta> = {
   ecommerce: {
     label: "Ecommerce digital",
     hint: "loja, checkout pix e cartão, entrega digital, assinatura, portal do comprador",
+  },
+  curso: {
+    label: "Curso / área de membros",
+    hint: "curso vitalício ou assinatura, área de membros estilo Netflix, progresso, grupo no Telegram/Discord",
   },
 };
 
