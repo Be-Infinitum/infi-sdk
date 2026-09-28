@@ -188,3 +188,5 @@ export {
   resolveAppBase,
 } from "./types.js";
 export type { InfiMode } from "./types.js";
+export type { LoginSettings, OAuthClient, SignInTokens } from "./resources/sign-in.js";
+export { createInfiAuth, type CookieSource, type InfiAuthOptions, type SignedInBuyer } from "./auth.js";

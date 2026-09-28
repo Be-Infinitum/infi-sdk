@@ -1,9 +1,10 @@
 /**
  * The PortalElement's frame: Infi's portal embed route inside the store's page
- * (decisoes.md, Portal). The buyer logs in inside the frame; the token comes
- * back to the site by postMessage — same checks as `@beinfi/checkout` (frame
- * source, exact origin, namespace, embed id) — and the site hands it back on
- * every load. No third-party cookie.
+ * (decisoes.md, Portal). The site hands the frame the buyer token it keeps
+ * (signed in with Infi, ADR 0007) by postMessage — same checks as
+ * `@beinfi/checkout` (frame source, exact origin, namespace, embed id). With no
+ * token the frame asks the site to start "Entrar com Infi" (`sign_in`): a
+ * frame cannot navigate the page. No third-party cookie.
  *
  * The frame is served by the Infi frontend at `{app}/embed/{slug}/portal`
  * (`{app}/embed/sandbox/{slug}/portal` on sandbox).
@@ -28,6 +29,8 @@ export type PortalToParent = Envelope &
     | { type: "token"; token: string; expiresAt: string }
     /** Signed out, or the token died: forget it. */
     | { type: "signed_out" }
+    /** Nobody is signed in: the site starts "Entrar com Infi" (the frame cannot navigate the page). */
+    | { type: "sign_in" }
   );
 
 /** Site → frame. */
@@ -41,8 +44,6 @@ export function isPortalFrame(data: unknown, embedId: string): data is PortalToP
 
 export interface PortalEmbedOptions {
   slug: string;
-  /** `login`: the store login only (<LoginElement>) — same protocol, no portal after. */
-  view?: "portal" | "login";
   mode: PortalMode;
   appUrl?: string;
   /** The token the site kept from last time, if any. */
@@ -51,6 +52,8 @@ export interface PortalEmbedOptions {
   getToken?: () => Promise<string | null>;
   onToken?: (token: string, expiresAt: string) => void;
   onSignedOut?: () => void;
+  /** Nobody is signed in and the person asked to: start "Entrar com Infi". */
+  onSignIn?: () => void;
   onResize?: (height: number) => void;
   locale?: string;
 }
@@ -71,7 +74,7 @@ export function portalEmbedUrl(opts: PortalEmbedOptions & { embedId: string; par
   // Same routing as the checkout: the host picks the deployment, the prefix
   // the environment (/embed/sandbox on sandbox).
   const u = new URL(
-    `${resolveAppBase(opts.mode, opts.appUrl)}${embedPathPrefix(opts.mode)}/${encodeURIComponent(opts.slug)}/${opts.view === "login" ? "login" : "portal"}`,
+    `${resolveAppBase(opts.mode, opts.appUrl)}${embedPathPrefix(opts.mode)}/${encodeURIComponent(opts.slug)}/portal`,
   );
   u.searchParams.set("embedId", opts.embedId);
   u.searchParams.set("parentOrigin", opts.parentOrigin);
@@ -88,7 +91,7 @@ export function createPortalEmbed(target: HTMLElement, opts: PortalEmbedOptions)
   const iframe = document.createElement("iframe");
   iframe.src = portalEmbedUrl({ ...opts, embedId, parentOrigin: globalThis.location?.origin ?? "" });
   const words = messagesFor(resolveLocale(opts.locale));
-  iframe.title = opts.view === "login" ? words.loginTitle : words.portalTitle;
+  iframe.title = words.portalTitle;
   iframe.style.width = "100%";
   iframe.style.border = "0";
   iframe.style.display = "block";
@@ -125,6 +128,9 @@ export function createPortalEmbed(target: HTMLElement, opts: PortalEmbedOptions)
         break;
       case "signed_out":
         opts.onSignedOut?.();
+        break;
+      case "sign_in":
+        opts.onSignIn?.();
         break;
     }
   }

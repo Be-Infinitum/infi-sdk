@@ -44,6 +44,7 @@ export interface ElementMessages {
   checkoutTitle: string;
   portalTitle: string;
   loginTitle: string;
+  signInWithInfi: string;
 }
 
 export const MESSAGES: Record<InfiLocale, ElementMessages> = {
@@ -54,6 +55,7 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
     checkoutTitle: "Pagamento",
     portalTitle: "Minhas compras",
     loginTitle: "Entrar",
+    signInWithInfi: "Entrar com Infi",
   },
   en: {
     buy: "Buy",
@@ -62,6 +64,7 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
     checkoutTitle: "Checkout",
     portalTitle: "My purchases",
     loginTitle: "Sign in",
+    signInWithInfi: "Sign in with Infi",
   },
 };
 

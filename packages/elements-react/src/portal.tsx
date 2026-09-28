@@ -1,5 +1,6 @@
 import { createPortalEmbed } from "@beinfi/elements";
 import { useEffect, useRef, type CSSProperties } from "react";
+import { signInHref } from "./auth.js";
 import { useElementLocale } from "./locale.js";
 import { useInfi } from "./provider.js";
 
@@ -13,13 +14,17 @@ export interface PortalElementProps {
   onSignedOut?: () => void;
   /** pt-BR or en; defaults to the provider's, then <html lang>, then the browser. */
   locale?: string;
+  /** Your auth route, where "Entrar com Infi" starts (default `/api/infi/auth`). */
+  authEndpoint?: string;
+  /** Replace the default (go to "Entrar com Infi" and come back here). */
+  onSignIn?: () => void;
   className?: string;
   style?: CSSProperties;
 }
 
 /**
- * The buyer's "Minhas compras" at this store, in Infi's frame: login by a
- * 6-digit code (or your own login via `getToken`), orders with receipts,
+ * The buyer's "Minhas compras" at this store, in Infi's frame: signed in with
+ * Infi (the `token` your server keeps) or your own login via `getToken`, orders with receipts,
  * downloads, subscriptions, cancel at period end, change card, refund within
  * the guarantee. Sensitive actions ask for a fresh code inside the frame.
  */
@@ -44,6 +49,11 @@ export function PortalElement(props: PortalElementProps) {
       getToken: latest.current.getToken ? () => latest.current.getToken!() : undefined,
       onToken: (t, exp) => latest.current.onToken?.(t, exp),
       onSignedOut: () => latest.current.onSignedOut?.(),
+      onSignIn: () => {
+        const p = latest.current;
+        if (p.onSignIn) return p.onSignIn();
+        globalThis.location.assign(signInHref({ endpoint: p.authEndpoint, locale }));
+      },
     });
     return () => handle.destroy();
   }, [infi.slug, mode, infi.appUrl, locale]);
