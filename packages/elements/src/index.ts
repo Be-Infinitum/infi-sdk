@@ -77,3 +77,14 @@ export {
   type CompletionTracker,
   type CompletionTrackerOptions,
 } from "./lesson.js";
+export {
+  FALLBACK_LOCALE,
+  MESSAGES,
+  SUPPORTED_LOCALES,
+  detectLocale,
+  matchLocale,
+  messagesFor,
+  resolveLocale,
+  type ElementMessages,
+  type InfiLocale,
+} from "./locale.js";

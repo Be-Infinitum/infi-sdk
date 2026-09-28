@@ -15,7 +15,7 @@ export function OrderStatus({ orderId }: { orderId: string }) {
     const tick = async () => {
       if (stop) return;
       try {
-        const res = await fetch(`/api/pedido?id=${encodeURIComponent(orderId)}`, { cache: "no-store" });
+        const res = await fetch(`/api/order?id=${encodeURIComponent(orderId)}`, { cache: "no-store" });
         const body = (await res.json()) as { paid?: boolean };
         if (body.paid) return setState("paid");
       } catch {

@@ -1,3 +1,4 @@
+export { createInfiAuth, type InfiAuthOptions, type SignedInBuyer } from "./auth.js";
 export { guardCredit, meterAction } from "./meter-action.js";
 export { MeterAbort, withMeter } from "./meter.js";
 export { State } from "./state.js";

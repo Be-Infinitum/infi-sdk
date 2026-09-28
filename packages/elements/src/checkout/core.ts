@@ -1,3 +1,4 @@
+import { messagesFor, resolveLocale } from "../locale.js";
 import {
   PROTOCOL,
   isEmbedFrame,
@@ -135,11 +136,14 @@ export function createCheckoutEmbed(
   const expectedOrigin = resolveAppBase(options.mode, options.appUrl);
   const parentOrigin = globalThis.location?.origin ?? "";
 
-  const src = buildEmbedUrl(source, { ...options, embedId, parentOrigin });
+  // Resolved here, not in buildEmbedUrl (pure): the frame cannot see the
+  // site's <html lang>, so the site's language travels in the URL.
+  const locale = resolveLocale(options.locale);
+  const src = buildEmbedUrl(source, { ...options, locale, embedId, parentOrigin });
 
   const iframe = document.createElement("iframe");
   iframe.src = src;
-  iframe.title = "Checkout";
+  iframe.title = messagesFor(locale).checkoutTitle;
   iframe.style.width = "100%";
   iframe.style.border = "0";
   iframe.style.display = "block";

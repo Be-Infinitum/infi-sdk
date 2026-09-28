@@ -35,9 +35,41 @@ Do not change how payment and delivery work.
 
 The Infi pieces come from `@beinfi/elements-react`: `<InfiProvider>` (in
 `src/app/layout.tsx`), `<StoreElement>`, `<CheckoutElement>` and
-`<PortalElement>`. Change their look with `appearance` on the provider, with
+`<PortalElement>` and `<LoginElement>`. Change their look with `appearance` on the provider, with
 props, and with CSS (the `--infi-*` variables and the `infi-store*` classes).
 Update them by bumping the package version. Do not fork their code.
+
+**Language.** The elements speak Portuguese (pt-BR) and English (en). This covers the checkout,
+the portal, the login, the code e-mail and the store's buttons. They pick one in this order:
+1. the element's `locale` prop,
+2. the `<InfiProvider locale>`,
+3. the site's `<html lang>`,
+4. the buyer's browser,
+5. pt-BR.
+
+For an English store, set `<html lang="en">`. The texts this template writes itself (header,
+`/members`) are the store's own copy, so translate those yourself.
+
+## Routes
+
+URLs are always in English: `/product/[id]`, `/thank-you`, `/purchases`, `/sign-in`, `/members`,
+`/api/order`. That goes for any page you add, whatever language the store's copy is in.
+
+## Login
+
+Anyone can sign in to the store with a 6-digit code Infi mails (no password,
+bought or not). There is one session for the whole site, the store login and
+"Minhas compras", kept in an HttpOnly cookie by `src/app/api/infi/auth/route.ts`.
+
+- **Sign-in page:** `/sign-in` (`<LoginElement>`). `?next=/path` comes back there.
+- **In a client component:** `useInfiAuth()` gives `status`, `buyer`, `has(key)` and
+  `signOut()`. `<SignedIn>` and `<SignedOut>` show or hide children.
+- **On the server (gating):** `const buyer = await auth.getBuyer()` from `@/lib/auth`.
+  - `null` means nobody is signed in.
+  - `buyer.has("ecommerce/club")` is true while the product is bought and not refunded,
+    or subscribed and still running.
+  - See `src/app/members/page.tsx`. Check on the server, never only in the browser.
+- The token never goes to localStorage, a URL, or a `NEXT_PUBLIC_*` variable.
 
 ## How to change the catalog
 

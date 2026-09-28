@@ -14,11 +14,15 @@ export interface InfiContextValue {
   environment: "sandbox" | "production";
   /** Override the Infi app host (local frontend). */
   appUrl?: string;
+  /**
+   * pt-BR or en (any regional tag narrows). Leave it out to follow the site's
+   * `<html lang>`, then the buyer's browser. Each element also takes `locale`.
+   */
   locale?: string;
   appearance?: InfiAppearance;
 }
 
-const InfiContext = createContext<InfiContextValue | null>(null);
+export const InfiContext = createContext<InfiContextValue | null>(null);
 
 /**
  * Wrap the part of your app that shows Infi elements. Carries no key — the

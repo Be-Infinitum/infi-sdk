@@ -25,7 +25,7 @@ export default defineCompany({
       deliverable: { kind: "file", path: "./assets/ebook.pdf" },
     },
     {
-      key: "ecommerce/clube",
+      key: "ecommerce/club",
       name: "Clube mensal",
       description: "Um material novo por mês. Cancele quando quiser, no fim do mês pago.",
       type: "item",
@@ -44,7 +44,7 @@ export default defineCompany({
   storefront: {
     slug: "__APP_SLUG__",
     name: "__APP_NAME__",
-    products: ["ecommerce/ebook", "ecommerce/clube"],
+    products: ["ecommerce/ebook", "ecommerce/club"],
     fulfillmentMode: "pickup",
   },
 });

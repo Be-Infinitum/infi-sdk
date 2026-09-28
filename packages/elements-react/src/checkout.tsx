@@ -1,10 +1,14 @@
 import { InfiCheckoutEmbed, type InfiCheckoutEmbedProps } from "./InfiCheckoutEmbed.js";
+import { useElementLocale } from "./locale.js";
 import { useInfi } from "./provider.js";
 
 export type CheckoutElementProps = Omit<
   InfiCheckoutEmbedProps,
   "slug" | "environment" | "appUrl" | "locale" | "theme" | "themeOptions"
->;
+> & {
+  /** pt-BR or en; defaults to the provider's, then <html lang>, then the browser. */
+  locale?: string;
+};
 
 /**
  * The Infi checkout: pix and card (card fields in the provider's own frame).
@@ -16,14 +20,16 @@ export type CheckoutElementProps = Omit<
  */
 export function CheckoutElement(props: CheckoutElementProps) {
   const infi = useInfi();
+  const { locale: localeProp, ...rest } = props;
+  const locale = useElementLocale(localeProp);
   const { theme, accentColor, backgroundColor } = infi.appearance ?? {};
   return (
     <InfiCheckoutEmbed
-      {...props}
+      {...rest}
       slug={infi.slug}
       environment={infi.environment}
       appUrl={infi.appUrl}
-      locale={infi.locale}
+      locale={locale}
       theme={theme}
       themeOptions={accentColor || backgroundColor ? { accentColor, backgroundColor } : undefined}
     />
