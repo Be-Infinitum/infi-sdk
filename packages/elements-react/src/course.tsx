@@ -1,15 +1,8 @@
-import type { PortalCourse, PortalLesson } from "@beinfi/elements";
+import { exampleCourse, type ElementPreview, type PortalCourse, type PortalLesson } from "@beinfi/elements";
 import type { CSSProperties, ReactNode } from "react";
+import { buttonStyle, useAppearanceStyle } from "./appearance.js";
 
-export interface CourseElementProps {
-  /**
-   * The course, read on YOUR server with the student's buyer token
-   * (`createPortalClient(...).course(id)` from @beinfi/elements). Infi decides
-   * there what is available, locked or not owned; this only shows it.
-   */
-  course: PortalCourse;
-  /** Where a lesson opens (your server-rendered lesson page). */
-  lessonHref: (lesson: Pick<PortalLesson, "id" | "moduleId">) => string;
+interface CourseElementCommon {
   /** Where to renew or buy when the access ended (your product page). */
   renewHref?: string;
   /** Where to pay a late bill (your "Minhas compras"). */
@@ -20,6 +13,30 @@ export interface CourseElementProps {
   className?: string;
   style?: CSSProperties;
 }
+
+export type CourseElementProps = CourseElementCommon &
+  (
+    | {
+        /**
+         * The course, read on YOUR server with the student's buyer token
+         * (`createPortalClient(...).course(id)` from @beinfi/elements). Infi decides
+         * there what is available, locked or not owned; this only shows it.
+         */
+        course: PortalCourse;
+        /** Where a lesson opens (your server-rendered lesson page). */
+        lessonHref: (lesson: Pick<PortalLesson, "id" | "moduleId">) => string;
+        preview?: undefined;
+      }
+    | {
+        /**
+         * Member view of `preview.course` (the CMS draft) as the example buyer
+         * sees it, with sample progress (`exampleCourse`). Links go nowhere.
+         */
+        preview: ElementPreview;
+        course?: undefined;
+        lessonHref?: (lesson: Pick<PortalLesson, "id" | "moduleId">) => string;
+      }
+  );
 
 function day(iso: string, locale: string): string {
   return new Intl.DateTimeFormat(locale, { day: "2-digit", month: "short" }).format(new Date(iso));
@@ -45,19 +62,21 @@ function lessonLabel(l: PortalLesson, locale: string): string {
  * `--infi-muted`, `--infi-border`, `--infi-radius`) and plain classes
  * (`infi-course`, `infi-course-lesson`, …) so your CSS wins.
  */
-export function CourseElement({
-  course,
-  lessonHref,
-  renewHref,
-  payHref,
-  renderLesson,
-  locale = "pt-BR",
-  className,
-  style,
-}: CourseElementProps) {
+export function CourseElement(props: CourseElementProps) {
+  const { renderLesson, locale = "pt-BR", className, style } = props;
+  const inPreview = props.preview !== undefined;
+  const course = props.preview !== undefined ? exampleCourse(props.preview) : props.course;
+  const lessonHref = (l: Pick<PortalLesson, "id" | "moduleId">) => (props.preview !== undefined ? "" : props.lessonHref(l));
+  const renewHref = inPreview ? undefined : props.renewHref;
+  const payHref = inPreview ? undefined : props.payHref;
+  const root = useAppearanceStyle(null, props.preview?.appearance);
   const { access, progress } = course;
   return (
-    <section className={["infi-course", className].filter(Boolean).join(" ")} style={style}>
+    <section
+      className={["infi-course", className].filter(Boolean).join(" ")}
+      data-infi-preview={inPreview ? "" : undefined}
+      style={{ ...root, ...style }}
+    >
       {access.state === "past_due" ? (
         <div role="alert" className="infi-course-banner infi-course-banner-warning" style={banner("#fef3c7")}>
           Sua assinatura está em atraso. Você continua com acesso — pague para não perder.
@@ -88,15 +107,9 @@ export function CourseElement({
       {course.continue && access.hasAccess ? (
         <a
           className="infi-course-continue"
-          href={lessonHref({ id: course.continue.lessonId, moduleId: course.continue.moduleId })}
-          style={{
-            display: "inline-block",
-            padding: "0.625rem 1rem",
-            borderRadius: "var(--infi-radius, 12px)",
-            background: "var(--infi-accent, #0a0a0a)",
-            color: "var(--infi-accent-foreground, #fff)",
-            textDecoration: "none",
-          }}
+          href={inPreview ? undefined : lessonHref({ id: course.continue.lessonId, moduleId: course.continue.moduleId })}
+          aria-disabled={inPreview || undefined}
+          style={buttonStyle}
         >
           Continuar: {course.continue.title}
         </a>
@@ -124,7 +137,13 @@ export function CourseElement({
                     opacity: open ? 1 : 0.6,
                   }}
                 >
-                  {open ? <a href={href}>{l.title}</a> : <span aria-disabled="true">{l.title}</span>}
+                  {open ? (
+                    <a href={inPreview ? undefined : href} aria-disabled={inPreview || undefined}>
+                      {l.title}
+                    </a>
+                  ) : (
+                    <span aria-disabled="true">{l.title}</span>
+                  )}
                   <small style={{ color: "var(--infi-muted, #71717a)" }}>{label}</small>
                 </li>
               );

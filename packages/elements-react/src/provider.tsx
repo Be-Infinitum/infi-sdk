@@ -1,10 +1,14 @@
+import type { Appearance } from "@beinfi/elements";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-/** How the elements look. Colors are `#rgb`/`#rrggbb` — the frames refuse anything else. */
-export interface InfiAppearance {
+/**
+ * How the elements look: the effective `Appearance` (a public read's
+ * `appearance`, or `effectiveAppearance(resolveAppearance(levels))` in an
+ * editor), any subset of it, and `theme` for the checkout frame. Colors are
+ * `#rgb`/`#rrggbb` — the frames refuse anything else.
+ */
+export interface InfiAppearance extends Partial<Appearance> {
   theme?: "light" | "dark" | "system";
-  accentColor?: string;
-  backgroundColor?: string;
 }
 
 export interface InfiContextValue {
@@ -25,7 +29,8 @@ export interface InfiContextValue {
 export const InfiContext = createContext<InfiContextValue | null>(null);
 
 /**
- * Wrap the part of your app that shows Infi elements. Carries no key — the
+ * Wrap the part of your app that shows Infi elements. Elements in preview mode
+ * need no provider (it only lends them its appearance and locale). Carries no key — the
  * elements need none: the checkout and the portal run in Infi's frames, and
  * whatever needs your `sk_` stays on your server.
  */

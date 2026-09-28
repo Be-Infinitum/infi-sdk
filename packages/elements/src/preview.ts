@@ -3,6 +3,7 @@
  * built-in example buyer, and never a call to Infi (spec-dashboard-v1). Every
  * date and number here is invented; nothing in it can be paid or redeemed.
  */
+import type { Appearance } from "./appearance.js";
 import type { PortalCourse, PortalLesson, PortalOrder, PortalSubscription } from "./portal.js";
 import type { ProductPageFields, PublicStorefront, StorefrontItem } from "./storefront.js";
 
@@ -97,6 +98,11 @@ export const EXAMPLE_PURCHASE_DAYS_AGO = 10;
 /** What every element's `preview` prop takes. Each reads the parts it draws. */
 export interface ElementPreview {
   product: PreviewProduct;
+  /**
+   * The effective appearance to draw with — resolve the editor's levels with
+   * `effectiveAppearance(resolveAppearance(levels))`. Wins over the provider's.
+   */
+  appearance?: Partial<Appearance> | null;
   merchant?: { name: string; logoUrl?: string | null };
   /** Defaults to EXAMPLE_BUYER. */
   buyer?: ExampleBuyer;
@@ -104,7 +110,8 @@ export interface ElementPreview {
   course?: CourseDraft;
   /** StoreElement: the rest of the shelf; the draft product replaces its own card. */
   store?: PublicStorefront;
-  /** CheckoutElement: the tab open first. */
+  /** CheckoutElement: the tabs shown (default both) and the one open first. */
+  methods?: ("pix" | "card")[];
   method?: "pix" | "card";
   /** Pins the invented dates (tests, screenshots). */
   now?: Date;

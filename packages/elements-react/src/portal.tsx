@@ -1,6 +1,7 @@
-import { createPortalEmbed } from "@beinfi/elements";
+import { createPortalEmbed, type ElementPreview } from "@beinfi/elements";
 import { useEffect, useRef, type CSSProperties } from "react";
 import { useElementLocale } from "./locale.js";
+import { PortalPreview } from "./portal-preview.js";
 import { useInfi } from "./provider.js";
 
 export interface PortalElementProps {
@@ -11,6 +12,12 @@ export interface PortalElementProps {
   /** The buyer logged in or the token was renewed: keep it first-party. */
   onToken?: (token: string, expiresAt: string) => void;
   onSignedOut?: () => void;
+  /**
+   * Member view of the example buyer (EXAMPLE_BUYER) with one purchase of the
+   * draft product, drawn here: no frame, no login, no request. Token props are
+   * ignored.
+   */
+  preview?: ElementPreview;
   /** pt-BR or en; defaults to the provider's, then <html lang>, then the browser. */
   locale?: string;
   className?: string;
@@ -24,6 +31,14 @@ export interface PortalElementProps {
  * the guarantee. Sensitive actions ask for a fresh code inside the frame.
  */
 export function PortalElement(props: PortalElementProps) {
+  const locale = useElementLocale(props.locale);
+  if (props.preview) {
+    return <PortalPreview preview={props.preview} locale={locale} className={props.className} style={props.style} />;
+  }
+  return <LivePortal {...props} locale={locale} />;
+}
+
+function LivePortal(props: PortalElementProps & { locale: string }) {
   const infi = useInfi();
   const host = useRef<HTMLDivElement>(null);
   // Callbacks are usually inline arrows: keep the latest without remounting
@@ -31,7 +46,7 @@ export function PortalElement(props: PortalElementProps) {
   const latest = useRef(props);
   latest.current = props;
   const mode = infi.environment === "production" ? "live" : "sandbox";
-  const locale = useElementLocale(props.locale);
+  const locale = props.locale;
 
   useEffect(() => {
     if (!host.current) return;
