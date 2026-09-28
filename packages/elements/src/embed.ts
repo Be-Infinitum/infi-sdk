@@ -12,6 +12,7 @@
 
 import { embedPathPrefix, resolveAppBase } from "./checkout/hosts.js";
 import { messagesFor, resolveLocale } from "./locale.js";
+import { detectColorScheme, type ColorScheme } from "./theme.js";
 
 export const PORTAL_PROTOCOL = "portal/v1";
 
@@ -56,6 +57,8 @@ export interface PortalEmbedOptions {
   onSignIn?: () => void;
   onResize?: (height: number) => void;
   locale?: string;
+  /** light, dark or system; default: the site's own (see detectColorScheme). */
+  theme?: ColorScheme;
 }
 
 export interface PortalEmbedHandle {
@@ -81,6 +84,7 @@ export function portalEmbedUrl(opts: PortalEmbedOptions & { embedId: string; par
   // Always sent: the frame cannot see the site's <html lang>, and its own
   // fallback (Accept-Language) is the browser, not the store.
   u.searchParams.set("locale", resolveLocale(opts.locale));
+  u.searchParams.set("theme", detectColorScheme(opts.theme));
   // The token NEVER goes in the URL: it is posted after the handshake.
   return u.toString();
 }

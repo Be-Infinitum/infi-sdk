@@ -75,3 +75,4 @@ export {
   type ElementMessages,
   type InfiLocale,
 } from "./locale.js";
+export { detectColorScheme, type ColorScheme } from "./theme.js";

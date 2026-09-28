@@ -1,4 +1,5 @@
 import { messagesFor, resolveLocale } from "../locale.js";
+import { detectColorScheme } from "../theme.js";
 import {
   PROTOCOL,
   isEmbedFrame,
@@ -139,7 +140,7 @@ export function createCheckoutEmbed(
   // Resolved here, not in buildEmbedUrl (pure): the frame cannot see the
   // site's <html lang>, so the site's language travels in the URL.
   const locale = resolveLocale(options.locale);
-  const src = buildEmbedUrl(source, { ...options, locale, embedId, parentOrigin });
+  const src = buildEmbedUrl(source, { ...options, locale, theme: detectColorScheme(options.theme), embedId, parentOrigin });
 
   const iframe = document.createElement("iframe");
   iframe.src = src;

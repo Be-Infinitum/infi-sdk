@@ -45,6 +45,7 @@ export function PortalElement(props: PortalElementProps) {
       mode,
       appUrl: infi.appUrl,
       locale,
+      theme: infi.appearance?.theme,
       token: latest.current.token ?? null,
       getToken: latest.current.getToken ? () => latest.current.getToken!() : undefined,
       onToken: (t, exp) => latest.current.onToken?.(t, exp),
@@ -56,7 +57,7 @@ export function PortalElement(props: PortalElementProps) {
       },
     });
     return () => handle.destroy();
-  }, [infi.slug, mode, infi.appUrl, locale]);
+  }, [infi.slug, mode, infi.appUrl, locale, infi.appearance?.theme]);
 
   return <div ref={host} className={props.className} style={props.style} />;
 }
