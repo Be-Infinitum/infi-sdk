@@ -69,18 +69,33 @@ export function openBrowser(url: string): void {
   }
 }
 
-/** A one-shot listener on 127.0.0.1 that resolves with the code for `state`. */
-export async function startCallbackServer(state: string, timeoutMs = 5 * 60_000): Promise<{
+/**
+ * A one-shot listener on 127.0.0.1 that resolves with the code for `state`.
+ * The browser is sent on to `doneUrl` (the dashboard's /cli/done) so the
+ * person lands on a real page, not on this listener's plain text.
+ */
+export async function startCallbackServer(state: string, opts: { doneUrl?: string; timeoutMs?: number } = {}): Promise<{
   redirectUri: string;
   code: Promise<string>;
   close: () => void;
 }> {
+  const timeoutMs = opts.timeoutMs ?? 5 * 60_000;
   let resolve!: (code: string) => void;
   let reject!: (err: Error) => void;
   const code = new Promise<string>((res, rej) => {
     resolve = res;
     reject = rej;
   });
+  const finish = (res: http.ServerResponse, result: "approved" | "denied") => {
+    if (!opts.doneUrl) {
+      const text = result === "approved" ? "Pronto — pode voltar ao terminal." : "Login negado. Nenhuma chave foi criada.";
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end(`<!doctype html><meta charset=utf-8><title>Infi</title><p>${text}</p>`);
+      return;
+    }
+    const to = new URL(opts.doneUrl);
+    to.searchParams.set("result", result);
+    res.writeHead(302, { Location: to.toString() }).end();
+  };
   const server = http.createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     if (url.pathname !== "/callback") {
@@ -88,13 +103,20 @@ export async function startCallbackServer(state: string, timeoutMs = 5 * 60_000)
       return;
     }
     // A code for another login (or a forged request) is refused and ignored.
-    if (url.searchParams.get("state") !== state || !url.searchParams.get("code")) {
+    if (url.searchParams.get("state") !== state) {
       res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" }).end("Login inválido. Rode `infi login` de novo.");
       return;
     }
-    res
-      .writeHead(200, { "Content-Type": "text/html; charset=utf-8" })
-      .end("<!doctype html><meta charset=utf-8><title>Infi</title><p>Pronto — pode voltar ao terminal.</p>");
+    if (url.searchParams.get("error") === "access_denied") {
+      finish(res, "denied");
+      reject(new Error("Login denied in the browser. No key was created."));
+      return;
+    }
+    if (!url.searchParams.get("code")) {
+      res.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" }).end("Login inválido. Rode `infi login` de novo.");
+      return;
+    }
+    finish(res, "approved");
     resolve(url.searchParams.get("code")!);
   });
   await new Promise<void>((ok) => server.listen(0, "127.0.0.1", ok));
@@ -143,7 +165,7 @@ export function loginUrl(appBase: string, p: {
 export async function browserLogin(opts: BrowserLoginOptions): Promise<CliTokenResponse> {
   const state = randomBytes(16).toString("hex");
   const { verifier, challenge } = pkcePair();
-  const listener = await startCallbackServer(state);
+  const listener = await startCallbackServer(state, { doneUrl: `${opts.appBase.replace(/\/$/, "")}/cli/done` });
   const url = loginUrl(opts.appBase, {
     state,
     challenge,

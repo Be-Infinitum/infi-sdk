@@ -308,11 +308,24 @@ export async function syncFileDeliverable(
     return { action: { action: "skip", resource: "deliverable", ref }, hash: file.sha256 };
   }
   if (!opts.plan) {
-    const upload = await infi.products.deliverable.presign(productId, {
-      fileName: file.fileName,
-      contentType: file.contentType,
-      sizeBytes: file.bytes.byteLength,
-    });
+    let upload;
+    try {
+      upload = await infi.products.deliverable.presign(productId, {
+        fileName: file.fileName,
+        contentType: file.contentType,
+        sizeBytes: file.bytes.byteLength,
+      });
+    } catch (err) {
+      // Storage down (503): the rest of the store still syncs; the file is
+      // sent on the next `infi sync` — the lock keeps no hash for it.
+      if (err instanceof InfiError && err.status === 503) {
+        return {
+          action: { action: "blocked", resource: "deliverable", ref, detail: "file storage unavailable; run infi sync again later" },
+          hash: opts.previousHash ?? "",
+        };
+      }
+      throw err;
+    }
     const put = await (opts.fetchImpl ?? fetch)(upload.uploadUrl, {
       method: "PUT",
       headers: { "Content-Type": file.contentType },

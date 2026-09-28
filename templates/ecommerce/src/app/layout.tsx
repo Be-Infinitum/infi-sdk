@@ -11,7 +11,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body className="min-h-screen antialiased">
         {/* No key here: the elements need none. Look & feel: appearance={{ accentColor: "#…" }}. */}
-        <InfiProvider slug={tenantSlug()} environment={environment()} locale="pt-BR">
+        {/* INFI_APP_URL only for a local Infi frontend; the default is Infi's own app. */}
+        <InfiProvider slug={tenantSlug()} environment={environment()} locale="pt-BR" appUrl={process.env.INFI_APP_URL}>
           <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
             <Link href="/" className="font-semibold">__APP_NAME__</Link>
             <Link href="/minhas-compras" className="text-sm text-muted-foreground hover:text-foreground">

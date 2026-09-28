@@ -138,6 +138,15 @@ describe("template sync", () => {
     expect(res.lock.storefront?.slug).toBe("minha-loja");
   });
 
+  it("syncs the rest of the store when file storage is down, and retries the file next time", async () => {
+    const { infi, state, fetchImpl } = fakeInfi();
+    (infi.products.deliverable.presign as any).mockRejectedValueOnce(new InfiError("unavailable", 503, "storage_unavailable"));
+    const res = await syncBilling(infi, ECOMMERCE, { mode: "sandbox", readFile, fetchImpl });
+    expect(res.actions).toContainEqual(expect.objectContaining({ resource: "deliverable", action: "blocked" }));
+    expect(state.storefronts).toHaveLength(1);
+    expect(res.lock.products["ecommerce/ebook"]?.deliverableHash).toBeUndefined();
+  });
+
   it("does not re-upload an unchanged file", async () => {
     const { infi, state, fetchImpl } = fakeInfi();
     const first = await syncBilling(infi, ECOMMERCE, { mode: "sandbox", readFile, fetchImpl, now: "t0" });

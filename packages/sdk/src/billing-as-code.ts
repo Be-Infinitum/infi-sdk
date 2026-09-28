@@ -777,7 +777,7 @@ export async function syncBilling(
         fetchImpl: opts.fetchImpl,
       });
       actions.push({ ...done.action, ref: `${name}/${done.action.ref}` });
-      if (!plan) deliverableHash = done.hash;
+      if (!plan) deliverableHash = done.hash || undefined;
     }
 
     // Lock: a blocked product keeps its prior entry (stays flagged until resolved);

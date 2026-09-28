@@ -22,6 +22,7 @@ describe("pkce", () => {
 describe("browser login", () => {
   it("sends the dashboard the challenge and a loopback redirect, and trades the code with the verifier", async () => {
     let exchanged: any;
+    let landed: string | null = null;
     const fetchImpl = vi.fn(async (_url: string, init: RequestInit) => {
       exchanged = JSON.parse(String(init.body));
       return json(token, 201);
@@ -41,12 +42,39 @@ describe("browser login", () => {
         expect(redirect.hostname).toBe("127.0.0.1");
         redirect.searchParams.set("code", "the-code");
         redirect.searchParams.set("state", u.searchParams.get("state")!);
-        void fetch(redirect);
+        void fetch(redirect, { redirect: "manual" }).then((r) => {
+          landed = r.headers.get("location");
+        });
       },
     });
     expect(res.apiKey.secret).toBe("sk_test_x");
+    await vi.waitFor(() => expect(landed).toBe("https://app.test/cli/done?result=approved"));
     expect(exchanged.code).toBe("the-code");
     expect(exchanged.codeVerifier).toBeTruthy();
+  });
+
+  it("fails the login when the person denies it in the browser, and trades nothing", async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch;
+    let landed: string | null = null;
+    await expect(
+      browserLogin({
+        apiBase: "https://api.test",
+        appBase: "https://app.test",
+        project,
+        fetchImpl,
+        open: (url) => {
+          const u = new URL(url);
+          const redirect = new URL(u.searchParams.get("redirect_uri")!);
+          redirect.searchParams.set("error", "access_denied");
+          redirect.searchParams.set("state", u.searchParams.get("state")!);
+          void fetch(redirect, { redirect: "manual" }).then((r) => {
+            landed = r.headers.get("location");
+          });
+        },
+      }),
+    ).rejects.toThrow(/denied/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(landed).toBe("https://app.test/cli/done?result=denied"));
   });
 
   it("marks a live login so the dashboard asks for a step-up", () => {
