@@ -60,8 +60,11 @@ export async function run(argv: string[]): Promise<void> {
       ).loginCommand({
         ...gf,
         token: typeof parsed.flags.token === "string" ? parsed.flags.token : undefined,
-        tenant: typeof parsed.flags.tenant === "string" ? parsed.flags.tenant : undefined,
         profile: typeof parsed.flags.profile === "string" ? parsed.flags.profile : undefined,
+        device: parsed.flags.device === true,
+        live: parsed.flags.live === true,
+        rotate: parsed.flags.rotate === true,
+        cwd: typeof parsed.flags.cwd === "string" ? parsed.flags.cwd : undefined,
       });
       break;
 
@@ -72,6 +75,17 @@ export async function run(argv: string[]): Promise<void> {
           await keys.keysList(gf);
           break;
         case "create":
+          if (parsed.flags.live === true) {
+            // B5: a live key only through the dashboard's step-up, for this
+            // project — the CLI never makes one on its own.
+            await (await import("./commands/login.js")).loginCommand({
+              ...gf,
+              live: true,
+              device: parsed.flags.device === true,
+              rotate: parsed.flags.rotate === true,
+            });
+            break;
+          }
           await keys.keysCreate({
             ...gf,
             kind: parsed.flags.kind === "publishable" ? "publishable" : "secret",
@@ -86,6 +100,19 @@ export async function run(argv: string[]): Promise<void> {
         default:
           usage("Usage: infi keys list|create|revoke");
       }
+      break;
+    }
+
+    case "template": {
+      // `infi template pack ecommerce [--out file]`: the key-free download.
+      if (parsed.sub !== "pack" || !parsed.positional[0]) usage("Usage: infi template pack <id> [--out file.zip]");
+      const id = parsed.positional[0]!;
+      const { packTemplate } = await import("./lib/template-zip.js");
+      const { templatePath } = await import("./lib/scaffold.js");
+      const fs = await import("node:fs");
+      const out = typeof parsed.flags.out === "string" ? parsed.flags.out : `${id}.zip`;
+      fs.writeFileSync(out, packTemplate(templatePath(id as "ecommerce"), id));
+      console.log(out);
       break;
     }
 

@@ -1,5 +1,21 @@
 export { Infi, type CheckoutOptions } from "./client.js";
 export {
+  SUPPORTED_SCHEMA_VERSIONS,
+  SchemaVersionError,
+  assertValidManifest,
+  modeOfKey,
+  suggestSlug,
+  type BillingCoupon,
+  type BillingStorefront,
+  type CollisionAnswer,
+  type DeliverableFile,
+  type FileDeliverable,
+  type KeyCollision,
+  type SchemaVersion,
+  type StorefrontLock,
+  type TemplateMeta,
+} from "./template-manifest.js";
+export {
   InfiError,
   InsufficientCreditError,
   parseErrorResponse,
@@ -99,6 +115,7 @@ export {
   type ProviderList,
 } from "./resources/providers.js";
 export type { CreateApiKeyInput } from "./resources/api-keys.js";
+export type { BuyerToken, BuyerTokenScope } from "./resources/buyer-tokens.js";
 export type {
   CreateWebhookInput,
   CreatedWebhookEndpoint,

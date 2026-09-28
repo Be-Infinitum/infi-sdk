@@ -1,6 +1,11 @@
 # ADR 0003 — Scaffolding folds into the CLI (`infi init`); create-infi-app is a shim
 
-**Status:** Accepted (2026-07) · Shim removed (2026-08)
+**Status:** Accepted (2026-07) · Shim removed (2026-08) · Shim back (2026-09)
+
+> **Update (2026-09).** The shim is back, because the template's main path is
+> `npm create infi-app --template ecommerce` (Caio, 2026-09-26, templates
+> decisions). It depends on `@beinfi/cli` with `>=0.3.0 <1.0.0`, not a caret, so
+> the pin problem below does not return. Publishing it is part of the release.
 
 > **Update (2026-08).** The shim is gone. `create-infi-app` was never published to
 > npm, so `npm create infi-app` never worked in the first place and nothing outside

@@ -3,18 +3,17 @@ import pc from "picocolors";
 import path from "node:path";
 import fs from "node:fs";
 import { scaffold } from "../lib/scaffold.js";
-import { provisionClaimable } from "../lib/provision.js";
 import {
   DEFAULT_PORT,
   TEMPLATE_META,
   slugFromName,
   validateProjectName,
-  writeEnvFile,
   writeEnvExample,
   type TemplateId,
 } from "../lib/init-support.js";
-import { runInstall, runDbPush, runSetup, startDockerDb } from "../lib/run-setup.js";
-import type { ClaimRef } from "../lib/claim.js";
+import { runInstall } from "../lib/run-setup.js";
+import { login } from "./login.js";
+import { syncCommand } from "./sync.js";
 
 /** Brand wordmark (ANSI Shadow "infi") in a cyan gradient. */
 function banner(): void {
@@ -56,10 +55,9 @@ type InitOptions = {
   cwd: string;
   skipProvision: boolean;
   skipInstall: boolean;
-  skipSetup: boolean;
   local: boolean;
   yes: boolean;
-  ref?: ClaimRef;
+  device: boolean;
 };
 
 function parseInitArgs(argv: string[]): Partial<InitOptions> & { help?: boolean } {
@@ -72,9 +70,8 @@ function parseInitArgs(argv: string[]): Partial<InitOptions> & { help?: boolean 
     else if (arg === "--yes" || arg === "-y") out.yes = true;
     else if (arg === "--skip-provision") out.skipProvision = true;
     else if (arg === "--skip-install") out.skipInstall = true;
-    else if (arg === "--skip-setup") out.skipSetup = true;
     else if (arg === "--local") out.local = true;
-    else if (arg === "--ref") out.ref = argv[++i] as ClaimRef;
+    else if (arg === "--device") out.device = true;
     else if (arg === "--template") out.template = argv[++i] as TemplateId;
     else if (arg === "--port") out.port = Number(argv[++i]);
     else if (!arg.startsWith("-")) positional.push(arg);
@@ -93,13 +90,12 @@ ${pc.dim("Usage:")}
   npm create infi-app [project-name] [options]
 
 ${pc.dim("Options:")}
-  --template <id>     Template: default, crm, ebook-sale, ai-chat, marketplace-billing
+  --template <id>     Template: ecommerce
   --port <n>          Dev server port (default: 3000)
-  --local             Use local Infi API (:8088) and frontend (:4003)
-  --skip-provision    Do not provision a claimable tenant (write .env.example only)
+  --local             Use local Infi API (:8088)
+  --device            Log in with a code instead of the browser (agents)
+  --skip-provision    Do not log in or seed (run \`infi login && infi sync\` later)
   --skip-install      Skip package install
-  --skip-setup        Skip db:push and setup script
-  --ref <cursor|lovable|mcp|cli>  Claim attribution (default: cli)
   -y, --yes           Skip prompts
   -h, --help          Show help
 `);
@@ -145,21 +141,13 @@ async function resolveOptions(argv: string[]): Promise<InitOptions | null> {
       }),
     );
   }
-  template = template ?? "default";
-
-  let port = parsed.port ?? DEFAULT_PORT;
-  if (!parsed.port && !parsed.yes && template === "default") {
-    port = Number(
-      guard(
-        await p.text({
-          message: "Dev server port",
-          defaultValue: String(DEFAULT_PORT),
-          placeholder: String(DEFAULT_PORT),
-          validate: (v) => (Number(v) > 0 && Number(v) < 65536 ? undefined : "Invalid port"),
-        }),
-      ),
-    );
+  template = template ?? "ecommerce";
+  if (!(template in TEMPLATE_META)) {
+    p.cancel(`Unknown template "${template}". Available: ${Object.keys(TEMPLATE_META).join(", ")}.`);
+    return null;
   }
+
+  const port = parsed.port ?? DEFAULT_PORT;
 
   const cwd = process.cwd();
 
@@ -170,10 +158,9 @@ async function resolveOptions(argv: string[]): Promise<InitOptions | null> {
     cwd,
     skipProvision: parsed.skipProvision ?? false,
     skipInstall: parsed.skipInstall ?? false,
-    skipSetup: parsed.skipSetup ?? false,
     local: parsed.local ?? false,
     yes: parsed.yes ?? false,
-    ref: parsed.ref,
+    device: parsed.device ?? false,
   };
 }
 
@@ -201,36 +188,8 @@ export async function initCommand(argv: string[]): Promise<void> {
     process.exit(1);
   }
 
-  let claimUrl: string | undefined;
-
-  if (!options.skipProvision) {
-    s.start("Provisioning claimable tenant…");
-    try {
-      const claimable = await provisionClaimable({
-        local: options.local,
-        ref: options.ref ?? (process.env.INFI_CLAIM_REF as ClaimRef | undefined) ?? "cli",
-      });
-      writeEnvFile(
-        {
-          targetDir,
-          appSlug,
-          appName: options.projectName,
-          port: options.port,
-          local: options.local,
-        },
-        claimable,
-      );
-      claimUrl = claimable.claimUrl;
-      s.stop("Claimable tenant provisioned");
-    } catch (err) {
-      s.stop(pc.yellow("Provisioning failed — writing .env.example"));
-      writeEnvExample(targetDir, options.projectName, options.port);
-      p.log.warn(err instanceof Error ? err.message : String(err));
-      p.log.info("Fill INFI_SECRET_KEY manually, then run `bun run setup`.");
-    }
-  } else {
-    writeEnvExample(targetDir, options.projectName, options.port);
-  }
+  // Nothing written so far carries a key: the template ships .env.example.
+  writeEnvExample(targetDir, options.port);
 
   if (!options.skipInstall) {
     s.start("Installing dependencies…");
@@ -243,42 +202,34 @@ export async function initCommand(argv: string[]): Promise<void> {
     }
   }
 
-  if (!options.skipSetup && options.template === "default") {
-    const composePath = path.join(targetDir, "docker-compose.yml");
-    if (fs.existsSync(composePath)) {
-      s.start("Starting Postgres (docker compose)…");
-      const started = startDockerDb(targetDir);
-      if (started) s.stop("Postgres started");
-      else s.stop(pc.yellow("Docker not available — ensure Postgres is running locally"));
-    }
-
-    s.start("Running db:push + setup…");
+  // No anonymous tenant (decisoes.md): the person logs in — or signs up — in
+  // the browser, and this project gets its own sk_test_ on their sandbox.
+  let seeded = false;
+  if (!options.skipProvision) {
+    const here = process.cwd();
+    process.chdir(targetDir);
     try {
-      runDbPush(targetDir);
-      runSetup(targetDir);
-      s.stop("Tenant configured");
+      p.log.step("Entrando na sua conta Infi (sem conta? o navegador leva ao cadastro)…");
+      const who = await login({ local: options.local, device: options.device });
+      p.log.success(`${who.email} · ${who.tenant.slug} (sandbox) — chave ${who.keyName ?? "do projeto"}`);
+      p.log.step("Semeando o catálogo do template no seu sandbox…");
+      await syncCommand({ local: options.local });
+      seeded = process.exitCode !== 2;
     } catch (err) {
-      s.stop(pc.yellow("Setup skipped or failed"));
       p.log.warn(err instanceof Error ? err.message : String(err));
-      p.log.info("Run manually: `docker compose up -d db && bun run db:push && bun run setup`");
+      p.log.info("Rode depois, dentro do projeto: `infi login && infi sync`.");
+    } finally {
+      process.chdir(here);
     }
-  } else if (!options.skipSetup && options.template !== "default") {
-    p.log.info(`Template "${options.template}": run setup per its README after filling .env`);
   }
 
   const steps = [
     `${pc.cyan("cd")} ${options.projectName}`,
-    `${pc.cyan("bun run dev")}`,
+    ...(options.skipProvision || !seeded ? [`${pc.cyan("infi login && infi sync")}`] : []),
+    `${pc.cyan("npm run dev")}`,
     pc.dim(`→ http://localhost:${options.port}`),
   ].join("\n");
   p.note(steps, pc.bold("Next steps"));
-
-  if (claimUrl) {
-    p.note(
-      `${pc.dim("Keep this tenant after the trial:")}\n${pc.cyan(claimUrl)}`,
-      pc.bold("Claim your tenant"),
-    );
-  }
 
   p.outro(`${pc.green("✓")} ${pc.bold(options.projectName)} is ready. ${pc.dim("Happy building.")}`);
 }

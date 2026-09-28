@@ -135,7 +135,8 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
     // in a plain `npm init` project Node reads .ts as CJS and the ESM file it
     // generates throws "Cannot use import statement outside a module".
     const sync = await infi.sync(existingCompany ? await loadCompanyConfig(companyFile) : companyFromIntent(intent));
-    writeLock(lockPathFor(companyFile), sync.lock);
+    // Claimables are sandbox tenants: the sandbox lock (B7).
+    writeLock(lockPathFor(companyFile, "sandbox"), sync.lock);
     syncResult = { actions: sync.actions.length, drift: sync.drift.length };
   }
 

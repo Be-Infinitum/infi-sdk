@@ -35,6 +35,14 @@ export const WEBHOOK_EVENT_TYPES = [
   "payment.chargeback",
   "payment.chargeback_reversed",
   "usage.threshold_reached",
+  "plan.changed",
+  "subscription.cancel_scheduled",
+  "subscription.cancel_unscheduled",
+  "subscription.canceled",
+  "refund_request.created",
+  "refund_request.declined",
+  "payment.duplicate_detected",
+  "payment.duplicate_refunded",
 ] as const satisfies readonly GeneratedEventType[];
 
 /**

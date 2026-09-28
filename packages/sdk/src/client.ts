@@ -1,3 +1,4 @@
+import { BuyerTokensResource } from "./resources/buyer-tokens.js";
 import {
   InfiError,
   InsufficientCreditError,
@@ -142,6 +143,8 @@ export class Infi {
    * `infi login`.
    */
   readonly apiKeys: ApiKeysResource;
+  /** Portal tokens for your own logged-in users (server-side, `sk_`). */
+  readonly buyerTokens: BuyerTokensResource;
   /** Webhooks: register endpoints for payment/invoice events. */
   readonly webhooks: WebhooksResource;
   /** Pay: public, slug-based checkout (pix QR + card charge). Browser-safe, no secret key. */
@@ -188,6 +191,7 @@ export class Infi {
     this.storefronts = new StorefrontsResource(transport, this.#appBase);
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
+    this.buyerTokens = new BuyerTokensResource(transport);
     this.webhooks = new WebhooksResource(transport);
     this.pay = new PayResource(this.#apiBase);
     this.providers = new ProvidersResource(transport);

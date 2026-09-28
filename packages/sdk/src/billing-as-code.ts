@@ -1,3 +1,17 @@
+import {
+  assertValidManifest,
+  reconcileCoupons,
+  reconcileStorefront,
+  syncFileDeliverable,
+  type BillingCoupon,
+  type BillingStorefront,
+  type CollisionAnswer,
+  type DeliverableFile,
+  type FileDeliverable,
+  type KeyCollision,
+  type StorefrontLock,
+  type TemplateMeta,
+} from "./template-manifest.js";
 import type { Infi } from "./client.js";
 import type {
   CreateProductRequest,
@@ -17,7 +31,8 @@ export interface BillingMeter {
   key: string;
   displayName?: string;
   unit: "token" | "request" | "unit";
-  aggregation: "sum" | "count" | "unique_count" | "max" | "last";
+  /** Only `sum` and `count` can be created (the backend refuses the others). */
+  aggregation: "sum" | "count";
   /**
    * JSON path on the usage event for the numeric value (backend ingest).
    * Use `"value"` for the standard `track({ value })` shape.
@@ -68,8 +83,12 @@ export interface BillingProduct {
   grants?: BillingGrant[];
   meters?: BillingMeter[];
   prices?: BillingPrice[];
-  /** Link deliverables only (file uploads use products.deliverable.presign/save). */
-  deliverable?: { kind: "link"; url: string };
+  /** Shown on the store and the checkout. */
+  description?: string;
+  /** Refund window, 7–30 days (default 7): a portal refund inside it is automatic. */
+  guaranteeDays?: number;
+  /** A link, or a file `infi sync` uploads from the project (needs `readFile`). */
+  deliverable?: { kind: "link"; url: string } | FileDeliverable;
 }
 
 /** Effective cycle grant amount: first `grants[{on:cycle}]`, else `creditsPerCycle`. */
@@ -152,9 +171,17 @@ export interface BillingWebhook {
 }
 
 export interface BillingConfig {
+  /** Manifest schema. Required for a template; an unknown one is refused (G9). */
+  schemaVersion?: number;
+  /** The template this company was seeded from; its id prefixes every product key. */
+  template?: TemplateMeta;
   products: BillingProduct[];
   /** Webhook endpoints (url + subscribed events). */
   webhooks?: BillingWebhook[];
+  /** Discount codes. `sandboxOnly` ones never reach live. */
+  coupons?: BillingCoupon[];
+  /** The store the products are sold from. */
+  storefront?: BillingStorefront;
 }
 
 /**
@@ -167,7 +194,17 @@ export function defineBilling(config: BillingConfig): BillingConfig {
 
 export interface SyncAction {
   action: "create" | "skip" | "update" | "bump" | "publish" | "blocked";
-  resource: "product" | "meter" | "version" | "price" | "deliverable" | "app" | "webhook" | "grant";
+  resource:
+    | "product"
+    | "meter"
+    | "version"
+    | "price"
+    | "deliverable"
+    | "app"
+    | "webhook"
+    | "grant"
+    | "coupon"
+    | "storefront";
   ref: string;
   /** Human-readable reason for an update/bump/blocked (e.g. changed fields, drift). */
   detail?: string;
@@ -183,6 +220,8 @@ export interface EntityLock {
 /** Per-product provenance (adds the published version id). */
 export interface ProductLock extends EntityLock {
   versionId?: string;
+  /** sha256 of the file deliverable last uploaded, so an unchanged file is not re-sent. */
+  deliverableHash?: string;
 }
 
 /** `infi.billing.lock.json` — what the last sync applied, keyed by natural key. */
@@ -192,6 +231,10 @@ export interface SyncLock {
   /** Per-app provenance, keyed by slug. */
   /** Per-webhook provenance, keyed by url. */
   webhooks?: Record<string, EntityLock>;
+  /** Per-coupon provenance, keyed by code. */
+  coupons?: Record<string, EntityLock>;
+  /** The store this lock's mode synced. */
+  storefront?: StorefrontLock;
 }
 
 /** A product whose backend state changed outside the config since the last sync. */
@@ -207,6 +250,12 @@ export interface SyncResult {
   drift: DriftEntry[];
   /** Fresh lock to persist (unchanged in plan mode). */
   lock: SyncLock;
+  /** Template keys that already existed in the tenant, not created by this project. */
+  collisions: KeyCollision[];
+  /** Keys the caller chose to rename on a collision (old → new); the manifest should follow. */
+  renames: Record<string, string>;
+  /** The store slug actually used (differs from the manifest when a suggestion was taken). */
+  storefrontSlug?: string;
 }
 
 export interface SyncOptions {
@@ -218,6 +267,19 @@ export interface SyncOptions {
   force?: boolean;
   /** Timestamp stamped into the returned lock (defaults to now). */
   now?: string;
+  /** Mode of the key syncing: live leaves `sandboxOnly` coupons out (B8). */
+  mode?: "sandbox" | "live";
+  /**
+   * A template key that already exists in the tenant and is not in the lock
+   * (G4): show the diff and ask. Without an answer the product is blocked.
+   */
+  onCollision?: (c: KeyCollision) => Promise<CollisionAnswer>;
+  /** The store slug is taken: return the slug to use (the suggestion, edited) or null. */
+  onSlugTaken?: (slug: string, suggestion: string) => Promise<string | null>;
+  /** Reads a file deliverable from the project (the CLI resolves the path). */
+  readFile?: (path: string) => Promise<DeliverableFile>;
+  /** For the deliverable upload (tests). */
+  fetchImpl?: typeof fetch;
 }
 
 // ── Diff helpers ─────────────────────────────────────────────────────────────
@@ -291,6 +353,9 @@ function grantsEqual(v: Version, p: BillingProduct): boolean {
 function productPatch(existing: Product, p: BillingProduct): Partial<CreateProductRequest> {
   const name = p.name ?? p.key;
   const patch: Partial<CreateProductRequest> = {};
+  if (p.guaranteeDays && (existing as { guaranteeDays?: number }).guaranteeDays !== p.guaranteeDays) {
+    patch.guaranteeDays = p.guaranteeDays;
+  }
   if ((existing.name ?? "") !== name) patch.name = name;
   if (p.type && existing.type !== p.type) patch.type = p.type;
   if (p.pricingModel && existing.pricingModel !== p.pricingModel) patch.pricingModel = p.pricingModel;
@@ -495,6 +560,10 @@ export async function syncBilling(
   opts: SyncOptions = {},
 ): Promise<SyncResult> {
   assertValidConfig(config);
+  assertValidManifest(config);
+  const collisions: KeyCollision[] = [];
+  const renames: Record<string, string> = {};
+  const productIds = new Map<string, string>();
 
   const plan = opts.plan ?? false;
   const force = opts.force ?? false;
@@ -505,10 +574,35 @@ export async function syncBilling(
   const lock: SyncLock = { version: 1, products: {} };
   const existingProducts = await infi.products.list();
 
-  for (const p of config.products) {
-    const name = p.name ?? p.key;
+  for (const declared of config.products) {
+    let p = declared;
+    let name = p.name ?? p.key;
     // Prefer the natural key (unique per tenant); fall back to name for older tenants.
-    const existing = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name));
+    let existing = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name));
+    // G4: a template key the tenant already sells, that this project never
+    // synced, is somebody else's product until the person says otherwise.
+    if (config.template && existing?.id && !prevLock?.products[p.key]) {
+      const collision: KeyCollision = { key: p.key, productId: existing.id, diff: collisionDiff(existing, p) };
+      // A plan only reports it: nobody is asked about a change that will not run.
+      const answer: CollisionAnswer =
+        opts.onCollision && !plan ? await opts.onCollision(collision) : { action: "skip" };
+      if (answer.action === "rename") {
+        renames[p.key] = answer.key;
+        p = { ...p, key: answer.key };
+        name = p.name ?? p.key;
+        existing = existingProducts.find((x) => x.key === p.key);
+      } else if (answer.action === "skip") {
+        collisions.push(collision);
+        actions.push({
+          action: "blocked",
+          resource: "product",
+          ref: name,
+          detail: "key already used by a product this project did not create — adopt or rename",
+        });
+        if (prevLock?.products[declared.key]) lock.products[declared.key] = prevLock.products[declared.key]!;
+        continue;
+      }
+    }
     let productId = existing?.id;
     // Metadata we know for this product (updated as we go), for the post-sync snapshot.
     let meta: Pick<Product, "name" | "type" | "pricingModel" | "currency"> = existing ?? {
@@ -527,6 +621,8 @@ export async function syncBilling(
           type: p.type,
           pricingModel: p.pricingModel,
           currency: p.currency,
+          ...(p.description ? { description: p.description } : {}),
+          ...(p.guaranteeDays ? { guaranteeDays: p.guaranteeDays } : {}),
           // Prepaid products require a billing cycle at creation; pass it through
           // (the backend rejects prepaid without one).
           billingCycle: p.billingCycle ?? undefined,
@@ -538,6 +634,7 @@ export async function syncBilling(
 
     // In plan mode without a real product id we can only report the parent create.
     if (!productId) continue;
+    productIds.set(declared.key, productId);
 
     // Meters — read first (needed for fingerprinting and price resolution).
     const existingMeters = await infi.products.meters.list(productId);
@@ -664,12 +761,23 @@ export async function syncBilling(
       });
     }
 
-    // Deliverable (link only in sync; file uploads go through presign/save).
+    // Deliverable: a link is saved as is; a file is uploaded only when it changed.
+    let deliverableHash = prev?.deliverableHash;
     if (p.deliverable?.kind === "link") {
       actions.push({ action: "create", resource: "deliverable", ref: name });
       if (!plan) {
         await infi.products.deliverable.save(productId, { kind: "link", url: p.deliverable.url });
       }
+    } else if (p.deliverable?.kind === "file") {
+      if (!opts.readFile) throw new Error(`${p.key}: a file deliverable needs readFile (run it through \`infi sync\`).`);
+      const file = await opts.readFile(p.deliverable.path);
+      const done = await syncFileDeliverable(infi, productId, file, {
+        plan,
+        previousHash: prev?.deliverableHash,
+        fetchImpl: opts.fetchImpl,
+      });
+      actions.push({ ...done.action, ref: `${name}/${done.action.ref}` });
+      if (!plan) deliverableHash = done.hash;
     }
 
     // Lock: a blocked product keeps its prior entry (stays flagged until resolved);
@@ -684,6 +792,9 @@ export async function syncBilling(
     } else {
       lock.products[p.key] = { state: preState, versionId: current?.id, syncedAt: now };
     }
+    if (!plan && deliverableHash && lock.products[p.key]) {
+      lock.products[p.key] = { ...lock.products[p.key]!, deliverableHash };
+    }
   }
 
   // Platform config — webhooks (create + update, never delete). Tenant-level,
@@ -691,7 +802,46 @@ export async function syncBilling(
   const ctx: ReconcileCtx = { plan, force, now, prevLock, lock, actions, drift };
   if (config.webhooks?.length) await reconcileWebhooks(infi, config.webhooks, ctx);
 
-  return { planned: plan, actions, drift, lock: plan ? (prevLock ?? lock) : lock };
+  const mode = opts.mode ?? "sandbox";
+  if (config.coupons?.length) {
+    const done = await reconcileCoupons(infi, config.coupons, { plan, mode, now });
+    actions.push(...done.actions);
+    lock.coupons = { ...(prevLock?.coupons ?? {}), ...done.lock };
+  }
+  let storefrontSlug: string | undefined;
+  if (config.storefront) {
+    const done = await reconcileStorefront(infi, config.storefront, productIds, {
+      plan,
+      now,
+      prev: prevLock?.storefront,
+      onSlugTaken: opts.onSlugTaken,
+    });
+    actions.push(...done.actions);
+    storefrontSlug = done.slug;
+    if (done.lock) lock.storefront = done.lock;
+    else if (prevLock?.storefront) lock.storefront = prevLock.storefront;
+  }
+
+  return {
+    planned: plan,
+    actions,
+    drift,
+    lock: plan ? (prevLock ?? lock) : lock,
+    collisions,
+    renames,
+    storefrontSlug,
+  };
+}
+
+/** What differs between a colliding product and the template's (G4). */
+function collisionDiff(existing: Product, p: BillingProduct): Record<string, [unknown, unknown]> {
+  const diff: Record<string, [unknown, unknown]> = {};
+  const want = { name: p.name ?? p.key, type: p.type, pricingModel: p.pricingModel, currency: p.currency ?? "BRL" };
+  for (const [k, v] of Object.entries(want)) {
+    const have = (existing as Record<string, unknown>)[k];
+    if (have !== undefined && have !== v) diff[k] = [have, v];
+  }
+  return diff;
 }
 
 /**
