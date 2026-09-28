@@ -69,7 +69,51 @@ export {
   type PortalMode,
   type PortalToParent,
 } from "./embed.js";
-export { apiBaseFor, getStorefront, type PublicStorefront, type StorefrontItem } from "./storefront.js";
+export {
+  apiBaseFor,
+  getStorefront,
+  type ProductFaq,
+  type ProductMedia,
+  type ProductPageFields,
+  type PublicPaymentLink,
+  type PublicStorefront,
+  type StorefrontItem,
+} from "./storefront.js";
+export {
+  APPEARANCE_FONTS,
+  APPEARANCE_RADII,
+  DEFAULT_APPEARANCE,
+  FONT_STACKS,
+  RADIUS_LENGTHS,
+  appearanceCssVars,
+  effectiveAppearance,
+  readableOn,
+  resolveAppearance,
+  type Appearance,
+  type AppearanceFont,
+  type AppearanceLevels,
+  type AppearanceRadius,
+  type AppearanceSource,
+  type ResolvedAppearance,
+} from "./appearance.js";
+export {
+  EXAMPLE_BUYER,
+  EXAMPLE_PURCHASE_DAYS_AGO,
+  PREVIEW_PIX_CODE,
+  exampleCourse,
+  exampleMemberView,
+  previewProductFromDraft,
+  previewQrMatrix,
+  previewStorefront,
+  previewStorefrontItem,
+  type BillingCycle,
+  type CourseDraft,
+  type ElementPreview,
+  type ExampleBuyer,
+  type ExampleMemberView,
+  type PreviewProduct,
+  type ProductDraft,
+} from "./preview.js";
 export {
   createCompletionTracker,
   detectVideoProvider,

@@ -44,6 +44,32 @@ export interface ElementMessages {
   checkoutTitle: string;
   portalTitle: string;
   loginTitle: string;
+  /** Words the natively drawn pieces use: preview mode and the product page. */
+  ui: {
+    previewBadge: string;
+    faqTitle: string;
+    guarantee: (days: number) => string;
+    coupon: string;
+    applyCoupon: string;
+    pix: string;
+    card: string;
+    pixInstructions: string;
+    copyCode: string;
+    cardNumber: string;
+    cardExpiry: string;
+    cardCvc: string;
+    cardName: string;
+    pay: string;
+    buyer: string;
+    orders: string;
+    order: string;
+    paid: string;
+    subscriptions: string;
+    active: string;
+    nextBilling: string;
+    guaranteeUntil: string;
+    total: string;
+  };
 }
 
 export const MESSAGES: Record<InfiLocale, ElementMessages> = {
@@ -54,6 +80,31 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
     checkoutTitle: "Pagamento",
     portalTitle: "Minhas compras",
     loginTitle: "Entrar",
+    ui: {
+      previewBadge: "Prévia — nada é cobrado",
+      faqTitle: "Perguntas frequentes",
+      guarantee: (d) => `Garantia de ${d} dias: devolvemos seu dinheiro se não gostar.`,
+      coupon: "Cupom de desconto",
+      applyCoupon: "Aplicar",
+      pix: "Pix",
+      card: "Cartão",
+      pixInstructions: "Abra o app do seu banco e escaneie o QR code ou copie o código.",
+      copyCode: "Copiar código",
+      cardNumber: "Número do cartão",
+      cardExpiry: "Validade",
+      cardCvc: "CVC",
+      cardName: "Nome no cartão",
+      pay: "Pagar",
+      buyer: "Comprador",
+      orders: "Pedidos",
+      order: "Pedido",
+      paid: "Pago",
+      subscriptions: "Assinaturas",
+      active: "Ativa",
+      nextBilling: "Próxima cobrança",
+      guaranteeUntil: "Garantia até",
+      total: "Total",
+    },
   },
   en: {
     buy: "Buy",
@@ -62,6 +113,31 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
     checkoutTitle: "Checkout",
     portalTitle: "My purchases",
     loginTitle: "Sign in",
+    ui: {
+      previewBadge: "Preview — nothing is charged",
+      faqTitle: "Frequently asked questions",
+      guarantee: (d) => `${d}-day guarantee: your money back if you don't like it.`,
+      coupon: "Discount code",
+      applyCoupon: "Apply",
+      pix: "Pix",
+      card: "Card",
+      pixInstructions: "Open your bank app and scan the QR code or copy the code.",
+      copyCode: "Copy code",
+      cardNumber: "Card number",
+      cardExpiry: "Expiry",
+      cardCvc: "CVC",
+      cardName: "Name on card",
+      pay: "Pay",
+      buyer: "Buyer",
+      orders: "Orders",
+      order: "Order",
+      paid: "Paid",
+      subscriptions: "Subscriptions",
+      active: "Active",
+      nextBilling: "Next charge",
+      guaranteeUntil: "Guarantee until",
+      total: "Total",
+    },
   },
 };
 

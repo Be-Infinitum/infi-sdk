@@ -1,3 +1,4 @@
+import { APPEARANCE_FONTS, APPEARANCE_RADII, type AppearanceFont, type AppearanceRadius } from "../appearance.js";
 import { embedPathPrefix, resolveAppBase, type CheckoutMode } from "./hosts.js";
 
 /**
@@ -30,6 +31,9 @@ export type ThemeOptions = {
    *  a stylesheet, and a stylesheet is not a safe place for arbitrary text. */
   readonly backgroundColor?: string;
   readonly accentColor?: string;
+  /** One of the appearance fonts/radii (`resolveAppearance`); anything else throws. */
+  readonly font?: AppearanceFont;
+  readonly radius?: AppearanceRadius;
 };
 
 export interface EmbedUrlOptions {
@@ -89,6 +93,14 @@ function color(value: string | undefined, field: string): string | undefined {
     );
   }
   return value.trim();
+}
+
+function oneOf<T extends string>(value: string | undefined, allowed: readonly T[], field: string): T | undefined {
+  if (value === undefined) return undefined;
+  if (!(allowed as readonly string[]).includes(value)) {
+    throw new InvalidEmbedUrlError(`${field} must be one of ${allowed.join(", ")}; got ${JSON.stringify(value)}.`);
+  }
+  return value as T;
 }
 
 /** Pull `{ slug, linkToken | invoiceId, appUrl }` out of a hosted-checkout URL. */
@@ -174,6 +186,10 @@ export function buildEmbedUrl(source: EmbedSource, options: EmbedUrlOptions): st
   const accent = color(options.themeOptions?.accentColor, "themeOptions.accentColor");
   if (bg) q.set("bg", bg);
   if (accent) q.set("accent", accent);
+  const font = oneOf(options.themeOptions?.font, APPEARANCE_FONTS, "themeOptions.font");
+  const radius = oneOf(options.themeOptions?.radius, APPEARANCE_RADII, "themeOptions.radius");
+  if (font) q.set("font", font);
+  if (radius) q.set("radius", radius);
 
   if (options.hidePrice) q.set("hidePrice", "1");
 
