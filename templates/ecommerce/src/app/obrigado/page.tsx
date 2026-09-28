@@ -1,4 +1,4 @@
-import { OrderStatus } from "@/components/infi/order-status";
+import { OrderStatus } from "@/components/order-status";
 
 export default async function ThanksPage({ searchParams }: { searchParams: Promise<{ pedido?: string }> }) {
   const { pedido } = await searchParams;

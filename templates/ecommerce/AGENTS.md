@@ -21,16 +21,23 @@ Do not change how payment and delivery work.
    finished the form, not that the money arrived. Infi mails the file when the
    payment confirms. Anything this site does on payment goes in
    `src/app/api/webhooks/infi/route.ts`, after `verifyWebhook`.
-4. **Card fields stay in the provider's frame.** The checkout
-   (`@beinfi/checkout`) and "Minhas compras" (`@beinfi/elements-core`) run
-   inside Infi's frames. Never build a form that collects a card number, and
-   never read one.
+4. **Card fields stay in the provider's frame.** `<CheckoutElement>` and
+   `<PortalElement>` (`@beinfi/elements-react`) run inside Infi's frames.
+   Never build a form that collects a card number, and never read one.
 5. **The buyer's portal token is never in `localStorage` or a URL.**
-   `src/components/infi/portal-element.tsx` keeps it in an httpOnly cookie
-   through `/api/portal-token`. Leave it there.
+   `src/components/portal.tsx` keeps it in an httpOnly cookie through
+   `/api/portal-token`. Leave it there.
 6. **Product keys keep the `ecommerce/` prefix.** Keys are how `infi sync`
    recognises a product. Renaming a key creates a new product; it does not
    rename the old one.
+
+## Elements
+
+The Infi pieces come from `@beinfi/elements-react`: `<InfiProvider>` (in
+`src/app/layout.tsx`), `<StoreElement>`, `<CheckoutElement>` and
+`<PortalElement>`. Change their look with `appearance` on the provider, with
+props, and with CSS (the `--infi-*` variables and the `infi-store*` classes).
+Update them by bumping the package version. Do not fork their code.
 
 ## How to change the catalog
 

@@ -24,7 +24,9 @@ export function getInfi(): Infi {
 
 /** sandbox or live, from the key — the checkout frame must charge the same one. */
 export function environment(): "sandbox" | "production" {
-  return getInfi().mode === "live" ? "production" : "sandbox";
+  // From the prefix alone: the layout calls this on every page, including the
+  // ones Next prerenders at build time, where there may be no key.
+  return process.env.INFI_SECRET_KEY?.startsWith("sk_live_") ? "production" : "sandbox";
 }
 
 /** The merchant's slug (`/pay/{slug}`), written by `infi login`. */

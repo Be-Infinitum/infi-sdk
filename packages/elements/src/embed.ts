@@ -8,17 +8,12 @@
  * The frame is served by the Infi frontend at `{app}/embed/{slug}/portal`.
  */
 
+import { resolveAppBase } from "@beinfi/checkout";
+
 export const PORTAL_PROTOCOL = "portal/v1";
 
+/** Same hosts as the checkout: the portal frame is served by the same app. */
 export type PortalMode = "sandbox" | "live";
-
-export const SANDBOX_APP_BASE = "https://app-sandbox.beinfi.com";
-export const LIVE_APP_BASE = "https://app.beinfi.com";
-
-export function resolveAppBase(mode: PortalMode, override?: string): string {
-  if (override) return override.replace(/\/$/, "");
-  return mode === "live" ? LIVE_APP_BASE : SANDBOX_APP_BASE;
-}
 
 type Envelope = { __infi: typeof PORTAL_PROTOCOL; embedId: string };
 

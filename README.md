@@ -54,7 +54,7 @@ npm create infi-app@latest minha-loja -- --template ecommerce   # or: infi init 
 ```
 
 `templates/ecommerce` — store, checkout (pix and card) in the Infi frame, digital delivery,
-monthly subscription and the buyer's "Minhas compras" (`@beinfi/elements-core`). No key ships in
+monthly subscription and the buyer's "Minhas compras" (`@beinfi/elements-react`). No key ships in
 the template or in its zip (`bun run templates:pack`): `infi login` opens the browser (or shows a
 code with `--device`), gives the project its own named `sk_test_`, and `infi sync` seeds the
 catalog from `infi.company.ts` (schemaVersion, `ecommerce/` keys, coupons with `sandboxOnly`,

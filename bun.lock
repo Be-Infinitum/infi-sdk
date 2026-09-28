@@ -76,14 +76,40 @@
         "@beinfi/cli": ">=0.3.0 <1.0.0",
       },
     },
-    "packages/elements-core": {
-      "name": "@beinfi/elements-core",
+    "packages/elements": {
+      "name": "@beinfi/elements",
       "version": "0.1.0",
+      "dependencies": {
+        "@beinfi/checkout": "^0.2.0",
+      },
       "devDependencies": {
         "happy-dom": "^15.11.7",
         "tsup": "^8.5.0",
         "typescript": "^5.8.3",
         "vitest": "^3.2.4",
+      },
+    },
+    "packages/elements-react": {
+      "name": "@beinfi/elements-react",
+      "version": "0.1.0",
+      "dependencies": {
+        "@beinfi/checkout": "^0.2.0",
+        "@beinfi/elements": "^0.1.0",
+      },
+      "devDependencies": {
+        "@testing-library/react": "^16.1.0",
+        "@types/react": "^19.1.8",
+        "@types/react-dom": "^19.1.6",
+        "happy-dom": "^15.11.7",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "tsup": "^8.5.0",
+        "typescript": "^5.8.3",
+        "vitest": "^3.2.4",
+      },
+      "peerDependencies": {
+        "react": ">=18",
+        "react-dom": ">=18",
       },
     },
     "packages/mcp": {
@@ -169,7 +195,9 @@
 
     "@beinfi/cli": ["@beinfi/cli@workspace:packages/cli"],
 
-    "@beinfi/elements-core": ["@beinfi/elements-core@workspace:packages/elements-core"],
+    "@beinfi/elements": ["@beinfi/elements@workspace:packages/elements"],
+
+    "@beinfi/elements-react": ["@beinfi/elements-react@workspace:packages/elements-react"],
 
     "@beinfi/example-ai-agent-billing": ["@beinfi/example-ai-agent-billing@workspace:examples/ai-agent-billing"],
 

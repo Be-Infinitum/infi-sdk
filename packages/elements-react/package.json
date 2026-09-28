@@ -1,7 +1,7 @@
 {
-  "name": "@beinfi/elements-core",
+  "name": "@beinfi/elements-react",
   "version": "0.1.0",
-  "description": "Headless calls behind Infi elements: the buyer portal, the store, the portal embed. Components copied into your project are UI only; the money logic lives here and on the server.",
+  "description": "Infi elements for React: <InfiProvider>, <CheckoutElement>, <PortalElement>, <StoreElement>.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,8 +24,21 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@beinfi/checkout": "^0.2.0",
+    "@beinfi/elements": "^0.1.0"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
   "devDependencies": {
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "happy-dom": "^15.11.7",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"

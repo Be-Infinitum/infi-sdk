@@ -12,8 +12,8 @@
     "infi:login": "infi login"
   },
   "dependencies": {
-    "@beinfi/checkout": "^0.2.0",
-    "@beinfi/elements-core": "^0.1.0",
+    "@beinfi/elements": "^0.1.0",
+    "@beinfi/elements-react": "^0.1.0",
     "@beinfi/sdk": "^0.13.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

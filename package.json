@@ -4,7 +4,8 @@
   "workspaces": [
     "packages/sdk",
     "packages/checkout",
-    "packages/elements-core",
+    "packages/elements",
+    "packages/elements-react",
     "packages/nextjs",
     "packages/cli",
     "packages/mcp",
@@ -12,7 +13,7 @@
     "packages/create-infi-app"
   ],
   "scripts": {
-    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/checkout' build && bun run --filter '@beinfi/elements-core' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter '@beinfi/mcp' build",
+    "build": "bun run --filter '@beinfi/sdk' build && bun run --filter '@beinfi/checkout' build && bun run --filter '@beinfi/elements' build && bun run --filter '@beinfi/elements-react' build && bun run --filter '@beinfi/nextjs' build && bun run --filter '@beinfi/cli' build && bun run --filter '@beinfi/mcp' build",
     "test": "bun run --filter '@beinfi/*' test",
     "typecheck": "bun run --filter '@beinfi/*' typecheck",
     "codegen": "bash scripts/codegen.sh",
