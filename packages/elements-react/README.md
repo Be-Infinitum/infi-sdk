@@ -2,7 +2,7 @@
 
 ```tsx
 <InfiProvider slug="loja" environment="sandbox" appearance={{ accentColor: "#0a7" }}>
-  <StoreElement store={await getStorefront(apiUrl, "loja")} href={(p) => `/produto/${p.productId}`} />
+  <StoreElement store={await getStorefront(apiUrl, "loja")} href={(p) => `/product/${p.productId}`} />
   <CheckoutElement linkToken="plink_…" onComplete={…} />
   <PortalElement token={kept} onToken={keep} />
 </InfiProvider>

@@ -13,7 +13,7 @@ export default async function StorePage() {
           A loja está vazia. Rode <code>infi sync</code> para semear o catálogo do template.
         </p>
       ) : (
-        <StoreElement store={store} href={(item) => `/produto/${item.productId}`} />
+        <StoreElement store={store} href={(item) => `/product/${item.productId}`} />
       )}
     </main>
   );

@@ -11,18 +11,18 @@ export function Account() {
   if (auth.status === "signed_out") {
     return (
       <div className="flex items-center gap-4 text-sm">
-        <Link href="/minhas-compras" className="text-muted-foreground hover:text-foreground">
+        <Link href="/purchases" className="text-muted-foreground hover:text-foreground">
           Minhas compras
         </Link>
         <Button asChild size="sm" variant="outline">
-          <Link href="/entrar">Entrar</Link>
+          <Link href="/sign-in">Entrar</Link>
         </Button>
       </div>
     );
   }
   return (
     <div className="flex items-center gap-4 text-sm">
-      <Link href="/minhas-compras" className="text-muted-foreground hover:text-foreground">
+      <Link href="/purchases" className="text-muted-foreground hover:text-foreground">
         Minhas compras
       </Link>
       <span className="hidden text-muted-foreground sm:inline">{auth.buyer?.buyer.email}</span>

@@ -48,7 +48,12 @@ the portal, the login, the code e-mail and the store's buttons. They pick one in
 5. pt-BR.
 
 For an English store, set `<html lang="en">`. The texts this template writes itself (header,
-`/clube`) are the store's own copy, so translate those yourself.
+`/members`) are the store's own copy, so translate those yourself.
+
+## Routes
+
+URLs are always in English: `/product/[id]`, `/thank-you`, `/purchases`, `/sign-in`, `/members`,
+`/api/order`. That goes for any page you add, whatever language the store's copy is in.
 
 ## Login
 
@@ -56,14 +61,14 @@ Anyone can sign in to the store with a 6-digit code Infi mails (no password,
 bought or not). There is one session for the whole site, the store login and
 "Minhas compras", kept in an HttpOnly cookie by `src/app/api/infi/auth/route.ts`.
 
-- **Sign-in page:** `/entrar` (`<LoginElement>`). `?next=/path` comes back there.
+- **Sign-in page:** `/sign-in` (`<LoginElement>`). `?next=/path` comes back there.
 - **In a client component:** `useInfiAuth()` gives `status`, `buyer`, `has(key)` and
   `signOut()`. `<SignedIn>` and `<SignedOut>` show or hide children.
 - **On the server (gating):** `const buyer = await auth.getBuyer()` from `@/lib/auth`.
   - `null` means nobody is signed in.
-  - `buyer.has("ecommerce/clube")` is true while the product is bought and not refunded,
+  - `buyer.has("ecommerce/club")` is true while the product is bought and not refunded,
     or subscribed and still running.
-  - See `src/app/clube/page.tsx`. Check on the server, never only in the browser.
+  - See `src/app/members/page.tsx`. Check on the server, never only in the browser.
 - The token never goes to localStorage, a URL, or a `NEXT_PUBLIC_*` variable.
 
 ## How to change the catalog

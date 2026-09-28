@@ -13,7 +13,7 @@ export function Checkout({ linkToken }: { linkToken: string }) {
   return (
     <CheckoutElement
       linkToken={linkToken}
-      onComplete={({ invoiceId }) => router.push(invoiceId ? `/obrigado?pedido=${encodeURIComponent(invoiceId)}` : "/obrigado")}
+      onComplete={({ invoiceId }) => router.push(invoiceId ? `/thank-you?order=${encodeURIComponent(invoiceId)}` : "/thank-you")}
       fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}
     />
   );

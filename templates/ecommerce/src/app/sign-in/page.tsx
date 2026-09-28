@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-/** Sign in with an e-mailed code. `?next=/clube` comes back there. */
+/** Sign in with an e-mailed code. `?next=/members` comes back there. */
 export default async function SignInPage({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
   const { next } = await searchParams;
   // Only a path on this site: an absolute URL here would be an open redirect.

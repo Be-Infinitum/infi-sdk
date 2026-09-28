@@ -6,6 +6,6 @@ import { createInfiAuth } from "@beinfi/nextjs";
  * not), and the session lives in an HttpOnly cookie on this site.
  *
  *   const buyer = await auth.getBuyer();          // null when signed out
- *   buyer?.has("ecommerce/clube")                 // bought / subscribed and running
+ *   buyer?.has("ecommerce/club")                 // bought / subscribed and running
  */
 export const auth = createInfiAuth();
