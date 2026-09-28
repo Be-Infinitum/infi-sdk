@@ -115,7 +115,7 @@ export {
   type ProviderList,
 } from "./resources/providers.js";
 export type { CreateApiKeyInput } from "./resources/api-keys.js";
-export type { BuyerToken, BuyerTokenScope, VerifiedBuyerToken } from "./resources/buyer-tokens.js";
+export type { BuyerToken, BuyerTokenScope } from "./resources/buyer-tokens.js";
 export {
   AccessResource,
   type AccessGrant,

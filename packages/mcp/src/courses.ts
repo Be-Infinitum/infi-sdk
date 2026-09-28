@@ -211,17 +211,4 @@ export function registerCourseTools(server: McpServer, client: Client): void {
     { integrationId: z.string() },
     async ({ integrationId }) => text(await client().community.disable(integrationId)),
   );
-
-  // ── Customer login ───────────────────────────────────────────────────────
-  server.tool(
-    "infi_customer_login_settings",
-    "Read or set whether a first login by a new e-mail creates the customer (on by default). Pass signupByLogin to set it.",
-    { signupByLogin: z.boolean().optional() },
-    async ({ signupByLogin }) =>
-      text(
-        signupByLogin === undefined
-          ? await client().buyerTokens.loginSettings()
-          : await client().buyerTokens.setLoginSettings({ signupByLogin }),
-      ),
-  );
 }

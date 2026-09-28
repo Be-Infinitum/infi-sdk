@@ -5,7 +5,7 @@ const BASE = "http://localhost:8088";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-describe("courses, access and customer login", () => {
+describe("courses and access", () => {
   let fetchMock: ReturnType<typeof vi.fn>;
   beforeEach(() => {
     fetchMock = vi.fn();
@@ -43,16 +43,6 @@ describe("courses, access and customer login", () => {
     await infi.access.setProductRules("p1", [{ key: "curso-x", window: "days", days: 365 }]);
     expect(call().init.method).toBe("PUT");
     expect(call().url).toBe(`${BASE}/products/p1/access`);
-  });
-
-  it("verifies who owns a buyer token without putting it in the URL", async () => {
-    fetchMock.mockResolvedValueOnce(json({ valid: true, origin: "code", customer: { id: "u", externalId: "ana" } }));
-    const infi = new Infi({ secretKey: "sk_test_x", apiUrl: BASE });
-    const v = await infi.buyerTokens.verify("bt_abc");
-    expect(v.customer?.externalId).toBe("ana");
-    expect(call().url).toBe(`${BASE}/v1/buyer-tokens/verify`);
-    expect(call().url).not.toContain("bt_");
-    expect(call().body).toEqual({ token: "bt_abc" });
   });
 
   it("refuses to run without a secret key", async () => {

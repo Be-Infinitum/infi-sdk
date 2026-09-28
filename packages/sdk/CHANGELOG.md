@@ -12,9 +12,6 @@
   externalId)` for what one customer sees.
 - **`infi.community`** — link a Telegram group or a Discord role to a key;
   list members and why they were removed.
-- **`infi.buyerTokens.verify(token)`** — the customer login for any of your
-  apps: who owns a token your app received (`valid: false` once signed out).
-  `loginSettings` / `setLoginSettings` turn sign-up by login on or off.
 
 `@beinfi/mcp`'s course, lesson and access tools need this release: its range
 moves to `>=0.14.0 <0.15.0`.
