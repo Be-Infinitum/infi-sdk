@@ -16,6 +16,11 @@ describe("portal embed", () => {
     expect(url).not.toContain("bt_");
   });
 
+  it("serves the store login from the same frame host, under /login", () => {
+    const url = portalEmbedUrl({ slug: "loja", mode: "live", view: "login", embedId: "e1", parentOrigin: "https://loja.test" });
+    expect(new URL(url).pathname).toBe("/embed/loja/login");
+  });
+
   it("hands the kept token over after the handshake, and reports a new one", async () => {
     const onToken = vi.fn();
     const handle = createPortalEmbed(document.body, { slug: "loja", mode: "live", token: "bt_kept", onToken });

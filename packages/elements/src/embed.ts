@@ -40,6 +40,8 @@ export function isPortalFrame(data: unknown, embedId: string): data is PortalToP
 
 export interface PortalEmbedOptions {
   slug: string;
+  /** `login`: the store login only (<LoginElement>) — same protocol, no portal after. */
+  view?: "portal" | "login";
   mode: PortalMode;
   appUrl?: string;
   /** The token the site kept from last time, if any. */
@@ -68,7 +70,7 @@ export function portalEmbedUrl(opts: PortalEmbedOptions & { embedId: string; par
   // Same routing as the checkout: the host picks the deployment, the prefix
   // the environment (/embed/sandbox on sandbox).
   const u = new URL(
-    `${resolveAppBase(opts.mode, opts.appUrl)}${embedPathPrefix(opts.mode)}/${encodeURIComponent(opts.slug)}/portal`,
+    `${resolveAppBase(opts.mode, opts.appUrl)}${embedPathPrefix(opts.mode)}/${encodeURIComponent(opts.slug)}/${opts.view === "login" ? "login" : "portal"}`,
   );
   u.searchParams.set("embedId", opts.embedId);
   u.searchParams.set("parentOrigin", opts.parentOrigin);
@@ -82,7 +84,7 @@ export function createPortalEmbed(target: HTMLElement, opts: PortalEmbedOptions)
   const expectedOrigin = resolveAppBase(opts.mode, opts.appUrl);
   const iframe = document.createElement("iframe");
   iframe.src = portalEmbedUrl({ ...opts, embedId, parentOrigin: globalThis.location?.origin ?? "" });
-  iframe.title = "Minhas compras";
+  iframe.title = opts.view === "login" ? "Entrar" : "Minhas compras";
   iframe.style.width = "100%";
   iframe.style.border = "0";
   iframe.style.display = "block";

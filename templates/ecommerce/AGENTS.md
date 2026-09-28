@@ -35,9 +35,25 @@ Do not change how payment and delivery work.
 
 The Infi pieces come from `@beinfi/elements-react`: `<InfiProvider>` (in
 `src/app/layout.tsx`), `<StoreElement>`, `<CheckoutElement>` and
-`<PortalElement>`. Change their look with `appearance` on the provider, with
+`<PortalElement>` and `<LoginElement>`. Change their look with `appearance` on the provider, with
 props, and with CSS (the `--infi-*` variables and the `infi-store*` classes).
 Update them by bumping the package version. Do not fork their code.
+
+## Login
+
+Anyone can sign in to the store with a 6-digit code Infi mails (no password,
+bought or not). There is one session for the whole site, the store login and
+"Minhas compras", kept in an HttpOnly cookie by `src/app/api/infi/auth/route.ts`.
+
+- **Sign-in page:** `/entrar` (`<LoginElement>`). `?next=/path` comes back there.
+- **In a client component:** `useInfiAuth()` gives `status`, `buyer`, `has(key)` and
+  `signOut()`. `<SignedIn>` and `<SignedOut>` show or hide children.
+- **On the server (gating):** `const buyer = await auth.getBuyer()` from `@/lib/auth`.
+  - `null` means nobody is signed in.
+  - `buyer.has("ecommerce/clube")` is true while the product is bought and not refunded,
+    or subscribed and still running.
+  - See `src/app/clube/page.tsx`. Check on the server, never only in the browser.
+- The token never goes to localStorage, a URL, or a `NEXT_PUBLIC_*` variable.
 
 ## How to change the catalog
 

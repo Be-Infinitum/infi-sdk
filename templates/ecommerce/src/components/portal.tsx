@@ -1,26 +1,26 @@
 "use client";
 
-import { PortalElement } from "@beinfi/elements-react";
+import { PortalElement, notifyAuthChanged } from "@beinfi/elements-react";
 
 /**
- * The token never goes to localStorage or a URL: it is kept in an httpOnly
- * cookie on this site (/api/portal-token) and handed back on the next visit.
- *
- * Stores with their own login: pass `getToken` to <PortalElement> instead,
- * calling your server, which mints one with `infi.buyerTokens.create({ externalId })`.
+ * One session for the store and its portal: a code typed here signs in to the
+ * whole site (/api/infi/auth keeps it in an HttpOnly cookie), and a person
+ * already signed in opens the portal without a second code.
  */
 export function Portal({ token }: { token: string | null }) {
   return (
     <PortalElement
       token={token}
-      onToken={(t, expiresAt) =>
-        void fetch("/api/portal-token", {
+      onToken={(t) =>
+        void fetch("/api/infi/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: t, expiresAt }),
-        })
+          body: JSON.stringify({ token: t }),
+        }).then(notifyAuthChanged)
       }
-      onSignedOut={() => void fetch("/api/portal-token", { method: "DELETE" })}
+      onSignedOut={() =>
+        void fetch("/api/infi/auth", { method: "DELETE" }).then(notifyAuthChanged)
+      }
     />
   );
 }
