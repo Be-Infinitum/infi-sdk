@@ -27,8 +27,8 @@
       "name": "@beinfi/checkout",
       "version": "0.3.0",
       "dependencies": {
-        "@beinfi/elements": "^0.1.0",
-        "@beinfi/elements-react": "^0.1.0",
+        "@beinfi/elements": ">=0.1.0 <0.3.0",
+        "@beinfi/elements-react": ">=0.1.0 <0.3.0",
       },
       "devDependencies": {
         "@testing-library/jest-dom": "^6.6.3",
@@ -94,7 +94,7 @@
       "name": "@beinfi/elements-react",
       "version": "0.2.0",
       "dependencies": {
-        "@beinfi/elements": "^0.1.0",
+        "@beinfi/elements": "^0.2.0",
         "vimeo-video-element": "^1.7.3",
         "youtube-video-element": "^1.9.0",
       },
