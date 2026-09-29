@@ -25,8 +25,10 @@ Do not change how payment and delivery work.
    `<PortalElement>` (`@beinfi/elements-react`) run inside Infi's frames.
    Never build a form that collects a card number, and never read one.
 5. **The buyer's portal token is never in `localStorage` or a URL.**
-   `src/components/portal.tsx` keeps it in an httpOnly cookie through
-   `/api/portal-token`. Leave it there.
+   `createInfiAuth()` keeps the OAuth session in an httpOnly cookie. Server
+   components may read the buyer token through `getBuyerToken()` and pass it
+   directly to `<PortalElement>`; never expose it through a public env var,
+   local storage, or a URL. There is no separate `/api/portal-token` route.
 6. **Product keys keep the `ecommerce/` prefix.** Keys are how `infi sync`
    recognises a product. Renaming a key creates a new product; it does not
    rename the old one.

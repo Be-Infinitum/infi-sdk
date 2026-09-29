@@ -24,7 +24,7 @@ export interface BuyerAccess {
 /** Who a buyer token signs in at your store, and what they have there now. */
 export interface VerifiedBuyer {
   buyer: { email?: string; name?: string; customerIds: string[]; externalIds: string[] };
-  origin: "code" | "merchant";
+  origin: "code" | "merchant" | "oauth";
   scope: BuyerTokenScope;
   expiresAt: string;
   access: BuyerAccess[];

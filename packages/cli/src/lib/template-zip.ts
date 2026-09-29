@@ -84,7 +84,9 @@ export function templateEntries(
   replacements: Record<string, string>,
 ): ZipEntry[] {
   const out: ZipEntry[] = [];
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
+  const zipName = (name: string) => name === "_gitignore" ? ".gitignore" : name;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => zipName(a.name).localeCompare(zipName(b.name)))) {
     if (shouldSkip(entry.name) || /\.lock\.json$/.test(entry.name) || entry.name === ".infi") continue;
     const abs = path.join(dir, entry.name);
     if (entry.isDirectory()) {

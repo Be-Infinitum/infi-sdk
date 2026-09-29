@@ -12,6 +12,14 @@ function tmp(): string {
 }
 
 describe("template zip", () => {
+  // This archive is linked from the README for owners who prefer a browser
+  // download to the CLI. Keep it byte-for-byte aligned with the pack command.
+  it("keeps the browser download in sync with the key-free Ecommerce template", () => {
+    const archive = path.resolve(repoTemplates, "..", "downloads", "ecommerce-v1.zip");
+    const generated = packTemplate(path.join(repoTemplates, "ecommerce"), "ecommerce");
+    expect(fs.readFileSync(archive).equals(generated)).toBe(true);
+  });
+
   it("ships the Ecommerce template with its manifest and no key or env file", () => {
     const zip = packTemplate(path.join(repoTemplates, "ecommerce"), "ecommerce");
     const dir = tmp();
