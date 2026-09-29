@@ -1,3 +1,4 @@
+import { BuyerTokensResource } from "./resources/buyer-tokens.js";
 import {
   InfiError,
   InsufficientCreditError,
@@ -14,6 +15,9 @@ import { UsageResource } from "./resources/usage.js";
 import { InvoicesResource } from "./resources/invoices.js";
 import { PaymentsResource } from "./resources/payments.js";
 import { CouponsResource } from "./resources/coupons.js";
+import { AccessResource } from "./resources/access.js";
+import { CoursesResource } from "./resources/courses.js";
+import { CommunityResource } from "./resources/community.js";
 import { LinksResource } from "./resources/links.js";
 import { StorefrontsResource } from "./resources/storefronts.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
@@ -142,6 +146,14 @@ export class Infi {
    * `infi login`.
    */
   readonly apiKeys: ApiKeysResource;
+  /** Portal tokens for your own logged-in users (server-side, `sk_`). */
+  readonly buyerTokens: BuyerTokensResource;
+  /** Access keys: what products grant, and the gate your server asks (`sk_`). */
+  readonly access: AccessResource;
+  /** Courses: modules and lessons (a small CMS; the video stays on your provider). */
+  readonly courses: CoursesResource;
+  /** Community by access: a Telegram group or Discord role that follows a key. */
+  readonly community: CommunityResource;
   /** Webhooks: register endpoints for payment/invoice events. */
   readonly webhooks: WebhooksResource;
   /** Pay: public, slug-based checkout (pix QR + card charge). Browser-safe, no secret key. */
@@ -188,6 +200,10 @@ export class Infi {
     this.storefronts = new StorefrontsResource(transport, this.#appBase);
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
+    this.buyerTokens = new BuyerTokensResource(transport);
+    this.access = new AccessResource(transport);
+    this.courses = new CoursesResource(transport);
+    this.community = new CommunityResource(transport);
     this.webhooks = new WebhooksResource(transport);
     this.pay = new PayResource(this.#apiBase);
     this.providers = new ProvidersResource(transport);

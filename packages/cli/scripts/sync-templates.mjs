@@ -13,7 +13,9 @@ function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     const from = path.join(src, entry.name);
-    const to = path.join(dest, entry.name);
+    // npm drops every .gitignore from a published package; ship it renamed and
+    // let the scaffold put the dot back (lib/scaffold.ts).
+    const to = path.join(dest, entry.name === ".gitignore" ? "_gitignore" : entry.name);
     if (entry.isDirectory()) copyDir(from, to);
     else fs.copyFileSync(from, to);
   }

@@ -22,8 +22,17 @@ export function templatePath(id: TemplateId): string {
   return dir;
 }
 
-function shouldSkip(name: string): boolean {
-  return name === "node_modules" || name === ".next" || name === "dist";
+/** Never copied: build output, and any env file that could carry a key. */
+export function shouldSkip(name: string): boolean {
+  if (name === "node_modules" || name === ".next" || name === "dist") return true;
+  return name.startsWith(".env") && name !== ".env.example";
+}
+
+const TEXT = /\.(?:[cm]?[jt]sx?|json|md|mdx|css|html|txt|ya?ml|toml|mjs|cjs|gitignore|example)$/i;
+
+/** Placeholders are replaced in text only; a PDF or an image is copied byte for byte. */
+function isText(name: string): boolean {
+  return TEXT.test(name) || !name.includes(".") || name.startsWith(".");
 }
 
 function copyRecursive(src: string, dest: string, replacements: Record<string, string>) {
@@ -31,10 +40,15 @@ function copyRecursive(src: string, dest: string, replacements: Record<string, s
   for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
     if (shouldSkip(entry.name)) continue;
     const from = path.join(src, entry.name);
-    const to = path.join(dest, entry.name);
+    // Published templates carry `_gitignore` (npm strips `.gitignore`).
+    const to = path.join(dest, entry.name === "_gitignore" ? ".gitignore" : entry.name);
     if (entry.isDirectory()) {
       copyRecursive(from, to, replacements);
     } else {
+      if (!isText(entry.name)) {
+        fs.copyFileSync(from, to);
+        continue;
+      }
       let content = fs.readFileSync(from, "utf8");
       for (const [key, value] of Object.entries(replacements)) {
         content = content.split(key).join(value);

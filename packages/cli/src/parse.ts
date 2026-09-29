@@ -7,7 +7,8 @@ ${pc.bold("infi")} — Infi operator CLI (company as code)
 ${pc.dim("Usage:")}
   infi onboard [--email <email>] [--account-name <name>] [--intent <intent>] [--cwd <project>] --json
   infi bootstrap --intent <crm|prepaid-ai-chat|one-time|usage-saas> [--ref <channel>] [--json]
-  infi login [--token <session>] [--tenant <slug>] [--profile name]
+  infi login [--device] [--rotate]              # browser (or device code) → this project's sk_test_
+  infi keys create --live [--device]            # this project's sk_live_, after a step-up in the dashboard
   infi keys list|create|revoke [--key sk_...] [--json]
   infi providers [list] [--json]                # BYOP connection status
   infi providers verify <stripe|asaas> [--json] # re-check a stored credential

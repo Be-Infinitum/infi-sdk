@@ -18,8 +18,21 @@ export function lockFileNameFor(configFile: string): string {
   return "infi.billing.lock.json";
 }
 
-export function lockPathFor(configFile: string): string {
-  return path.join(path.dirname(path.resolve(configFile)), lockFileNameFor(configFile));
+/**
+ * One lock per mode (B7): syncing live must never make sandbox look drifted.
+ * `infi.company.sandbox.lock.json` / `infi.company.live.lock.json`; without a
+ * mode, the legacy single lock.
+ */
+export function lockPathFor(configFile: string, mode?: "sandbox" | "live"): string {
+  const dir = path.dirname(path.resolve(configFile));
+  const legacy = lockFileNameFor(configFile);
+  if (!mode) return path.join(dir, legacy);
+  return path.join(dir, legacy.replace(/\.lock\.json$/, `.${mode}.lock.json`));
+}
+
+/** The mode's lock, or — for sandbox only — the legacy single lock it replaces. */
+export function readModeLock(configFile: string, mode: "sandbox" | "live"): SyncLock | undefined {
+  return readLock(lockPathFor(configFile, mode)) ?? (mode === "sandbox" ? readLock(lockPathFor(configFile)) : undefined);
 }
 
 type CompanyModule = {

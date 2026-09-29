@@ -1,7 +1,7 @@
 {
   "name": "@beinfi/checkout",
-  "version": "0.2.0",
-  "description": "Embeddable Infi checkout — drop pix, card and crypto payment into your own page.",
+  "version": "0.3.0",
+  "description": "Legacy entry point for the Infi checkout embed \u2014 re-exports @beinfi/elements (and @beinfi/elements-react under ./react). New code: import from @beinfi/elements.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -65,5 +65,9 @@
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@beinfi/elements": ">=0.1.0 <0.3.0",
+    "@beinfi/elements-react": ">=0.1.0 <0.3.0"
   }
 }

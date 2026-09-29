@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased
+## Unreleased (0.14.0)
+
+### Added
+- **`infi.access`** — access keys (chave de acesso): create keys, set what a
+  product grants (`lifetime`, `subscription`, `days`), grant and revoke by hand
+  (audited), and the gate `access.check(externalId, key)`. An unknown key throws
+  404 rather than reading as "no access".
+- **`infi.courses`** — the course CMS: courses, modules, lessons (the video link
+  stays on your provider), reorder, drip, and `courses.student(courseId,
+  externalId)` for what one customer sees.
+- **`infi.community`** — link a Telegram group or a Discord role to a key;
+  list members and why they were removed.
+
+`@beinfi/mcp`'s course, lesson and access tools need this release: its range
+moves to `>=0.14.0 <0.15.0`.
+
 
 ### BREAKING
 - **`checkout()` now requires `customer.taxId`** in purchase mode, validated as a

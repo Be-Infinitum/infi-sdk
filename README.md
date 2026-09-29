@@ -47,8 +47,18 @@ Hosts (API / auth / pay) are inferred from `INFI_SECRET_KEY`. Go-live (claim →
 |---------|----------|
 | `examples/ai-agent-billing` | Script: company-as-code → AI calls → usage invoice → webhooks |
 
-The Next.js example apps and the `templates/` scaffolds were removed along with
-auth-as-a-service; they will be rebuilt around the billing-only surface.
+## Templates
+
+```bash
+npm create infi-app@latest minha-loja -- --template ecommerce   # or: infi init minha-loja --template ecommerce
+```
+
+`templates/ecommerce` — store, checkout (pix and card) in the Infi frame, digital delivery,
+monthly subscription and the buyer's "Minhas compras" (`@beinfi/elements-react`). No key ships in
+the template or in its zip (`bun run templates:pack`): `infi login` opens the browser (or shows a
+code with `--device`), gives the project its own named `sk_test_`, and `infi sync` seeds the
+catalog from `infi.company.ts` (schemaVersion, `ecommerce/` keys, coupons with `sandboxOnly`,
+store, delivery files; one lock per mode). The old starters (CRM, marketplace, …) are retired.
 
 ## Development
 
