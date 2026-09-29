@@ -39,7 +39,7 @@ describe("locale", () => {
 
   it("every frame carries the resolved language in its URL", () => {
     document.documentElement.lang = "en";
-    const url = portalEmbedUrl({ slug: "loja", mode: "live", view: "login", embedId: "e1", parentOrigin: "https://x.test" });
+    const url = portalEmbedUrl({ slug: "loja", mode: "live", embedId: "e1", parentOrigin: "https://x.test" });
     expect(new URL(url).searchParams.get("locale")).toBe("en");
   });
 

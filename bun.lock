@@ -58,7 +58,7 @@
         "infi": "./dist/index.js",
       },
       "dependencies": {
-        "@beinfi/sdk": ">=0.13.0 <0.14.0",
+        "@beinfi/sdk": ">=0.13.0 <0.15.0",
         "@clack/prompts": "^0.10.1",
         "picocolors": "^1.1.1",
       },
@@ -121,7 +121,7 @@
         "infi-mcp": "./dist/index.js",
       },
       "dependencies": {
-        "@beinfi/cli": ">=0.2.7 <0.3.0",
+        "@beinfi/cli": ">=0.3.0 <0.4.0",
         "@beinfi/sdk": ">=0.14.0 <0.15.0",
         "@modelcontextprotocol/sdk": "^1.12.1",
         "zod": "^3.25.76",
@@ -146,7 +146,7 @@
         "vitest": "^3.2.4",
       },
       "peerDependencies": {
-        "@beinfi/sdk": ">=0.13.0 <0.14.0",
+        "@beinfi/sdk": ">=0.13.0 <0.15.0",
         "next": ">=14",
       },
     },
@@ -893,8 +893,6 @@
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "zod-to-json-schema": ["zod-to-json-schema@3.25.2", "", { "peerDependencies": { "zod": "^3.25.28 || ^4" } }, "sha512-O/PgfnpT1xKSDeQYSCfRI5Gy3hPf91mKVDuYLUHZJMiDFptvP41MSnWofm8dnCm0256ZNfZIM7DSzuSMAFnjHA=="],
-
-    "@beinfi/mcp/@beinfi/cli": ["@beinfi/cli@0.2.7", "", { "dependencies": { "@beinfi/sdk": ">=0.10.1 <0.13.0", "@clack/prompts": "^0.10.1", "picocolors": "^1.1.1" }, "bin": { "infi": "dist/index.js" } }, "sha512-c57BFAncvHFYlhIc+XmHySK0jdYzqwydWv8yC7zXPSUowPIB7NMSM3+hmQ+6h02QgFKJOQmcviKUDB2yIxjb3Q=="],
 
     "@testing-library/dom/aria-query": ["aria-query@5.3.0", "", { "dependencies": { "dequal": "^2.0.3" } }, "sha512-b0P0sZPKtyu8HkeRAfCq0IfURZK+SuwMjY1UXGBU27wpAiTwQAIlq56IbIO+ytk/JjS1fMR14ee5WBBfKi5J6A=="],
 

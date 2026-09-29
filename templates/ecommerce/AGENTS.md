@@ -25,8 +25,10 @@ Do not change how payment and delivery work.
    `<PortalElement>` (`@beinfi/elements-react`) run inside Infi's frames.
    Never build a form that collects a card number, and never read one.
 5. **The buyer's portal token is never in `localStorage` or a URL.**
-   `src/components/portal.tsx` keeps it in an httpOnly cookie through
-   `/api/portal-token`. Leave it there.
+   `createInfiAuth()` keeps the OAuth session in an httpOnly cookie. Server
+   components may read the buyer token through `getBuyerToken()` and pass it
+   directly to `<PortalElement>`; never expose it through a public env var,
+   local storage, or a URL. There is no separate `/api/portal-token` route.
 6. **Product keys keep the `ecommerce/` prefix.** Keys are how `infi sync`
    recognises a product. Renaming a key creates a new product; it does not
    rename the old one.
@@ -57,18 +59,23 @@ URLs are always in English: `/product/[id]`, `/thank-you`, `/purchases`, `/sign-
 
 ## Login
 
-Anyone can sign in to the store with a 6-digit code Infi mails (no password,
-bought or not). There is one session for the whole site, the store login and
-"Minhas compras", kept in an HttpOnly cookie by `src/app/api/infi/auth/route.ts`.
+The store's login is **"Entrar com Infi"** (OAuth). The person signs in on Infi's page, with an
+e-mailed code or Google, bought or not, and comes back signed in. There is one session for the
+whole site and "Minhas compras": an HttpOnly cookie set by `src/app/api/infi/auth/[[...infi]]/route.ts`
+(`createInfiAuth` from `@beinfi/sdk`).
 
-- **Sign-in page:** `/sign-in` (`<LoginElement>`). `?next=/path` comes back there.
-- **In a client component:** `useInfiAuth()` gives `status`, `buyer`, `has(key)` and
+- **Sign-in page:** `/sign-in` (`<LoginElement>`, the "Entrar com Infi" button). `?next=/path`
+  comes back there.
+- **In a client component:** `useInfiAuth()` gives `status`, `buyer`, `has(key)`, `signIn()` and
   `signOut()`. `<SignedIn>` and `<SignedOut>` show or hide children.
-- **On the server (gating):** `const buyer = await auth.getBuyer()` from `@/lib/auth`.
+- **On the server (gating):** `const buyer = await getBuyer()` from `@/lib/auth`.
   - `null` means nobody is signed in.
-  - `buyer.has("ecommerce/club")` is true while the product is bought and not refunded,
-    or subscribed and still running.
+  - `buyer.has("ecommerce/club")` is true while the product is bought and not refunded, or
+    subscribed and still running.
   - See `src/app/members/page.tsx`. Check on the server, never only in the browser.
+- **Setup:** `infi sync` registers this site with Infi and writes `INFI_CLIENT_ID`.
+  `infi deploy --url` adds the production callback. Behind a proxy that rewrites Host, set
+  `INFI_SITE_URL`.
 - The token never goes to localStorage, a URL, or a `NEXT_PUBLIC_*` variable.
 
 ## How to change the catalog

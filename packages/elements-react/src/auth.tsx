@@ -1,14 +1,12 @@
-import { createPortalEmbed } from "@beinfi/elements";
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { messagesFor } from "@beinfi/elements";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { useElementLocale } from "./locale.js";
-import { useInfi } from "./provider.js";
 
 /**
- * The store's login. `<LoginElement>` is Infi's frame (e-mail, then a
- * 6-digit code; anyone may sign in, bought or not). The frame hands the `bt_`
- * to YOUR route — `createInfiAuth().handlers` from @beinfi/nextjs — which
- * checks it with your `sk_` and keeps it in an HttpOnly cookie. `useInfiAuth`
- * reads that route; nothing here keeps the token.
+ * The store's login: "Entrar com Infi" (ADR 0007 in the backend). The button
+ * goes to YOUR route — `createInfiAuth().handle` from @beinfi/sdk — which runs
+ * the OAuth flow with Infi and keeps the buyer token in an HttpOnly cookie.
+ * `useInfiAuth` reads that route; nothing in the browser holds the token.
  */
 export const DEFAULT_AUTH_ENDPOINT = "/api/infi/auth";
 const CHANGED = "infi:auth-changed";
@@ -35,6 +33,8 @@ export type InfiAuthState = {
   buyer: InfiBuyer | null;
   /** Bought (not refunded) or subscribed and running, by manifest key or product id. */
   has(keyOrProductId: string): boolean;
+  /** Go to "Entrar com Infi", coming back to `next` (default: this page). */
+  signIn(next?: string): void;
   signOut(): Promise<void>;
   refresh(): Promise<void>;
 };
@@ -78,7 +78,12 @@ export function useInfiAuth(opts: { endpoint?: string } = {}): InfiAuthState {
     [buyer],
   );
 
-  return { status, buyer, has, signOut, refresh };
+  const signIn = useCallback(
+    (next?: string) => globalThis.location.assign(signInHref({ endpoint, next })),
+    [endpoint],
+  );
+
+  return { status, buyer, has, signIn, signOut, refresh };
 }
 
 /** Renders its children only once someone is signed in. */
@@ -93,54 +98,83 @@ export function SignedOut({ children, endpoint }: { children: ReactNode; endpoin
   return status === "signed_out" ? <>{children}</> : null;
 }
 
+/** Where "Entrar com Infi" starts: your auth route's /sign-in, back to `next`. */
+export function signInHref(opts: { endpoint?: string; next?: string; locale?: string } = {}): string {
+  const next = opts.next ?? (globalThis.location ? globalThis.location.pathname + globalThis.location.search : "/");
+  const q = new URLSearchParams({ next });
+  if (opts.locale) q.set("locale", opts.locale);
+  return `${(opts.endpoint ?? DEFAULT_AUTH_ENDPOINT).replace(/\/$/, "")}/sign-in?${q.toString()}`;
+}
+
 export interface LoginElementProps {
-  /** Your auth route (default `/api/infi/auth`). */
+  /** Your auth route (default `/api/infi/auth`, `createInfiAuth().handle` from @beinfi/sdk). */
   endpoint?: string;
-  /** Where to send the person after they sign in. */
+  /** Where to come back after signing in (default: this page). A path on your site. */
   redirectTo?: string;
-  onSignedIn?: (buyer: InfiBuyer) => void;
-  onError?: (error: Error) => void;
   /** pt-BR or en; defaults to the provider's, then <html lang>, then the browser. */
   locale?: string;
+  /** Replace the label ("Entrar com Infi" / "Sign in with Infi"). */
+  children?: ReactNode;
   className?: string;
   style?: CSSProperties;
 }
 
+/** Infi's mark, drawn inline so the button needs no asset. */
+function InfiMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <rect width="24" height="24" rx="6" fill="currentColor" opacity="0.12" />
+      <path
+        d="M7.5 15.5c-1.9 0-3.5-1.6-3.5-3.5s1.6-3.5 3.5-3.5c2.6 0 3.9 3.5 4.5 3.5s1.9-3.5 4.5-3.5c1.9 0 3.5 1.6 3.5 3.5s-1.6 3.5-3.5 3.5c-2.6 0-3.9-3.5-4.5-3.5s-1.9 3.5-4.5 3.5Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  );
+}
+
+/**
+ * "Entrar com Infi": a link to your auth route, which sends the person to
+ * Infi's sign-in page (e-mail code or Google) and back here signed in. A plain
+ * link on purpose — it works before hydration and in any framework. Style it
+ * with `className` / `style`, or the `infi-sign-in` class.
+ */
 export function LoginElement(props: LoginElementProps) {
-  const infi = useInfi();
-  const host = useRef<HTMLDivElement>(null);
-  const latest = useRef(props);
-  latest.current = props;
-  const mode = infi.environment === "production" ? "live" : "sandbox";
   const locale = useElementLocale(props.locale);
-
+  const words = messagesFor(locale);
+  // The href depends on the page's own path; the server renders it without
+  // one, and the browser fills it in.
+  const [href, setHref] = useState(() =>
+    signInHref({ endpoint: props.endpoint, next: props.redirectTo ?? "/", locale }),
+  );
   useEffect(() => {
-    if (!host.current) return;
-    const handle = createPortalEmbed(host.current, {
-      slug: infi.slug,
-      mode,
-      view: "login",
-      appUrl: infi.appUrl,
-      locale,
-      onToken: (token) => {
-        const p = latest.current;
-        void (async () => {
-          const res = await fetch(p.endpoint ?? DEFAULT_AUTH_ENDPOINT, {
-            method: "POST",
-            credentials: "same-origin",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token }),
-          });
-          if (!res.ok) throw new Error(`sign-in route answered ${res.status}`);
-          const { buyer } = (await res.json()) as { buyer: InfiBuyer };
-          notifyAuthChanged();
-          p.onSignedIn?.(buyer);
-          if (p.redirectTo) globalThis.location.assign(p.redirectTo);
-        })().catch((err: unknown) => latest.current.onError?.(err instanceof Error ? err : new Error(String(err))));
-      },
-    });
-    return () => handle.destroy();
-  }, [infi.slug, mode, infi.appUrl, locale]);
+    setHref(signInHref({ endpoint: props.endpoint, next: props.redirectTo, locale }));
+  }, [props.endpoint, props.redirectTo, locale]);
 
-  return <div ref={host} className={props.className} style={props.style} />;
+  return (
+    <a
+      href={href}
+      className={["infi-sign-in", props.className].filter(Boolean).join(" ")}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "0.5rem",
+        height: "2.5rem",
+        padding: "0 1rem",
+        borderRadius: "var(--infi-radius, 10px)",
+        border: "1px solid var(--infi-border, #e4e4e7)",
+        background: "var(--infi-background, #fff)",
+        color: "var(--infi-foreground, #0a0a0a)",
+        fontWeight: 500,
+        fontSize: "0.875rem",
+        textDecoration: "none",
+        ...props.style,
+      }}
+    >
+      <InfiMark />
+      {props.children ?? words.signInWithInfi}
+    </a>
+  );
 }

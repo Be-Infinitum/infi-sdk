@@ -20,6 +20,7 @@ import {
   writeLock,
 } from "../lib/company-file.js";
 import { die, ok, printJson } from "../lib/output.js";
+import { registerSite } from "../lib/site.js";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -167,6 +168,17 @@ export async function syncCommand(
   if (!flags.plan) {
     writeLock(lockPath, result.lock);
     console.log(pc.dim(`Lock written: ${path.relative(process.cwd(), lockPath)}`));
+    // A template with "Entrar com Infi" needs its site registered; a failure
+    // here must not undo a catalog that synced.
+    const cwd = path.dirname(path.resolve(file));
+    if (fs.existsSync(path.join(cwd, "package.json"))) {
+      try {
+        const site = await registerSite(infi, cwd);
+        console.log(pc.dim(`Sign in with Infi: site ${site.clientId} (INFI_CLIENT_ID in .env.local)`));
+      } catch (err) {
+        console.log(pc.yellow(`⚠ Could not register the site for Entrar com Infi: ${(err as Error).message}`));
+      }
+    }
   }
   if (blocked && !flags.force) process.exitCode = 2;
 }

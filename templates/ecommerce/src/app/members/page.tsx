@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/auth";
+import { getBuyer } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
  * once. Copy this for any gated page.
  */
 export default async function ClubPage() {
-  const buyer = await auth.getBuyer();
+  const buyer = await getBuyer();
   if (!buyer) redirect("/sign-in?next=/members");
   if (!buyer.has("ecommerce/club")) {
     return (

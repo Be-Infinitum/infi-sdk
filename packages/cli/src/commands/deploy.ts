@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import type { GlobalFlags } from "../lib/client.js";
 import { infiClient } from "../lib/client.js";
 import { die, info, ok, printJson } from "../lib/output.js";
+import { registerSite } from "../lib/site.js";
 
 const DEFAULT_EVENTS = ["payment.confirmed", "invoice.finalized"];
 
@@ -163,12 +164,20 @@ export async function deployCommand(
     }
   }
 
+  // The deployed site's callback, so "Entrar com Infi" comes back to it.
+  let clientId: string | undefined;
+  try {
+    clientId = (await registerSite(infiClient(flags), cwd, [appUrl])).clientId;
+  } catch (err) {
+    info(`Could not register ${appUrl} for Entrar com Infi: ${(err as Error).message}`);
+  }
+
   if (flags.vercel && !flags.skipEnv) {
     pushVercelEnv(cwd, flags.prod ?? false);
   }
 
   if (flags.json) {
-    printJson({ appUrl, webhookTarget, webhookSecretSet: Boolean(webhookSecret) });
+    printJson({ appUrl, webhookTarget, webhookSecretSet: Boolean(webhookSecret), clientId });
     return;
   }
 

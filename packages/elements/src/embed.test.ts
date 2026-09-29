@@ -12,13 +12,8 @@ afterEach(() => {
 describe("portal embed", () => {
   it("never puts the token in the URL", () => {
     const url = portalEmbedUrl({ slug: "loja", mode: "sandbox", token: "bt_secret", embedId: "e1", parentOrigin: "https://loja.test" });
-    expect(url).toMatch(/^https:\/\/app-sandbox.beinfi.com\/embed\/sandbox\/loja\/portal\?embedId=e1&parentOrigin=https%3A%2F%2Floja.test&locale=(pt-BR|en)$/);
+    expect(url).toMatch(/^https:\/\/app-sandbox.beinfi.com\/embed\/sandbox\/loja\/portal\?embedId=e1&parentOrigin=https%3A%2F%2Floja.test&locale=(pt-BR|en)&theme=(light|dark|system)$/);
     expect(url).not.toContain("bt_");
-  });
-
-  it("serves the store login from the same frame host, under /login", () => {
-    const url = portalEmbedUrl({ slug: "loja", mode: "live", view: "login", embedId: "e1", parentOrigin: "https://loja.test" });
-    expect(new URL(url).pathname).toBe("/embed/loja/login");
   });
 
   it("hands the kept token over after the handshake, and reports a new one", async () => {

@@ -70,6 +70,7 @@ export interface ElementMessages {
     guaranteeUntil: string;
     total: string;
   };
+  signInWithInfi: string;
 }
 
 export const MESSAGES: Record<InfiLocale, ElementMessages> = {
@@ -105,6 +106,7 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
       guaranteeUntil: "Garantia até",
       total: "Total",
     },
+    signInWithInfi: "Entrar com Infi",
   },
   en: {
     buy: "Buy",
@@ -138,6 +140,7 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
       guaranteeUntil: "Guarantee until",
       total: "Total",
     },
+    signInWithInfi: "Sign in with Infi",
   },
 };
 

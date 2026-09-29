@@ -8,6 +8,7 @@ export {
   DEFAULT_AUTH_ENDPOINT,
   LoginElement,
   notifyAuthChanged,
+  signInHref,
   SignedIn,
   SignedOut,
   useInfiAuth,
