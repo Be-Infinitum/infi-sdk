@@ -6,3 +6,4 @@ dist
 *.log
 packages/create-infi-app/templates
 packages/cli/templates
+dist-templates

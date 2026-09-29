@@ -1,0 +1,28 @@
+import { InfiProvider } from "@beinfi/elements-react";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Account } from "@/components/account";
+import { environment, tenantSlug } from "@/lib/infi";
+import "./globals.css";
+
+export const metadata: Metadata = { title: "__APP_NAME__", description: "Loja digital feita com Infi" };
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="pt-BR">
+      <body className="min-h-screen antialiased">
+        {/* No key here: the elements need none. Look & feel: appearance={{ accentColor: "#…" }}. */}
+        {/* INFI_APP_URL only for a local Infi frontend; the default is Infi's own app. */}
+        {/* Language: the elements follow <html lang> above (pt-BR or en), then the buyer's browser. */}
+        {/* Force one with locale="en" here, or on a single element. */}
+        <InfiProvider slug={tenantSlug()} environment={environment()} appUrl={process.env.INFI_APP_URL}>
+          <header className="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
+            <Link href="/" className="font-semibold">__APP_NAME__</Link>
+            <Account />
+          </header>
+          {children}
+        </InfiProvider>
+      </body>
+    </html>
+  );
+}

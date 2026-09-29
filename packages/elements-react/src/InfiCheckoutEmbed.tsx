@@ -11,8 +11,8 @@ import {
   createCheckoutEmbed,
   type CheckoutEmbedHandle,
   type CreateCheckoutEmbedOptions,
-} from "../core.js";
-import type { EmbedSource } from "../url.js";
+  type EmbedSource,
+} from "@beinfi/elements";
 
 export interface InfiCheckoutEmbedProps
   extends Omit<CreateCheckoutEmbedOptions, "mode">,

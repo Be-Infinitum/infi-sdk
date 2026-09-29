@@ -174,6 +174,29 @@ server.tool(
   },
 );
 
+server.tool(
+  "infi_customer_login_settings",
+  "Read or change the store's \"Entrar com Infi\" rule: whether a new e-mail that signs in becomes a customer (default true). Pass createsCustomer to change it; omit it to read.",
+  { createsCustomer: z.boolean().optional() },
+  async ({ createsCustomer }) => {
+    const infi = client();
+    const result =
+      createsCustomer === undefined ? await infi.loginSettings.get() : await infi.loginSettings.set({ createsCustomer });
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  "infi_sign_in_sites",
+  "List the store's sites that sign buyers in with Infi (OAuth clients and their exact redirect URIs). Add a site or a redirect with name + redirectUris (adds, never drops).",
+  { name: z.string().optional(), redirectUris: z.array(z.string()).optional() },
+  async ({ name, redirectUris }) => {
+    const infi = client();
+    const result = name && redirectUris ? await infi.oauthClients.upsert({ name, redirectUris }) : await infi.oauthClients.list();
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
 // ── Skills as resources ─────────────────────────────────────────────────────
 //
 // The same integration recipes `infi skills install` copies into a project, served

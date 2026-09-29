@@ -1,3 +1,5 @@
+import { BuyerTokensResource } from "./resources/buyer-tokens.js";
+import { LoginSettingsResource, OAuthClientsResource, SignInResource } from "./resources/sign-in.js";
 import {
   InfiError,
   InsufficientCreditError,
@@ -142,6 +144,14 @@ export class Infi {
    * `infi login`.
    */
   readonly apiKeys: ApiKeysResource;
+  /** Portal tokens for your own logged-in users (server-side, `sk_`). */
+  readonly buyerTokens: BuyerTokensResource;
+  /** Your sites that use "Entrar com Infi". */
+  readonly oauthClients: OAuthClientsResource;
+  /** Your store's sign-in rule (a new address becomes a customer, or not). */
+  readonly loginSettings: LoginSettingsResource;
+  /** The server half of "Entrar com Infi": authorize URL and code exchange. */
+  readonly signIn: SignInResource;
   /** Webhooks: register endpoints for payment/invoice events. */
   readonly webhooks: WebhooksResource;
   /** Pay: public, slug-based checkout (pix QR + card charge). Browser-safe, no secret key. */
@@ -188,6 +198,10 @@ export class Infi {
     this.storefronts = new StorefrontsResource(transport, this.#appBase);
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
+    this.buyerTokens = new BuyerTokensResource(transport);
+    this.oauthClients = new OAuthClientsResource(transport);
+    this.loginSettings = new LoginSettingsResource(transport);
+    this.signIn = new SignInResource(this.#apiBase, this.#secretKey);
     this.webhooks = new WebhooksResource(transport);
     this.pay = new PayResource(this.#apiBase);
     this.providers = new ProvidersResource(transport);

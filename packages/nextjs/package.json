@@ -32,7 +32,7 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@beinfi/sdk": ">=0.9.0 <0.13.0",
+    "@beinfi/sdk": ">=0.9.0 <0.14.0",
     "next": ">=14"
   },
   "devDependencies": {

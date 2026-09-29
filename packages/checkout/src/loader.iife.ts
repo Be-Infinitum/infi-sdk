@@ -5,7 +5,7 @@
  * so this file is the only place the global's name is decided.
  */
 import { destroy, mount, scan, start } from "./loader.js";
-import { createCheckoutEmbed } from "./core.js";
+import { createCheckoutEmbed } from "@beinfi/elements";
 
 type Api = {
   mount: typeof mount;

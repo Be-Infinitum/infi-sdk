@@ -4,6 +4,17 @@ Single entry point for AI agents (Cursor, Claude, Lovable, MCP) integrating
 [Beinfi](https://beinfi.com) — **company as code**: revenue + webhooks. Beinfi bills; it does not
 handle your end-user login (bring your own auth).
 
+## A store from a template (people)
+
+```bash
+npm create infi-app@latest minha-loja -- --template ecommerce
+```
+
+Signup is required, also for sandbox: `infi login` opens the browser (an agent uses
+`infi login --device` and shows the person a code), and the project gets its own named
+`sk_test_`. Never put a key in the template, its zip, or client code. Read the template's
+own `AGENTS.md` before editing it.
+
 ## Quick start (preferred)
 
 ```bash
