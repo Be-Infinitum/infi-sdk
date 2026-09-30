@@ -1967,43 +1967,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/auth/invites/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Preview a team invitation */
-        get: operations["previewTeamInvite"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/invites/{token}/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Accept a team invitation
-         * @description Requires a Clerk session with the invite's verified email. On live, the current Terms version is required.
-         */
-        post: operations["acceptTeamInvite"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/session/onboarding/complete": {
         parameters: {
             query?: never;
@@ -2501,87 +2464,6 @@ export interface paths {
         post?: never;
         /** Delete a product's deliverable */
         delete: operations["deleteDeliverable"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/contacts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List tenant contacts
-         * @description A paginated, exportable contact list. It does not provide CRM stages, tags, notes, or saved views.
-         */
-        get: operations["listContacts"];
-        put?: never;
-        /** Create or refresh a tenant contact */
-        post: operations["createContact"];
-        /** Permanently delete a contact by email */
-        delete: operations["deleteContactByEmail"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/contacts/import": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Import contacts from CSV
-         * @description Accepts at most 1 MiB and 5,000 rows. `email` is required; optional `name`, `phone`, and `consent` columns map to contact fields. Other headers become bounded string attributes.
-         */
-        post: operations["importContacts"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/contacts/export.csv": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Export contacts as CSV
-         * @description Exports every matching contact; attribute keys are emitted as additional CSV columns.
-         */
-        get: operations["exportContacts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/contacts/{contactID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                contactID: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Permanently delete a contact */
-        delete: operations["deleteContact"];
         options?: never;
         head?: never;
         patch?: never;
@@ -3993,164 +3875,6 @@ export interface paths {
         post?: never;
         /** Revoke an API key */
         delete: operations["revokeApiKey"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/team": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List active members and open invitations */
-        get: operations["listTeam"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/team/invites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Invite a person to the account team */
-        post: operations["createTeamInvite"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/team/invites/{inviteID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                inviteID: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Revoke an open team invitation */
-        delete: operations["revokeTeamInvite"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/team/invites/{inviteID}/resend": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Replace an open invitation and send a fresh link */
-        post: operations["resendTeamInvite"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/team/members/{memberID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                memberID: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Remove a team member and revoke their personal CLI credentials */
-        delete: operations["removeTeamMember"];
-        options?: never;
-        head?: never;
-        /** Change a team member's role */
-        patch: operations["changeTeamMemberRole"];
-        trace?: never;
-    };
-    "/account/team/leave": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Leave the current account team */
-        post: operations["leaveTeam"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/audit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List immutable audit events for the account */
-        get: operations["listAccountAudit"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/security/api-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the current user's personal CLI credentials */
-        get: operations["listPersonalApiKeys"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/account/security/api-keys/{keyID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Revoke one of the current user's personal CLI credentials */
-        delete: operations["revokePersonalApiKey"];
         options?: never;
         head?: never;
         patch?: never;
@@ -5879,7 +5603,7 @@ export interface components {
          * @description Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.
          * @enum {string}
          */
-        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "contact.created" | "contact.updated" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached" | "fiscal_document.issued" | "fiscal_document.rejected" | "fiscal_document.failed" | "fiscal_document.canceled" | "subscription.cancel_scheduled" | "subscription.cancel_unscheduled" | "subscription.canceled" | "refund_request.created" | "payment.duplicate_detected" | "payment.duplicate_refunded" | "refund_request.declined";
+        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached" | "fiscal_document.issued" | "fiscal_document.rejected" | "fiscal_document.failed" | "fiscal_document.canceled" | "subscription.cancel_scheduled" | "subscription.cancel_unscheduled" | "subscription.canceled" | "refund_request.created" | "payment.duplicate_detected" | "payment.duplicate_refunded" | "refund_request.declined";
         /** @description Body of fiscal_document.issued, .rejected, .failed and .canceled. */
         FiscalDocumentEventData: {
             /** Format: uuid */
@@ -5912,28 +5636,6 @@ export interface components {
             email?: string;
             taxId?: string;
             country?: string;
-        };
-        /** @description Body of contact.created and contact.updated. */
-        ContactEventData: {
-            /** Format: uuid */
-            id: string;
-            /** Format: email */
-            email: string;
-            name?: string;
-            phone?: string;
-            /** @enum {string} */
-            source: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
-            /** @enum {string} */
-            consent: "unknown" | "given" | "withdrawn";
-            /** Format: date-time */
-            consentAt?: string;
-            attributes: {
-                [key: string]: string;
-            };
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
         };
         /** @description Body of invoice.finalized and invoice.sent. */
         InvoiceAmountData: {
@@ -6075,11 +5777,6 @@ export interface components {
              */
             productVersionId?: string | null;
             active?: boolean;
-            /**
-             * @description If true, a checkout that expires copies its email and name into the tenant contact list with unknown consent. Expired session fields are then deleted either way.
-             * @default false
-             */
-            captureAbandoned: boolean;
             /** Format: date-time */
             revokedAt?: string | null;
             /** Format: date-time */
@@ -6101,11 +5798,6 @@ export interface components {
         CreatePaymentLinkRequest: {
             successUrl?: string | null;
             cancelUrl?: string | null;
-            /**
-             * @description Opt in to copying the email and name of a buyer who starts checkout and does not finish into the tenant contact list.
-             * @default false
-             */
-            captureAbandoned: boolean;
             /**
              * Format: uuid
              * @description Sell a specific published version instead of the product's default. This is how a promotional price reaches a buyer: the version is published but not default, so nothing resolves into it by accident and only a link that names it can sell it.
@@ -6168,11 +5860,6 @@ export interface components {
             product: components["schemas"]["InlineProductSpec"];
             successUrl?: string | null;
             cancelUrl?: string | null;
-            /**
-             * @description Opt in to keeping abandoned checkout contacts in this tenant's contacts list.
-             * @default false
-             */
-            captureAbandoned: boolean;
         };
         CreateMeterRequest: {
             name: string;
@@ -6311,53 +5998,6 @@ export interface components {
                 [key: string]: unknown;
             }[];
             currency?: string;
-        };
-        Contact: {
-            /** Format: uuid */
-            id: string;
-            /**
-             * Format: email
-             * @description Unverified address; never an identity credential.
-             */
-            email: string;
-            name?: string | null;
-            phone?: string | null;
-            /** @enum {string} */
-            source: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
-            /** Format: uuid */
-            sourceRef?: string | null;
-            /** Format: uuid */
-            customerId?: string | null;
-            /** @enum {string} */
-            consent: "unknown" | "given" | "withdrawn";
-            /** Format: date-time */
-            consentAt?: string | null;
-            attributes: {
-                [key: string]: string;
-            };
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CreateContactRequest: {
-            /** Format: email */
-            email: string;
-            name?: string | null;
-            phone?: string | null;
-            /**
-             * @default unknown
-             * @enum {string}
-             */
-            consent: "unknown" | "given" | "withdrawn";
-            attributes?: {
-                [key: string]: string;
-            };
-        };
-        ContactImportResponse: {
-            imported: number;
-            created: number;
-            updated: number;
         };
         /** @description Tenant-level end payer (unique externalId per tenant). */
         Customer: {
@@ -7421,17 +7061,6 @@ export interface components {
             revokedAt?: string | null;
             /** Format: date-time */
             createdAt?: string;
-            role?: components["schemas"]["TeamRole"] | null;
-            /** Format: uuid */
-            createdByUserId?: string | null;
-            /** Format: email */
-            createdByEmail?: string | null;
-            /** @enum {string} */
-            origin?: "dashboard" | "cli" | "claim" | "system" | "unknown";
-            /** @description True for legacy keys whose creator was not recorded. */
-            creatorUnknown?: boolean;
-            /** Format: date-time */
-            lastUsedAt?: string | null;
             value?: string;
         };
         CreatedApiKey: components["schemas"]["ApiKey"] & {
@@ -7465,97 +7094,6 @@ export interface components {
             signupSource?: string;
             /** @description The Infi Terms version the operator accepted. Required on live for the first login (the invite attach) and must equal `termsVersion` from `POST /auth/session/sync`; sending it is the acceptance. Ignored on sandbox and for a subject already attached. */
             acceptedTermsVersion?: string;
-        };
-        /** @enum {string} */
-        TeamRole: "owner" | "admin" | "finance" | "developer" | "support" | "viewer";
-        TeamMember: {
-            /** Format: uuid */
-            id: string;
-            /** Format: email */
-            email: string;
-            role: components["schemas"]["TeamRole"];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        TeamInvite: {
-            /** Format: uuid */
-            id: string;
-            /** Format: email */
-            email: string;
-            role: components["schemas"]["TeamRole"];
-            /** Format: email */
-            invitedBy?: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            expiresAt: string;
-        };
-        TeamListResponse: {
-            members: components["schemas"]["TeamMember"][];
-            invites: components["schemas"]["TeamInvite"][];
-        };
-        TeamInviteCreateRequest: {
-            /** Format: email */
-            email: string;
-            role: components["schemas"]["TeamRole"];
-        };
-        TeamMutationResponse: {
-            /** @enum {string} */
-            status: "sent" | "revoked" | "removed" | "left" | "accepted";
-        };
-        TeamInvitePreview: {
-            tenant: string;
-            role: components["schemas"]["TeamRole"];
-            /** @enum {string} */
-            environment: "sandbox" | "live";
-            emailMasked: string;
-            /** Format: email */
-            invitedBy?: string;
-            /** Format: date-time */
-            expiresAt: string;
-        };
-        TeamInviteAcceptRequest: {
-            /** @description Required on live and must match the current Terms version. */
-            acceptedTermsVersion?: string;
-        };
-        TeamInviteAcceptResponse: {
-            /** Format: uuid */
-            tenantId: string;
-            role: components["schemas"]["TeamRole"];
-            /** @enum {string} */
-            status: "accepted";
-        };
-        AccountAuditResponse: {
-            items: {
-                /** Format: uuid */
-                id: string;
-                actorType: string;
-                actorId?: string;
-                /** @description Resolved user email or API-key label when available. */
-                actor: string;
-                action: string;
-                targetType?: string;
-                targetId?: string;
-                metadata: {
-                    [key: string]: unknown;
-                };
-                /** Format: date-time */
-                createdAt: string;
-            }[];
-            nextCursor?: string;
-        };
-        PersonalApiKeysResponse: {
-            apiKeys: {
-                /** Format: uuid */
-                id: string;
-                prefix: string;
-                lastFour: string;
-                role: components["schemas"]["TeamRole"];
-                /** Format: date-time */
-                createdAt: string;
-                /** Format: date-time */
-                lastUsedAt?: string | null;
-            }[];
         };
         SessionBootstrapResponse: {
             /** Format: email */
@@ -7594,8 +7132,6 @@ export interface components {
                 slug: string;
                 name: string;
                 role: string;
-                /** @description Compiled permissions for this membership; route authorization remains server-side. */
-                permissions: string[];
             }[];
             /** @description Whether the primary tenant can actually collect money. Not an onboarding step: a connection regresses (a revoked key flips it to needs_reconnect) long after onboarding completes, so this is re-read on every sync. Absent when the connection store could not be read — a provider lookup must never fail a login. */
             liveReadiness?: {
@@ -8156,7 +7692,7 @@ export interface components {
                 "application/json": components["schemas"]["Error"];
             };
         };
-        /** @description Authenticated but not allowed. Tenant authorization uses `permission_denied` with the required permission in error metadata. */
+        /** @description Authenticated but not allowed (e.g. no tenant membership) */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
@@ -8249,8 +7785,6 @@ export interface components {
         PortalSlug: string;
         /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
         IdempotencyKey: string;
-        /** @description Stable key used to replay the result of this mutation safely. */
-        IdempotencyKeyRequired: string;
         Limit: number;
         Offset: number;
         /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
@@ -11687,61 +11221,6 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
-    previewTeamInvite: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Invitation details with the invited address masked */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamInvitePreview"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    acceptTeamInvite: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path: {
-                token: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["TeamInviteAcceptRequest"];
-            };
-        };
-        responses: {
-            /** @description Membership created or reactivated */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamInviteAcceptResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            409: components["responses"]["Conflict"];
-        };
-    };
     completeOnboarding: {
         parameters: {
             query?: never;
@@ -12752,162 +12231,6 @@ export interface operations {
             header?: never;
             path: {
                 productID: components["parameters"]["ProductID"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listContacts: {
-        parameters: {
-            query?: {
-                limit?: components["parameters"]["Limit"];
-                offset?: components["parameters"]["Offset"];
-                source?: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
-                consent?: "unknown" | "given" | "withdrawn";
-                created_after?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Contacts matching the filters */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        contacts: components["schemas"]["Contact"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    createContact: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateContactRequest"];
-            };
-        };
-        responses: {
-            /** @description Contact created or updated by tenant email */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Contact"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    deleteContactByEmail: {
-        parameters: {
-            query: {
-                email: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    importContacts: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "text/csv": string;
-            };
-        };
-        responses: {
-            /** @description Import totals */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ContactImportResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    exportContacts: {
-        parameters: {
-            query?: {
-                source?: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
-                consent?: "unknown" | "given" | "withdrawn";
-                created_after?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description UTF-8 CSV */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/csv": string;
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    deleteContact: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                contactID: string;
             };
             cookie?: never;
         };
@@ -15585,8 +14908,6 @@ export interface operations {
                      * @enum {string}
                      */
                     kind?: "secret" | "publishable";
-                    /** @description Permission role for a secret account key; publishable keys have no role. */
-                    role?: components["schemas"]["TeamRole"];
                 };
             };
         };
@@ -15628,274 +14949,6 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listTeam: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Current account team */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamListResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    createTeamInvite: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TeamInviteCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Invitation queued for delivery */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMutationResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    revokeTeamInvite: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path: {
-                inviteID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Invitation revoked */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMutationResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    resendTeamInvite: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path: {
-                inviteID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description New invitation queued for delivery */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMutationResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    removeTeamMember: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path: {
-                memberID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Member removed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMutationResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    changeTeamMemberRole: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path: {
-                memberID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    role: components["schemas"]["TeamRole"];
-                };
-            };
-        };
-        responses: {
-            /** @description Updated team member */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMember"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    leaveTeam: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Membership removed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMutationResponse"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    listAccountAudit: {
-        parameters: {
-            query?: {
-                actorId?: string;
-                action?: string;
-                from?: string;
-                to?: string;
-                cursor?: string;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Audit events in reverse chronological cursor order */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountAuditResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    listPersonalApiKeys: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Active credentials owned by the current user in this account */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PersonalApiKeysResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
-        };
-    };
-    revokePersonalApiKey: {
-        parameters: {
-            query?: never;
-            header: {
-                /** @description Stable key used to replay the result of this mutation safely. */
-                "Idempotency-Key": components["parameters"]["IdempotencyKeyRequired"];
-            };
-            path: {
-                keyID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Credential revoked */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TeamMutationResponse"];
-                };
-            };
-            403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
         };
     };
