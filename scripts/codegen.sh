@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OPENAPI="${ROOT}/../backend/api/openapi.yaml"
+# api/openapi.json is the backend contract without its internal routes, pushed
+# here by the Infi monorepo (infi-docs/scripts/sdk-openapi.mjs) whenever it
+# changes. Never edit it by hand: the next sync overwrites it.
+OPENAPI="${OPENAPI:-${ROOT}/api/openapi.json}"
 OUT="${ROOT}/packages/sdk/src/generated/openapi.ts"
 
 if [[ ! -f "$OPENAPI" ]]; then

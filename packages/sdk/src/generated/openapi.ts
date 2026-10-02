@@ -4,6 +4,554 @@
  */
 
 export interface paths {
+    "/account/fiscal/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cities where an NFS-e can be issued
+         * @description The municipalities Spedy is integrated with. An issuer can only be registered in one of them.
+         */
+        get: operations["listFiscalCities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the account's fiscal issuers (one per CNPJ) */
+        get: operations["listFiscalIssuers"];
+        put?: never;
+        /**
+         * Register a CNPJ as a fiscal issuer
+         * @description Creates the company at the fiscal provider. The first issuer becomes the default. It stays `pending_certificate` until its A1 certificate is uploaded. A CNPJ can be a live issuer in only one account.
+         */
+        post: operations["createFiscalIssuer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        /** Get a fiscal issuer */
+        get: operations["getFiscalIssuer"];
+        /**
+         * Update an issuer's company details
+         * @description The CNPJ (`taxId`) cannot change; it is ignored here.
+         */
+        put: operations["updateFiscalIssuer"];
+        post?: never;
+        /**
+         * Disable an issuer
+         * @description Refused (409 `fiscal_issuer_in_use`) while a product is routed to it or one of its documents is in progress.
+         */
+        delete: operations["disableFiscalIssuer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload the issuer's A1 digital certificate (step-up)
+         * @description Before it is sent to the provider, the certificate is checked: it must open with the password, be unexpired, and name the issuer's CNPJ (root match, so a branch may use its head office's certificate). Neither the file nor the password is stored. Activates the issuer.
+         */
+        put: operations["uploadFiscalCertificate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set NFS-e series, numbering and the city hall login (step-up)
+         * @description Passed through to the provider. The environment is not settable: a sandbox account always issues in simulation and a live account in production. The password is not stored by Infi.
+         */
+        put: operations["updateFiscalSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/tax-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the issuer's default service and tax rates
+         * @description Rates are percentages as decimal strings. They are Infi's to compute with — the provider only transports them. Federal withholdings apply only to company buyers of a Regime Normal issuer, each dropped at or below R$ 10,00.
+         */
+        put: operations["updateFiscalTaxProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/catalog/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the LC 116/03 service list (by code or words, accents ignored) */
+        get: operations["searchFiscalServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/catalog/ncm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search current 8-digit NCM codes (by code prefix or words) */
+        get: operations["searchFiscalNCM"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What this CNPJ's notes would say — nothing issued or stored
+         * @description The stored configuration with the request's unsaved answers laid over it. A service answers two scenarios (to a person, to a company); a good (productId with model nfe/nfce) answers in-state and another state.
+         */
+        post: operations["simulateFiscalNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/review-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The accountant's read-only link to this CNPJ's tax configuration */
+        post: operations["fiscalReviewLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/accountant-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that the accountant reviewed the configuration (recommended, not required) */
+        post: operations["markFiscalAccountantReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/ibpt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Connect the CNPJ's IBPT token (Lei 12.741 rates; step-up)
+         * @description Checked with a real lookup first; stored in the secret store, never returned.
+         */
+        put: operations["setFiscalIBPTToken"];
+        post?: never;
+        /** Disconnect the IBPT token; the typed rates are used again */
+        delete: operations["clearFiscalIBPTToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/approx-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        /** IBPT's Lei 12.741 rates for a code (fills the form) */
+        get: operations["getFiscalApproxRates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-review/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** The accountant's view of a CNPJ's tax configuration (unauthenticated) */
+        get: operations["getPublicFiscalReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-review/{token}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The accountant signs the configuration off (unauthenticated) */
+        post: operations["approvePublicFiscalReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/tax-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the CNPJ's taxes are configured in Spedy's panel
+         * @description Under taxMode spedy the taxes come from the tax groups configured in Spedy's panel, which has no API. Confirming releases the notes that waited (provider_tax_setup_pending). The first confirmation stands.
+         */
+        post: operations["confirmFiscalTaxSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make this the issuer for products not routed elsewhere */
+        post: operations["setDefaultFiscalIssuer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/products/{productID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        /** How a product is issued */
+        get: operations["getProductFiscalProfile"];
+        /** Route a product to a CNPJ and override its service */
+        put: operations["putProductFiscalProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notas fiscais
+         * @description One per paid sale per CNPJ that sold part of it.
+         */
+        get: operations["listFiscalDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** Get a nota fiscal */
+        get: operations["getFiscalDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** The DANFSe (PDF) of an issued nota */
+        get: operations["getFiscalDocumentPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}/xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** The authorized XML of a nota */
+        get: operations["getFiscalDocumentXML"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-documents/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * The buyer's link to a nota fiscal (unauthenticated)
+         * @description The token is the capability. A note not yet authorized shows as processing, without files.
+         */
+        get: operations["getPublicFiscalDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-documents/{token}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** The note's PDF through the buyer's link */
+        get: operations["getPublicFiscalDocumentPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-documents/{token}/xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** The note's XML through the buyer's link */
+        get: operations["getPublicFiscalDocumentXML"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a rejected or failed nota again
+         * @description Recomputes the tax from the issuer's configuration as it is now. A rejected note is corrected in place at the provider, not numbered again. Refused (409 fiscal_document_not_retryable) unless the note is rejected or failed, and for a sale that was reversed (cancellation requested).
+         */
+        post: operations["retryFiscalDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhook/provider/spedy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Spedy nota status webhook
+         * @description One per Spedy account. Standard Webhooks signature (webhook-id, webhook-timestamp, webhook-signature) over the raw body; unsigned deliveries are refused. Deduplicated by the event id.
+         */
+        post: operations["spedyWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/routing/configuration": {
         parameters: {
             query?: never;
@@ -597,7 +1145,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a code to open the store's buyer portal
-         * @description Same 202 whether or not the address bought at this store; a code is mailed only when it did. Five codes per address per hour at this store (`too_many_requests`), then wait. The code lives 5 minutes, five tries.
+         * @description Any address may sign in to a store, bought or not: the code is always mailed, and verifying it makes an unknown address a customer of the store (no order). Five codes per address per hour at this store (`too_many_requests`), then wait. The code lives 5 minutes, five tries.
          */
         post: operations["portalLogin"];
         delete?: never;
@@ -897,7 +1445,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Revoke every portal token of one customer */
+        /**
+         * Revoke every portal token of one customer, or one token
+         * @description `externalId` revokes every token of that customer. `token` revokes that one `bt_` (the user signed out of the store's login on one device); a dead or foreign token answers `revoked: 0`.
+         */
         post: operations["revokeBuyerTokens"];
         delete?: never;
         options?: never;
@@ -905,50 +1456,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/access-keys": {
+    "/.well-known/openid-configuration": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** The store's access keys */
-        get: operations["listAccessKeys"];
-        put?: never;
-        /** Create an access key (what a product can grant) */
-        post: operations["createAccessKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/access-keys/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Rename an access key */
-        patch: operations["renameAccessKey"];
-        trace?: never;
-    };
-    "/access-keys/{key}/holders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Everyone ever granted a key, and whether it holds now */
-        get: operations["listAccessKeyHolders"];
+        /** OpenID Provider metadata */
+        get: operations["oidcDiscovery"];
         put?: never;
         post?: never;
         delete?: never;
@@ -957,70 +1473,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/products/{productID}/access": {
+    "/oauth/jwks": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** What buying a product grants */
-        get: operations["getProductAccess"];
-        /**
-         * Replace what buying a product grants
-         * @description Grants already made keep the window they were sold with. `subscription` is refused on a product that is not a subscription (422 `access_window_needs_subscription`).
-         */
-        put: operations["setProductAccess"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/access-grants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Grant a key by hand (bonus, support case); audited */
-        post: operations["grantAccess"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/access-grants/{grantID}/revoke": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Revoke a grant by hand; audited */
-        post: operations["revokeAccessGrant"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/access/customers/{externalID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Every key one customer holds or held */
-        get: operations["getCustomerAccess"];
+        /** The keys id_tokens are signed with (RS256) */
+        get: operations["oidcJwks"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1029,7 +1490,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/access/customers/{externalID}/keys/{key}": {
+    "/oauth/authorize": {
         parameters: {
             query?: never;
             header?: never;
@@ -1037,10 +1498,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * The gate — does this customer hold this key now?
-         * @description An unknown key is 404, never "no access".
+         * Start a sign-in (browser navigation)
+         * @description Authorization code with PKCE (S256 only). `scope` must include `openid`; also `email`, `profile`, `purchases`. An unknown client or an unregistered `redirect_uri` answers 400 and never redirects. Other errors return to `redirect_uri` with `error`. A person signed in on Infi who already agreed with this store goes straight back with `code`; anyone else goes to Infi's sign-in page. `ui_locales` picks its language.
          */
-        get: operations["checkCustomerAccess"];
+        get: operations["oauthAuthorize"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1049,80 +1510,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pay/{slug}/portal/access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Every access key the buyer holds or held at this store */
-        get: operations["portalAccess"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/access/{key}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One key as the buyer holds it (hasAccess false when never held) */
-        get: operations["portalAccessKey"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/courses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The store's courses (drafts included) */
-        get: operations["listCourses"];
-        put?: never;
-        /** Create a course, opened by an access key */
-        post: operations["createCourse"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/courses/{courseID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        /** The whole course tree, with content and drafts */
-        get: operations["getCourse"];
-        put?: never;
-        post?: never;
-        /** Delete a course, its lessons and everyone's progress on it */
-        delete: operations["deleteCourse"];
-        options?: never;
-        head?: never;
-        /** Edit a course (title, description, cover, key, published) */
-        patch: operations["updateCourse"];
-        trace?: never;
-    };
-    "/courses/{courseID}/modules": {
+    "/oauth/token": {
         parameters: {
             query?: never;
             header?: never;
@@ -1131,171 +1519,26 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add a module at the end */
-        post: operations["createCourseModule"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/courses/{courseID}/modules/order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Reorder the modules (every module, once) */
-        put: operations["reorderCourseModules"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/courses/{courseID}/modules/{moduleID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                courseID: string;
-                moduleID: string;
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a module and its lessons */
-        delete: operations["deleteCourseModule"];
-        options?: never;
-        head?: never;
-        /** Rename a module */
-        patch: operations["renameCourseModule"];
-        trace?: never;
-    };
-    "/courses/{courseID}/modules/{moduleID}/lessons/order": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Reorder one module's lessons (every lesson, once) */
-        put: operations["reorderCourseLessons"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/courses/{courseID}/lessons": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add a lesson (video link from your provider, optional markdown, drip) */
-        post: operations["createCourseLesson"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/courses/{courseID}/lessons/{lessonID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        /** One lesson, with content */
-        get: operations["getCourseLesson"];
-        put?: never;
-        post?: never;
-        /** Delete a lesson and everyone's progress on it */
-        delete: operations["deleteCourseLesson"];
-        options?: never;
-        head?: never;
-        /** Edit a lesson; an empty videoUrl or bodyMarkdown removes it */
-        patch: operations["updateCourseLesson"];
-        trace?: never;
-    };
-    "/courses/{courseID}/students/{externalID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The course as one of your customers sees it (access, drip, progress) */
-        get: operations["getCourseStudent"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/courses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The store's published courses with the student's access and progress */
-        get: operations["portalCourses"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/courses/{courseID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** A course's outline for the student — states, never content */
-        get: operations["portalCourse"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
         /**
-         * One lesson for the student
-         * @description `available` carries `video` and `bodyMarkdown`; `locked` (drip, with `unlocksAt`) and `no_access` carry the state only.
+         * Trade the code for tokens (the store's server)
+         * @description Form body. The client secret is the store's `sk_` (Basic or `client_secret`). The code is single-use, lives 60 seconds and is burnt by a failed attempt. Errors are RFC 6749 §5.2 (`error`, `error_description`), not the API envelope. `access_token` is a buyer token (`bt_`, 30 days) usable with `GET /v1/buyer-tokens/verify`, the portal and `/oauth/userinfo`; the id_token's `sub` is the store's customer id.
          */
-        get: operations["portalLesson"];
+        post: operations["oauthToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/userinfo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who an access token is (OIDC UserInfo) */
+        get: operations["oauthUserInfo"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1304,24 +1547,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}/complete": {
+    "/oauth/account": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-                courseID: string;
-                lessonID: string;
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
         put?: never;
-        /** Mark an available lesson done */
-        post: operations["portalCompleteLesson"];
-        /** Unmark a lesson */
-        delete: operations["portalUncompleteLesson"];
+        post?: never;
+        /**
+         * Delete my Infi account (the buyer, from Infi's page)
+         * @description Needs Infi's session cookie from a sign-in in the last 15 minutes (`recent_sign_in_required` otherwise). Erases the identity, its addresses, links to stores' customers, consents, sessions and tokens; every store keeps its own customer record.
+         */
+        delete: operations["oauthDeleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/oauth-clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's sites that sign in with Infi */
+        get: operations["listOAuthClients"];
+        put?: never;
+        /** Register a site, or add redirect URIs to the one with that name */
+        post: operations["upsertOAuthClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/login-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's sign-in rule */
+        get: operations["getLoginSettings"];
+        /** Change the store's sign-in rule */
+        put: operations["putLoginSettings"];
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1334,179 +1610,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
         /**
-         * Who owns this token? (server side, sk_ only)
-         * @description The customer login for any of your apps (ADR 0007). Your app received a token from the element; your server asks Infi who it belongs to. Opaque and checked every time, so a sign-out is refused on the next call. Expired, revoked, unknown and another store's token all answer `valid: false`.
+         * Who a buyer token signs in, and what they have at this store
+         * @description For the store's own server, with its `sk_`: the page holds the `bt_` (from the login element or a merchant mint) and the server asks who it is before showing a gated page. `access` lists each product bought and not fully refunded or charged back (`purchase`), and each subscription still running (`subscription`: active, trialing or past_due). A token of another store answers 401 like any invalid one. A GET, so nothing caches it: every call reads the access as it is now.
          */
-        post: operations["verifyBuyerToken"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/customer-login/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The store's customer-login settings */
-        get: operations["getCustomerLoginSettings"];
-        /**
-         * Turn sign-up by login on or off; audited
-         * @description On (the default), a first login by an unknown e-mail creates the customer. Off, only existing customers can log in and an unknown address is mailed nothing. Read when the code is spent.
-         */
-        put: operations["setCustomerLoginSettings"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/community/telegram": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Link a Telegram group to an access key
-         * @description Make Infi's bot an admin of the group (invite users, ban members) first; otherwise 422 `telegram_bot_not_admin`. Holders of the key get a one-time invite (join request, approved only for them while they hold the key); losing the key removes them. Everyone already holding it is queued at once.
-         */
-        post: operations["connectTelegramCommunity"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/community/integrations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The store's communities */
-        get: operations["listCommunityIntegrations"];
+        get: operations["verifyBuyerToken"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/community/integrations/{integrationID}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Stop managing a community (nobody is removed for it) */
-        delete: operations["disableCommunityIntegration"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/community/integrations/{integrationID}/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Who was invited, added and removed, and why */
-        get: operations["listCommunityMembers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/community": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** The student's communities, with their own invite while unused */
-        get: operations["portalCommunity"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/community/discord": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Link a Discord server's paid role to an access key
-         * @description Infi's Discord bot must be in the server and the role must exist there (422 `discord_guild_not_reachable`). Holders connect their Discord account from the member area and get the role once they are in the server; losing the key takes it.
-         */
-        post: operations["connectDiscordCommunity"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/community/discord/authorize": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Start connecting the student's Discord account (OAuth, identify) */
-        post: operations["portalDiscordAuthorize"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/pay/{slug}/portal/community/discord/connect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Finish the Discord connection with the code and state Discord returned
-         * @description The state is one-time and bound to this person at this store. Only the Discord user id is kept.
-         */
-        post: operations["portalDiscordConnect"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3434,7 +3544,7 @@ export interface paths {
         };
         /**
          * How this tenant collects, and its Infi Managed application
-         * @description Two ways a production tenant collects money (ADR 0031): `byop`, on the merchant's own provider accounts, or `managed`, on Infi's — simpler to run, and gated on a KYC/KYB application a reviewer approves. Sandbox always answers `byop` with `managedAvailable: false`: it already collects through Infi for everyone.
+         * @description Two ways a production tenant collects money (ADR 0031): `byop`, on the merchant's own provider account, or `managed`, through Infi's Pagar.me account with recipient split. Managed is gated on Pagar.me recipient KYC approval and Infi activation. Sandbox always answers `byop` with `managedAvailable: false`: it already collects through Infi for everyone.
          */
         get: operations["getCollectionMode"];
         put?: never;
@@ -3666,6 +3776,26 @@ export interface paths {
          * @description Freezes the application as `pending_review`. Every required field and document must be present — the 422 lists every gap at once (`documents.<type>` for a missing file). Submitting records acceptance of the terms with the caller's IP.
          */
         post: operations["submitManagedApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/managed/kyc-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Pagar.me identity verification link
+         * @description Creates a short-lived Pagar.me hosted identity-verification link for the recipient attached to this application. The link is returned only to the authenticated tenant and is not stored.
+         */
+        post: operations["createManagedPagarmeKycLink"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4025,80 +4155,842 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's access keys */
+        get: operations["listAccessKeys"];
+        put?: never;
+        /** Create an access key (what a product can grant) */
+        post: operations["createAccessKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-keys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename an access key */
+        patch: operations["renameAccessKey"];
+        trace?: never;
+    };
+    "/access-keys/{key}/holders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everyone ever granted a key, and whether it holds now */
+        get: operations["listAccessKeyHolders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{productID}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What buying a product grants */
+        get: operations["getProductAccess"];
+        /**
+         * Replace what buying a product grants
+         * @description Grants already made keep the window they were sold with. `subscription` is refused on a product that is not a subscription (422 `access_window_needs_subscription`).
+         */
+        put: operations["setProductAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant a key by hand (bonus, support case); audited */
+        post: operations["grantAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-grants/{grantID}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a grant by hand; audited */
+        post: operations["revokeAccessGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/customers/{externalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every key one customer holds or held */
+        get: operations["getCustomerAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/customers/{externalID}/keys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The gate — does this customer hold this key now?
+         * @description An unknown key is 404, never "no access".
+         */
+        get: operations["checkCustomerAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every access key the buyer holds or held at this store */
+        get: operations["portalAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/access/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One key as the buyer holds it (hasAccess false when never held) */
+        get: operations["portalAccessKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's courses (drafts included) */
+        get: operations["listCourses"];
+        put?: never;
+        /** Create a course, opened by an access key */
+        post: operations["createCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        /** The whole course tree, with content and drafts */
+        get: operations["getCourse"];
+        put?: never;
+        post?: never;
+        /** Delete a course, its lessons and everyone's progress on it */
+        delete: operations["deleteCourse"];
+        options?: never;
+        head?: never;
+        /** Edit a course (title, description, cover, key, published) */
+        patch: operations["updateCourse"];
+        trace?: never;
+    };
+    "/courses/{courseID}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a module at the end */
+        post: operations["createCourseModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder the modules (every module, once) */
+        put: operations["reorderCourseModules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/{moduleID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a module and its lessons */
+        delete: operations["deleteCourseModule"];
+        options?: never;
+        head?: never;
+        /** Rename a module */
+        patch: operations["renameCourseModule"];
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/{moduleID}/lessons/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder one module's lessons (every lesson, once) */
+        put: operations["reorderCourseLessons"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a lesson (video link from your provider, optional markdown, drip) */
+        post: operations["createCourseLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/lessons/{lessonID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        /** One lesson, with content */
+        get: operations["getCourseLesson"];
+        put?: never;
+        post?: never;
+        /** Delete a lesson and everyone's progress on it */
+        delete: operations["deleteCourseLesson"];
+        options?: never;
+        head?: never;
+        /** Edit a lesson; an empty videoUrl or bodyMarkdown removes it */
+        patch: operations["updateCourseLesson"];
+        trace?: never;
+    };
+    "/courses/{courseID}/students/{externalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The course as one of your customers sees it (access, drip, progress) */
+        get: operations["getCourseStudent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's published courses with the student's access and progress */
+        get: operations["portalCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A course's outline for the student — states, never content */
+        get: operations["portalCourse"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One lesson for the student
+         * @description `available` carries `video` and `bodyMarkdown`; `locked` (drip, with `unlocksAt`) and `no_access` carry the state only.
+         */
+        get: operations["portalLesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an available lesson done */
+        post: operations["portalCompleteLesson"];
+        /** Unmark a lesson */
+        delete: operations["portalUncompleteLesson"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/telegram/bot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Infi's Telegram bot — who to add to the group as an admin */
+        get: operations["getTelegramBot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a Telegram group to an access key
+         * @description Make Infi's bot an admin of the group (invite users, ban members) first; otherwise 422 `telegram_bot_not_admin`. Holders of the key get a one-time invite (join request, approved only for them while they hold the key); losing the key removes them. Everyone already holding it is queued at once.
+         */
+        post: operations["connectTelegramCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's communities */
+        get: operations["listCommunityIntegrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations/{integrationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop managing a community (nobody is removed for it) */
+        delete: operations["disableCommunityIntegration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations/{integrationID}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who was invited, added and removed, and why */
+        get: operations["listCommunityMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The student's communities, with their own invite while unused */
+        get: operations["portalCommunity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/discord": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a Discord server's paid role to an access key
+         * @description Infi's Discord bot must be in the server and the role must exist there (422 `discord_guild_not_reachable`). Holders connect their Discord account from the member area and get the role once they are in the server; losing the key takes it.
+         */
+        post: operations["connectDiscordCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community/discord/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start connecting the student's Discord account (OAuth, identify) */
+        post: operations["portalDiscordAuthorize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community/discord/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish the Discord connection with the code and state Discord returned
+         * @description The state is one-time and bound to this person at this store. Only the Discord user id is kept.
+         */
+        post: operations["portalDiscordConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        PortalOrder: {
-            /** Format: uuid */
-            id?: string;
+        /** @description The buyer's fiscal address (who the nota fiscal names). An NF-e cannot be issued without it. */
+        BuyerAddress: {
+            zip?: string;
+            street?: string;
             number?: string;
-            status?: string;
-            currency?: string;
-            total?: string;
-            /** Format: date-time */
-            paidAt?: string;
-            receiptUrl?: string;
-            lines?: {
-                description?: string;
-                quantity?: string;
-                amount?: string;
-            }[];
-            payment?: {
-                /** Format: uuid */
-                id?: string;
-                method?: string;
-                status?: string;
-                amount?: string;
-                refundedAmount?: string;
-                refundPendingAmount?: string;
-            };
-            guarantee?: {
-                days?: number;
-                /** Format: date-time */
-                endsAt?: string;
-                withinWindow?: boolean;
-            };
-            refundRequest?: components["schemas"]["PortalRefundRequest"];
+            complement?: string;
+            district?: string;
+            city?: string;
+            /** @description 7-digit IBGE code */
+            cityCode?: string;
+            /** @description Two-letter UF */
+            state?: string;
+            country?: string;
         };
-        PortalRefundRequest: {
+        FiscalAddress: {
+            /** @description CEP */
+            postalCode: string;
+            street: string;
+            number: string;
+            complement?: string;
+            district: string;
+            /** @description 7-digit IBGE code */
+            cityCode: string;
+            cityName: string;
+            /** @description Two-letter UF */
+            state: string;
+        };
+        FiscalCompanyInput: {
+            /** @description CNPJ */
+            taxId: string;
+            legalName: string;
+            tradeName?: string;
+            email?: string;
+            /** @description Inscrição municipal */
+            municipalTaxNumber?: string;
+            /** @description Inscrição estadual, or ISENTO. Required for NF-e and NFC-e. */
+            stateTaxNumber?: string;
+            /**
+             * @description Only under regimeNormal
+             * @enum {string}
+             */
+            profitRegime?: "presumido" | "real";
+            /**
+             * @description What the setup assistant asked
+             * @enum {string}
+             */
+            sells?: "services" | "goods" | "both";
+            /** @enum {string} */
+            taxRegime: "simplesNacional" | "simplesNacionalExcessoSublimite" | "regimeNormal" | "simplesNacionalMEI";
+            /** @enum {string} */
+            specialTaxRegime?: "municipalMicroenterprise" | "estimate" | "societyOfProfessionals" | "cooperative" | "individualMicroenterprise" | "microenterpriseAndSmallBusiness" | "noSpecialRegime" | "others";
+            /** @enum {string} */
+            simplesNacionalTaxRegime?: "federalAndMunicipalBySimplesNacional" | "federalBySimplesAndIssqnByNfse" | "federalAndMunicipalByNfse";
+            /** @description 7 digits */
+            cnae?: string;
+            address: components["schemas"]["FiscalAddress"];
+        };
+        FiscalTaxProfile: {
+            /** @description Item da lista LC 116/03 */
+            federalServiceCode?: string;
+            cityServiceCode?: string;
+            nbsCode?: string;
+            nationalTaxationCode?: string;
+            serviceDescription?: string;
+            /** @enum {string} */
+            taxationType?: "taxationInMunicipality" | "taxationOutsideMunicipality" | "exemption" | "immune" | "suspendedByCourt" | "suspendedByAdministrativeProcedure" | "exportation" | "nonIncidence";
+            /** @example 2.01 */
+            issRate?: string;
+            issWithheldForCompanies?: boolean;
+            irRate?: string;
+            pisRate?: string;
+            cofinsRate?: string;
+            csllRate?: string;
+            inssRate?: string;
+            /** @description Lei 12.741/12 (IBPT) */
+            approxFederalRate?: string;
+            approxStateRate?: string;
+            approxMunicipalRate?: string;
+            approxSource?: string;
+            /** @description Issue on every paid sale */
+            autoIssue?: boolean;
+            /** @description PIS on goods (Regime Normal); zero under the Simples */
+            goodsPisRate?: string;
+            goodsCofinsRate?: string;
+            /** @description The destination state's internal ICMS rate and FCP, per UF, for the DIFAL of a Regime Normal interstate sale to a final consumer. Never assumed: without the state, the note stops with icms_destination_rate_missing. */
+            icmsDestinationRates?: {
+                [key: string]: {
+                    /** @example 20.5 */
+                    rate?: string;
+                    /** @example 2 */
+                    fcpRate?: string;
+                };
+            };
+        };
+        FiscalIssuer: {
             /** Format: uuid */
             id?: string;
+            taxId?: string;
+            legalName?: string;
+            tradeName?: string;
+            email?: string;
+            municipalTaxNumber?: string;
+            stateTaxNumber?: string;
             /** @enum {string} */
-            status?: "pending" | "approved" | "declined";
-            withinWindow?: boolean;
-            /** @description `automatic`, or the store's actor. */
-            decidedBy?: string;
-            note?: string;
+            profitRegime?: "presumido" | "real";
+            /** @enum {string} */
+            sells?: "services" | "goods" | "both";
+            /** @description The NFC-e CSC is configured */
+            nfceEnabled?: boolean;
+            /**
+             * @description Who issues the notes — shown as "powered by"
+             * @enum {string}
+             */
+            provider?: "spedy";
+            /**
+             * @description Who computes the taxes. infi (default): Infi's own calculation (taxProfile), the note sent complete. spedy: Spedy, from the tax groups configured for this CNPJ in its panel — notes wait until taxSetupAt is set. Switched by staff.
+             * @enum {string}
+             */
+            taxMode?: "spedy" | "infi";
+            /**
+             * Format: date-time
+             * @description When the CNPJ's taxes were confirmed configured in Spedy's panel
+             */
+            taxSetupAt?: string;
+            taxSetupBy?: string;
+            /**
+             * Format: date-time
+             * @description Cleared by any change to the tax configuration
+             */
+            accountantReviewedAt?: string;
+            accountantReviewedBy?: string;
+            accountantReviewNote?: string;
+            /** @description Lei 12.741 rates come from IBPT */
+            ibptConnected?: boolean;
+            taxRegime?: string;
+            specialTaxRegime?: string;
+            simplesNacionalTaxRegime?: string;
+            cnae?: string;
+            address?: components["schemas"]["FiscalAddress"];
+            /**
+             * @description The NFS-e environment; a document's own environment is development (SEFAZ homologação) for NF-e/NFC-e on sandbox.
+             * @enum {string}
+             */
+            environment?: "simulation" | "production";
+            /** @enum {string} */
+            status?: "pending_certificate" | "active" | "disabled";
+            isDefault?: boolean;
+            certificate?: {
+                /** Format: date-time */
+                expiresAt?: string;
+                subject?: string;
+            };
+            taxProfile?: components["schemas"]["FiscalTaxProfile"];
             /** Format: date-time */
             createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
-        PortalCard: {
-            brand?: string;
-            last4?: string;
-            expMonth?: number;
-            expYear?: number;
+        FiscalCatalogResult: {
+            /** @description The list's source and version */
+            version?: string;
+            items?: {
+                code?: string;
+                description?: string;
+            }[];
         };
-        PortalSubscription: {
+        ProductFiscalProfile: {
+            /** Format: uuid */
+            productId?: string;
+            /** Format: uuid */
+            issuerId?: string;
+            federalServiceCode?: string;
+            cityServiceCode?: string;
+            nbsCode?: string;
+            nationalTaxationCode?: string;
+            serviceDescription?: string;
+            issRate?: string;
+            /** @enum {string} */
+            documentModel?: "nfse" | "nfe" | "nfce";
+            ncm?: string;
+            cest?: string;
+            gtin?: string;
+            origin?: number;
+            unit?: string;
+            cfopInternal?: number;
+            cfopInterstate?: number;
+            icmsCsosn?: number;
+            icmsCst?: number;
+            icmsRate?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        FiscalDocument: {
             /** Format: uuid */
             id?: string;
-            productName?: string;
-            status?: string;
-            billingCycle?: string;
+            /** Format: uuid */
+            invoiceId?: string;
+            /** Format: uuid */
+            issuerId?: string;
+            /** @enum {string} */
+            model?: "nfse" | "nfe" | "nfce";
+            /** @enum {string} */
+            status?: "pending" | "processing" | "issued" | "rejected" | "failed" | "cancel_pending" | "canceled" | "voided";
+            environment?: string;
+            amount?: string;
+            number?: string;
+            authorityProtocol?: string;
             /** Format: date-time */
-            nextBillingDate?: string;
-            cancelAtPeriodEnd?: boolean;
-            /** Format: date-time */
-            accessUntil?: string;
+            issuedAt?: string;
             /** Format: date-time */
             canceledAt?: string;
-            card?: components["schemas"]["PortalCard"];
-            canChangeCard?: boolean;
-        };
-        PortalCodeVerify: {
-            /** Format: uuid */
-            challengeId: string;
-            code: string;
+            /** Format: date-time */
+            cancelRequestedAt?: string;
+            /** @description issuer_not_ready, provider_refused, provider_forbidden, provider_unavailable, authority_rejected, cancel_refused, credential_unavailable, receiver_address_missing, nfce_interstate, nfce_not_enabled, ncm_missing, icms_rate_missing, icms_destination_rate_missing, state_tax_number_missing, provider_tax_setup_pending (a hold, not a failure: the note waits, pending, for the CNPJ's taxes to be configured at Spedy). Append-only. */
+            errorCode?: string;
+            /** @description The city hall's reason, when errorCode is authority_rejected */
+            rejectionReason?: string;
+            /** @description The calculation the note was issued with — rule version, inputs and result. */
+            tax?: {
+                ruleVersion?: string;
+                /** Format: date-time */
+                computedAt?: string;
+                input?: Record<string, never>;
+                result?: Record<string, never>;
+            };
+            /**
+             * Format: uuid
+             * @description The note this one corrects after a partial refund; sent once that one is cancelled.
+             */
+            replacesId?: string;
+            /** Format: date-time */
+            supersededAt?: string;
+            /**
+             * Format: uri
+             * @description The buyer's page for the note: {app}/nota/{token}
+             */
+            publicUrl?: string;
+            /** @enum {string} */
+            provider?: "spedy";
+            /**
+             * @description Who computed this note's taxes
+             * @enum {string}
+             */
+            calculatedBy?: "spedy" | "infi";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         /** @enum {string} */
         RoutingStrategy: "cheapest" | "most_stable" | "manual";
@@ -4405,6 +5297,16 @@ export interface components {
              * @enum {string}
              */
             paymentMethod?: "pix" | "boleto" | "card" | "crypto";
+            /** @description The sale's notas fiscais once authorized, each with the buyer's link. */
+            fiscalDocuments?: {
+                /** @enum {string} */
+                model: "nfse" | "nfe" | "nfce";
+                /** @enum {string} */
+                status: "issued" | "cancel_pending" | "canceled";
+                number?: string;
+                /** @description The buyer's page on the dashboard host: /nota/{token} (live) or /nota/sandbox/{token} */
+                path: string;
+            }[];
             /** @description Card-on-file authorization the payer must accept. Present only when card is available and the invoice is still open. `version` is what the client must echo as `consentTextVersion` when charging with `saveInstrument`. */
             mandate?: {
                 version: string;
@@ -4701,7 +5603,27 @@ export interface components {
          * @description Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.
          * @enum {string}
          */
-        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached" | "subscription.cancel_scheduled" | "subscription.cancel_unscheduled" | "subscription.canceled" | "refund_request.created" | "payment.duplicate_detected" | "payment.duplicate_refunded" | "refund_request.declined";
+        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached" | "fiscal_document.issued" | "fiscal_document.rejected" | "fiscal_document.failed" | "fiscal_document.canceled" | "subscription.cancel_scheduled" | "subscription.cancel_unscheduled" | "subscription.canceled" | "refund_request.created" | "payment.duplicate_detected" | "payment.duplicate_refunded" | "refund_request.declined";
+        /** @description Body of fiscal_document.issued, .rejected, .failed and .canceled. */
+        FiscalDocumentEventData: {
+            /** Format: uuid */
+            fiscalDocumentId: string;
+            /** Format: uuid */
+            invoiceId: string;
+            /** Format: uuid */
+            issuerId: string;
+            /** @enum {string} */
+            model: "nfse" | "nfe" | "nfce";
+            status: string;
+            amount?: string;
+            number?: string;
+            errorCode?: string;
+            /**
+             * Format: uri
+             * @description The buyer's link, on issued and canceled.
+             */
+            publicUrl?: string;
+        };
         /** @description Body of customer.created. */
         CustomerCreatedData: {
             /** Format: uuid */
@@ -5439,7 +6361,7 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
             /** @enum {string} */
-            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi_asaas" | "stub";
+            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi_asaas" | "infi_pagarme" | "stub";
             /** @enum {string} */
             method: "pix" | "boleto" | "card";
             invoiceStatus: string;
@@ -5453,16 +6375,20 @@ export interface components {
             method: "pix";
             /** @constant */
             flow: "pix";
+            /** @description True when live Managed Pagar.me needs the payer phone and billing address to create its customer. */
+            requiresPayerDetails?: boolean;
         };
         PublicCardPaymentOption: {
             /** @constant */
             method: "card";
             /** @enum {string} */
-            provider: "adyen" | "stripe";
+            provider: "adyen" | "stripe" | "infi_pagarme";
             /** @enum {string} */
-            flow: "adyen_session" | "stripe_payment_intent";
-            /** @description False for Adyen phase one; Stripe may offer a mandate. */
-            supportsSavedInstrument: boolean;
+            flow: "adyen_session" | "stripe_payment_intent" | "pagarme_card_token";
+            /** @description False for Pagar.me Managed cards; Stripe may offer a mandate. */
+            supportsSavedInstrument?: boolean;
+            /** @description Browser-safe Pagar.me key required only by pagarme_card_token. */
+            publicKey?: string;
         };
         /** @description Tagged transient browser handoff. Switch on `type`; never infer the provider protocol from legacy fields or accept these values from the browser on a later request. */
         PaymentNextAction: components["schemas"]["AdyenSessionAction"] | components["schemas"]["StripePaymentIntentAction"];
@@ -5818,6 +6744,9 @@ export interface components {
             /** @enum {string} */
             method: "pix" | "boleto" | "card" | "crypto";
             card?: components["schemas"]["CheckoutCardInput"];
+            /** @description Required for Managed Pagar.me customer creation. */
+            payerPhone?: string;
+            payerAddress?: components["schemas"]["CheckoutPayerAddress"];
             /** @description Payer opted to store the card for future automatic charges. Requires `consentTextVersion`; a save without it is refused (422) rather than stored as an unprovable authorization. */
             saveInstrument?: boolean;
             /** @description The mandate wording the payer actually saw — echo `CheckoutSession.mandate.version`. Required when `saveInstrument` is true, and must name a known version. */
@@ -5830,21 +6759,39 @@ export interface components {
              */
             surface: "hosted" | "embed";
         };
-        /** @description Raw card + holder fields for an embedded card charge (method=card). Sent over TLS to the checkout endpoint, which tokenizes them at the PSP and never persists the PAN/CVV. All fields are required by the PSP tokenizer. */
+        /** @description Either the legacy BYOP raw fields or a Pagar.me token minted directly in the browser. Managed Pagar.me requests must send pagarmeToken plus its billing address; PAN and CVV must never be sent to Infi. */
         CheckoutCardInput: {
-            number: string;
-            holderName: string;
+            pagarmeToken?: string;
+            number?: string;
+            holderName?: string;
             /** @example 12 */
-            expiryMonth: string;
+            expiryMonth?: string;
             /** @example 2030 */
-            expiryYear: string;
-            ccv: string;
+            expiryYear?: string;
+            ccv?: string;
             /** Format: email */
-            holderEmail: string;
-            holderCpfCnpj: string;
-            holderPostalCode: string;
-            holderAddressNumber: string;
+            holderEmail?: string;
+            holderCpfCnpj?: string;
+            holderPostalCode?: string;
+            holderAddressNumber?: string;
             holderPhone?: string;
+            billingStreet?: string;
+            billingNumber?: string;
+            billingComplement?: string;
+            billingNeighborhood?: string;
+            billingCity?: string;
+            billingState?: string;
+            billingPostalCode?: string;
+        } | unknown | unknown;
+        /** @description Brazilian payer billing address required by Managed Pagar.me for Pix and card customer creation. */
+        CheckoutPayerAddress: {
+            street: string;
+            number: string;
+            complement?: string;
+            neighborhood: string;
+            city: string;
+            state: string;
+            zipCode: string;
         };
         /**
          * @description The first five are required; `bank_statement` is optional and speeds up review.
@@ -5872,7 +6819,7 @@ export interface components {
             /** @description UF */
             state?: string;
         };
-        /** @description KYC — the legal representative who answers for the company. */
+        /** @description KYC — the shareholder and legal representative whose identity is verified by Pagar.me. */
         ManagedRepresentative: {
             fullName?: string;
             /** @description CPF */
@@ -5882,8 +6829,45 @@ export interface components {
             email?: string;
             phone?: string;
             role?: string;
+            /** @description Monthly income in BRL, decimal string. */
+            monthlyIncome?: string;
+            occupation?: string;
+            isShareholder?: boolean;
+            isLegalRepresentative?: boolean;
+            address?: components["schemas"]["ManagedPersonAddress"];
         };
-        /** @description Where a managed merchant's payouts go — one Pix key, declared in the application and reviewed with it. A CNPJ key must be the company's own; a CPF key is accepted only for an MEI and must be the representative's. E-mail, phone and random keys are checked for shape here and for ownership by the reviewer. Stored normalized (digits for CPF/CNPJ/PHONE, lower-case otherwise). Once approved, it is the only destination a managed payout may name — `POST /billing/payouts` answers 409 `payout_destination_not_registered` for any other key. */
+        ManagedPersonAddress: {
+            /** @description CEP */
+            postalCode?: string;
+            address?: string;
+            addressNumber?: string;
+            complement?: string;
+            reference?: string;
+            district?: string;
+            city?: string;
+            /** @description UF */
+            state?: string;
+        };
+        /** @description Bank account registered as the Pagar.me recipient's settlement destination. */
+        ManagedBankAccount: {
+            holderName?: string;
+            /** @enum {string} */
+            holderType?: "" | "company" | "individual";
+            /** @description CPF or CNPJ */
+            holderTaxId?: string;
+            /** @description Three-digit bank code. */
+            bankCode?: string;
+            branchNumber?: string;
+            branchCheckDigit?: string;
+            accountNumber?: string;
+            accountCheckDigit?: string;
+            /** @enum {string} */
+            type?: "" | "checking" | "savings";
+        };
+        /**
+         * @deprecated
+         * @description Legacy Pix-key destination retained for older applications. New Managed applications register the settlement bank account on a Pagar.me recipient, and payouts use that verified recipient without accepting a per-request destination key.
+         */
         ManagedPayoutAccount: {
             pixKey?: string;
             /** @enum {string} */
@@ -5892,7 +6876,9 @@ export interface components {
         ManagedApplicationInput: {
             company?: components["schemas"]["ManagedCompany"];
             representative?: components["schemas"]["ManagedRepresentative"];
+            /** @deprecated */
             payoutAccount?: components["schemas"]["ManagedPayoutAccount"];
+            bankAccount?: components["schemas"]["ManagedBankAccount"];
         };
         ManagedApplication: {
             /** Format: uuid */
@@ -5901,7 +6887,12 @@ export interface components {
             status: "draft" | "pending_review" | "approved" | "rejected";
             company: components["schemas"]["ManagedCompany"];
             representative: components["schemas"]["ManagedRepresentative"];
+            /** @deprecated */
             payoutAccount: components["schemas"]["ManagedPayoutAccount"];
+            bankAccount: components["schemas"]["ManagedBankAccount"];
+            pagarmeRecipientStatus: string;
+            pagarmeKycStatus: string;
+            pagarmeKycReason?: string;
             /** @description Present after a rejection; what to fix. */
             rejectionReason?: string;
             /** Format: date-time */
@@ -5914,6 +6905,14 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+        };
+        ManagedPagarmeKycLink: {
+            /** Format: uri */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Optional QR code returned by Pagar.me. */
+            qrCode?: string;
         };
         ManagedDocument: {
             /** Format: uuid */
@@ -5929,7 +6928,7 @@ export interface components {
         CollectionModeView: {
             /** @enum {string} */
             mode: "byop" | "managed";
-            /** @description Live deployment with the Infi provider configured. False in sandbox. */
+            /** @description Live deployment with the complete Managed Pagar.me configuration. False in sandbox. */
             managedAvailable: boolean;
             /** @description May this tenant connect its own provider accounts? Managed is the way every account activates production; bringing your own provider is an enterprise feature granted per account (ADR 0065). False means `POST /account/collection-mode` with `byop` answers 409 — ask instead, with `POST /account/collection-mode/byop/request`. */
             byopEnabled: boolean;
@@ -6067,12 +7066,6 @@ export interface components {
         CreatedApiKey: components["schemas"]["ApiKey"] & {
             /** @description The raw secret, returned only once at creation. */
             secret?: string;
-        };
-        CLIProject: {
-            /** @description The CLI's stable id for this project. */
-            projectId: string;
-            projectName?: string;
-            machine?: string;
         };
         CLITokenResponse: {
             /** Format: email */
@@ -6379,6 +7372,83 @@ export interface components {
             graceMaxPerAgent: string;
             graceMaxTotal: string;
         };
+        PortalOrder: {
+            /** Format: uuid */
+            id?: string;
+            number?: string;
+            status?: string;
+            currency?: string;
+            total?: string;
+            /** Format: date-time */
+            paidAt?: string;
+            receiptUrl?: string;
+            lines?: {
+                description?: string;
+                quantity?: string;
+                amount?: string;
+            }[];
+            payment?: {
+                /** Format: uuid */
+                id?: string;
+                method?: string;
+                status?: string;
+                amount?: string;
+                refundedAmount?: string;
+                refundPendingAmount?: string;
+            };
+            guarantee?: {
+                days?: number;
+                /** Format: date-time */
+                endsAt?: string;
+                withinWindow?: boolean;
+            };
+            refundRequest?: components["schemas"]["PortalRefundRequest"];
+        };
+        PortalRefundRequest: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            status?: "pending" | "approved" | "declined";
+            withinWindow?: boolean;
+            /** @description `automatic`, or the store's actor. */
+            decidedBy?: string;
+            note?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PortalCard: {
+            brand?: string;
+            last4?: string;
+            expMonth?: number;
+            expYear?: number;
+        };
+        PortalSubscription: {
+            /** Format: uuid */
+            id?: string;
+            productName?: string;
+            status?: string;
+            billingCycle?: string;
+            /** Format: date-time */
+            nextBillingDate?: string;
+            cancelAtPeriodEnd?: boolean;
+            /** Format: date-time */
+            accessUntil?: string;
+            /** Format: date-time */
+            canceledAt?: string;
+            card?: components["schemas"]["PortalCard"];
+            canChangeCard?: boolean;
+        };
+        PortalCodeVerify: {
+            /** Format: uuid */
+            challengeId: string;
+            code: string;
+        };
+        CLIProject: {
+            /** @description The CLI's stable id for this project. */
+            projectId: string;
+            projectName?: string;
+            machine?: string;
+        };
         AccessKey: {
             /** Format: uuid */
             id?: string;
@@ -6604,46 +7674,6 @@ export interface components {
                 };
             };
         };
-        /** @description What buying the product grants */
-        AccessRules: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": {
-                    rules?: components["schemas"]["AccessRule"][];
-                };
-            };
-        };
-        /** @description The course tree */
-        CourseTree: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["Course"];
-            };
-        };
-        /** @description The course as the student sees it */
-        StudentCourse: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["StudentCourse"];
-            };
-        };
-        /** @description Customer-login settings */
-        CustomerLoginSettings: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": {
-                    signupByLogin?: boolean;
-                };
-            };
-        };
         /** @description Malformed request */
         BadRequest: {
             headers: {
@@ -6718,6 +7748,35 @@ export interface components {
                 "application/json": components["schemas"]["MiddlewareError"];
             };
         };
+        /** @description What buying the product grants */
+        AccessRules: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    rules?: components["schemas"]["AccessRule"][];
+                };
+            };
+        };
+        /** @description The course tree */
+        CourseTree: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Course"];
+            };
+        };
+        /** @description The course as the student sees it */
+        StudentCourse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["StudentCourse"];
+            };
+        };
     };
     parameters: {
         /** @description The single-use grant from `/portal/action-codes/verify`. Required on a code session; ignored for a `portal:write` merchant token. */
@@ -6767,6 +7826,971 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listFiscalCities: {
+        parameters: {
+            query?: {
+                /** @description Name search */
+                q?: string;
+                /** @description Two-letter UF */
+                state?: string;
+                /** @description 7-digit IBGE code */
+                code?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            code?: string;
+                            name?: string;
+                            state?: string;
+                            /** @description The city hall's NFS-e system */
+                            provider?: string;
+                            nationalRegimes?: string;
+                        }[];
+                        hasMore: boolean;
+                    };
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listFiscalIssuers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuers, the default first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FiscalIssuer"][];
+                    };
+                };
+            };
+        };
+    };
+    createFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalCompanyInput"];
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalCompanyInput"];
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    disableFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer, disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    uploadFiscalCertificate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: byte
+                     * @description The .pfx file
+                     */
+                    certificate: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    updateFiscalSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    series?: string;
+                    /** Format: int64 */
+                    nextNumber?: number;
+                    nextBatchNumber?: number;
+                    /** @enum {string} */
+                    issueType?: "normal" | "annfs" | "alt";
+                    userName?: string;
+                    password?: string;
+                    authNumber?: string;
+                    nfe?: {
+                        series?: string;
+                        /** Format: int64 */
+                        nextNumber?: number;
+                    };
+                    /** @description The CSC is passed to the provider (it signs the QR code) and not stored by Infi. */
+                    nfce?: {
+                        series?: string;
+                        /** Format: int64 */
+                        nextNumber?: number;
+                        tokenId?: string;
+                        csc?: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    updateFiscalTaxProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalTaxProfile"];
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    searchFiscalServices: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalCatalogResult"];
+                };
+            };
+        };
+    };
+    searchFiscalNCM: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalCatalogResult"];
+                };
+            };
+        };
+    };
+    simulateFiscalNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description default 100 */
+                    amount?: string;
+                    /** Format: uuid */
+                    productId?: string;
+                    taxRegime?: string;
+                    taxProfile?: components["schemas"]["FiscalTaxProfile"];
+                };
+            };
+        };
+        responses: {
+            /** @description Scenarios */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scenarios?: {
+                            key?: string;
+                            /** @enum {string} */
+                            model?: "nfse" | "nfe" | "nfce";
+                            /** @enum {string} */
+                            receiver?: "individual" | "company" | "foreign" | "unidentified";
+                            destUf?: string;
+                            /** @description TaxResult (fiscal.Calculate) */
+                            service?: Record<string, never>;
+                            /** @description GoodsResult (fiscal.CalculateGoods) */
+                            goods?: Record<string, never>;
+                            errorCode?: string;
+                            approxSource?: string;
+                        }[];
+                    };
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    fiscalReviewLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link ({app}/revisao-fiscal/{token}) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        url?: string;
+                    };
+                };
+            };
+        };
+    };
+    markFiscalAccountantReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reviewedBy: string;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    setFiscalIBPTToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    clearFiscalIBPTToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    getFiscalApproxRates: {
+        parameters: {
+            query: {
+                kind: "product" | "service";
+                /** @description NCM or LC 116 item */
+                code: string;
+            };
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rates (percent) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        federalRate?: string;
+                        stateRate?: string;
+                        municipalRate?: string;
+                        source?: string;
+                    };
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPublicFiscalReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration and simulated notes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description A projection for the accountant: taxId, legalName, tradeName, registrations, taxRegime, profitRegime, sells, cnae, cityName, state, taxMode, taxProfile, ibptConnected and the review stamp. No credentials, certificate or account settings. */
+                        issuer?: Record<string, never>;
+                        scenarios?: Record<string, never>[];
+                        products?: {
+                            name?: string;
+                            profile?: components["schemas"]["ProductFiscalProfile"];
+                            scenarios?: Record<string, never>[];
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    approvePublicFiscalReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    crc?: string;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reviewed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        reviewedAt?: string;
+                        reviewedBy?: string;
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    confirmFiscalTaxSetup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    setDefaultFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    getProductFiscalProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile; empty fields mean the default issuer and its service */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFiscalProfile"];
+                };
+            };
+        };
+    };
+    putProductFiscalProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: uuid
+                     * @description null = the default issuer
+                     */
+                    issuerId?: string | null;
+                    federalServiceCode?: string;
+                    cityServiceCode?: string;
+                    nbsCode?: string;
+                    nationalTaxationCode?: string;
+                    serviceDescription?: string;
+                    issRate?: string;
+                    /**
+                     * @description nfse: a service. nfe: goods sold at a distance. nfce: goods to a consumer in the issuer's state.
+                     * @enum {string}
+                     */
+                    documentModel?: "nfse" | "nfe" | "nfce";
+                    /** @description 8 digits; required for goods */
+                    ncm?: string;
+                    cest?: string;
+                    gtin?: string;
+                    origin?: number;
+                    /** @description default UN */
+                    unit?: string;
+                    /** @description default 5102 */
+                    cfopInternal?: number;
+                    /** @description default 6108 (to a final consumer) */
+                    cfopInterstate?: number;
+                    /** @description Simples; default 102 */
+                    icmsCsosn?: number;
+                    /** @description Regime Normal; default 0 (CST 00) */
+                    icmsCst?: number;
+                    /** @description Regime Normal, in-state sales */
+                    icmsRate?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFiscalProfile"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listFiscalDocuments: {
+        parameters: {
+            query?: {
+                invoiceId?: string;
+                status?: "pending" | "processing" | "issued" | "rejected" | "failed" | "cancel_pending" | "canceled" | "voided";
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documents, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FiscalDocument"][];
+                    };
+                };
+            };
+        };
+    };
+    getFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalDocument"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getFiscalDocumentPDF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getFiscalDocumentXML: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description XML */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPublicFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Note */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        model?: "nfse" | "nfe" | "nfce";
+                        /** @enum {string} */
+                        status?: "processing" | "issued" | "cancel_pending" | "canceled";
+                        number?: string;
+                        amount?: string;
+                        issuerName?: string;
+                        issuerTaxId?: string;
+                        /** Format: date-time */
+                        issuedAt?: string;
+                        /** Format: date-time */
+                        canceledAt?: string;
+                        /** @description On this API: /public/fiscal-documents/{token}/pdf */
+                        pdfPath?: string;
+                        xmlPath?: string;
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPublicFiscalDocumentPDF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPublicFiscalDocumentXML: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description XML */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    retryFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document, pending */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalDocument"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    spedyWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Received */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     getRoutingConfiguration: {
         parameters: {
             query?: never;
@@ -7579,6 +9603,7 @@ export interface operations {
                     taxId: string;
                     /** @description Contact phone, optional. Data for reaching, finding or weighing the buyer later (dunning, LGPD, antifraud) — never an identifier, and never required to check out. */
                     phone?: string | null;
+                    billingAddress?: components["schemas"]["BuyerAddress"];
                 };
             };
         };
@@ -7816,6 +9841,8 @@ export interface operations {
                 "application/json": {
                     /** Format: email */
                     email: string;
+                    /** @description Language of the e-mailed code: pt-BR or en (any regional tag narrows). Absent or unsupported → Accept-Language → pt-BR. */
+                    locale?: string;
                 };
             };
         };
@@ -8304,7 +10331,9 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    externalId: string;
+                    externalId?: string;
+                    /** @description One bt_ to revoke */
+                    token?: string;
                 };
             };
         };
@@ -8324,7 +10353,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    listAccessKeys: {
+    oidcDiscovery: {
         parameters: {
             query?: never;
             header?: never;
@@ -8333,20 +10362,173 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Keys */
+            /** @description Discovery document (RFC 8414) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oidcJwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JWK set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oauthAuthorize: {
+        parameters: {
+            query: {
+                response_type: "code";
+                client_id: string;
+                redirect_uri: string;
+                scope: string;
+                state?: string;
+                nonce?: string;
+                code_challenge: string;
+                code_challenge_method: "S256";
+                ui_locales?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description To the store with code (or error) */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    oauthToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    /** @enum {string} */
+                    grant_type: "authorization_code";
+                    code: string;
+                    redirect_uri: string;
+                    client_id: string;
+                    /** @description The store's sk_ */
+                    client_secret?: string;
+                    code_verifier: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Tokens */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        keys?: components["schemas"]["AccessKey"][];
+                        access_token?: string;
+                        /** @enum {string} */
+                        token_type?: "Bearer";
+                        expires_in?: number;
+                        id_token?: string;
+                        scope?: string;
                     };
                 };
             };
+            /** @description RFC 6749 error (invalid_grant, unsupported_grant_type, …) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid_client: the sk_ is not the store's */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
-    createAccessKey: {
+    oauthUserInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description sub, email, email_verified, name */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    oauthDeleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listOAuthClients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sites */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    upsertOAuthClient: {
         parameters: {
             query?: never;
             header?: {
@@ -8359,127 +10541,53 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    /** @example curso-x */
-                    key: string;
                     name: string;
+                    redirectUris: string[];
                 };
             };
         };
         responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccessKey"];
-                };
-            };
-            409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    renameAccessKey: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    name: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Renamed */
+            /** @description Existing site */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["AccessKey"];
-                };
+                content?: never;
             };
-            404: components["responses"]["NotFound"];
+            /** @description Created (clientId) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["ValidationFailed"];
         };
     };
-    listAccessKeyHolders: {
+    getLoginSettings: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                key: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Holders */
+            /** @description Settings */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        holders?: (components["schemas"]["KeyAccess"] & {
-                            /** Format: uuid */
-                            customerId?: string;
-                            externalId?: string;
-                        })[];
+                        /** @description A new address becomes a customer on its first sign-in (default true) */
+                        createsCustomer?: boolean;
                     };
                 };
             };
-            404: components["responses"]["NotFound"];
         };
     };
-    getProductAccess: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                productID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["AccessRules"];
-        };
-    };
-    setProductAccess: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                productID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    rules: components["schemas"]["AccessRule"][];
-                };
-            };
-        };
-        responses: {
-            200: components["responses"]["AccessRules"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    grantAccess: {
+    putLoginSettings: {
         parameters: {
             query?: never;
             header?: {
@@ -8492,973 +10600,69 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": {
-                    externalId: string;
-                    key: string;
-                    /** @description Omit for lifetime. */
-                    days?: number;
-                    reason: string;
+                    createsCustomer: boolean;
                 };
             };
         };
         responses: {
-            /** @description Granted */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccessGrant"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    revokeAccessGrant: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                grantID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    reason: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Revoked */
+            /** @description Saved */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccessGrant"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    getCustomerAccess: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                externalID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Access */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        access?: components["schemas"]["KeyAccess"][];
-                    };
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    checkCustomerAccess: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                externalID: string;
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The key as the customer holds it */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeyAccess"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    portalAccess: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Access */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        access?: components["schemas"]["KeyAccess"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    portalAccessKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The key */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["KeyAccess"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listCourses: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Courses */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        courses?: components["schemas"]["Course"][];
-                    };
-                };
-            };
-        };
-    };
-    createCourse: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CourseWrite"];
-            };
-        };
-        responses: {
-            201: components["responses"]["CourseTree"];
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    getCourse: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["CourseTree"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteCourse: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateCourse: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CourseWrite"];
-            };
-        };
-        responses: {
-            200: components["responses"]["CourseTree"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    createCourseModule: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    title: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CourseModule"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    reorderCourseModules: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: components["requestBodies"]["Order"];
-        responses: {
-            200: components["responses"]["CourseTree"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    deleteCourseModule: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-                moduleID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    renameCourseModule: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-                moduleID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    title: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Renamed */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CourseModule"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    reorderCourseLessons: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-                moduleID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: components["requestBodies"]["Order"];
-        responses: {
-            200: components["responses"]["CourseTree"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    createCourseLesson: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LessonWrite"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Lesson"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    getCourseLesson: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Lesson */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Lesson"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    deleteCourseLesson: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    updateCourseLesson: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LessonWrite"];
-            };
-        };
-        responses: {
-            /** @description Edited */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Lesson"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    getCourseStudent: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                courseID: string;
-                externalID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["StudentCourse"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    portalCourses: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Courses */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        courses?: components["schemas"]["StudentCourse"][];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    portalCourse: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-                courseID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["StudentCourse"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    portalLesson: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Lesson */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StudentLesson"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    portalCompleteLesson: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["StudentCourse"];
-            403: components["responses"]["Forbidden"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    portalUncompleteLesson: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-                courseID: string;
-                lessonID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["StudentCourse"];
-            403: components["responses"]["Forbidden"];
         };
     };
     verifyBuyerToken: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            header: {
+                "X-Buyer-Token": string;
             };
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @example bt_3f... */
-                    token: string;
-                };
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description The owner, or valid false */
+            /** @description The signed-in buyer */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        valid?: boolean;
-                        /** @enum {string} */
-                        origin?: "code" | "merchant";
-                        /** @enum {string} */
-                        scope?: "portal:read" | "portal:write";
-                        /** Format: date-time */
-                        expiresAt?: string;
-                        customer?: {
-                            /** Format: uuid */
-                            id?: string;
-                            externalId?: string;
+                        buyer: {
                             email?: string;
+                            name?: string;
+                            customerIds: string[];
+                            externalIds: string[];
                         };
+                        /** @enum {string} */
+                        origin: "code" | "merchant";
+                        /** @enum {string} */
+                        scope: "portal:read" | "portal:write";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        access: {
+                            /** Format: uuid */
+                            productId: string;
+                            /** @description The manifest key, e.g. ecommerce/ebook */
+                            key?: string;
+                            name: string;
+                            /** @enum {string} */
+                            kind: "purchase" | "subscription";
+                            /** @enum {string} */
+                            subscriptionStatus?: "active" | "trialing" | "past_due";
+                            /** Format: date-time */
+                            renewsAt?: string;
+                            cancelAtPeriodEnd?: boolean;
+                        }[];
                     };
                 };
             };
+            401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
-        };
-    };
-    getCustomerLoginSettings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: components["responses"]["CustomerLoginSettings"];
-        };
-    };
-    setCustomerLoginSettings: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    signupByLogin: boolean;
-                };
-            };
-        };
-        responses: {
-            200: components["responses"]["CustomerLoginSettings"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    connectTelegramCommunity: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @example -1001234567890 */
-                    chatId: string;
-                    accessKey: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Linked */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CommunityIntegration"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    listCommunityIntegrations: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Communities */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        integrations?: components["schemas"]["CommunityIntegration"][];
-                    };
-                };
-            };
-        };
-    };
-    disableCommunityIntegration: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path: {
-                integrationID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Disabled */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listCommunityMembers: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                integrationID: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Members */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        members?: {
-                            /** Format: uuid */
-                            id?: string;
-                            /** Format: uuid */
-                            customerId?: string;
-                            externalId?: string;
-                            /** @enum {string} */
-                            status?: "invite_pending" | "invited" | "approve_pending" | "assign_pending" | "joined" | "remove_pending" | "removed";
-                            /** Format: date-time */
-                            invitedAt?: string;
-                            /** Format: date-time */
-                            joinedAt?: string;
-                            /** Format: date-time */
-                            removedAt?: string;
-                            removalReason?: string;
-                            lastError?: string;
-                        }[];
-                    };
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    portalCommunity: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Communities */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        communities?: {
-                            /** @enum {string} */
-                            provider?: "telegram" | "discord";
-                            title?: string;
-                            accessKey?: string;
-                            status?: string;
-                            /** @description Telegram */
-                            inviteLink?: string;
-                            /** @description Discord */
-                            inviteUrl?: string;
-                            /** @description Discord */
-                            needsAccount?: boolean;
-                            /** Format: date-time */
-                            joinedAt?: string;
-                            /** Format: date-time */
-                            removedAt?: string;
-                        }[];
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    connectDiscordCommunity: {
-        parameters: {
-            query?: never;
-            header?: {
-                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
-                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    guildId: string;
-                    roleId: string;
-                    /** @description The server's own invite */
-                    inviteUrl?: string;
-                    accessKey: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Linked */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CommunityIntegration"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            422: components["responses"]["ValidationFailed"];
-        };
-    };
-    portalDiscordAuthorize: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @description Registered with Infi's Discord app. */
-                    redirectUri: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Where the student approves Infi's app */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        url?: string;
-                    };
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-        };
-    };
-    portalDiscordConnect: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description The store's (tenant's) slug. */
-                slug: components["parameters"]["PortalSlug"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    code: string;
-                    state: string;
-                    redirectUri: string;
-                };
-            };
-        };
-        responses: {
-            /** @description The student's communities */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            409: components["responses"]["Conflict"];
         };
     };
     listRefundRequests: {
@@ -13518,6 +14722,45 @@ export interface operations {
             };
         };
     };
+    createManagedPagarmeKycLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pagar.me verification link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedPagarmeKycLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The recipient is not yet eligible for verification or has no open verification step. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Pagar.me did not return a valid hosted link. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     getTenant: {
         parameters: {
             query?: never;
@@ -14260,6 +15503,1103 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listAccessKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Keys */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        keys?: components["schemas"]["AccessKey"][];
+                    };
+                };
+            };
+        };
+    };
+    createAccessKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example curso-x */
+                    key: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessKey"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    renameAccessKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessKey"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listAccessKeyHolders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holders?: (components["schemas"]["KeyAccess"] & {
+                            /** Format: uuid */
+                            customerId?: string;
+                            externalId?: string;
+                        })[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getProductAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AccessRules"];
+        };
+    };
+    setProductAccess: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: components["schemas"]["AccessRule"][];
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["AccessRules"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    grantAccess: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    externalId: string;
+                    key: string;
+                    /** @description Omit for lifetime. */
+                    days?: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Granted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessGrant"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    revokeAccessGrant: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                grantID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessGrant"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getCustomerAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access?: components["schemas"]["KeyAccess"][];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    checkCustomerAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalID: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key as the customer holds it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyAccess"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access?: components["schemas"]["KeyAccess"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalAccessKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyAccess"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        courses?: components["schemas"]["Course"][];
+                    };
+                };
+            };
+        };
+    };
+    createCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseWrite"];
+            };
+        };
+        responses: {
+            201: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseWrite"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    reorderCourseModules: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Order"];
+        responses: {
+            200: components["responses"]["CourseTree"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    deleteCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    renameCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    reorderCourseLessons: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Order"];
+        responses: {
+            200: components["responses"]["CourseTree"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonWrite"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonWrite"];
+            };
+        };
+        responses: {
+            /** @description Edited */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourseStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                externalID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        courses?: components["schemas"]["StudentCourse"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentLesson"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCompleteLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalUncompleteLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getTelegramBot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The bot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example infi_bot */
+                        username?: string;
+                        /** @example https://t.me/infi_bot */
+                        url?: string;
+                        /**
+                         * @example [
+                         *       "can_invite_users",
+                         *       "can_restrict_members"
+                         *     ]
+                         */
+                        requiredRights?: string[];
+                    };
+                };
+            };
+            /** @description Telegram is not configured on this deployment */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    connectTelegramCommunity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example -1001234567890 */
+                    chatId: string;
+                    accessKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Linked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityIntegration"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listCommunityIntegrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        integrations?: components["schemas"]["CommunityIntegration"][];
+                    };
+                };
+            };
+        };
+    };
+    disableCommunityIntegration: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                integrationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disabled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCommunityMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                integrationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        members?: {
+                            /** Format: uuid */
+                            id?: string;
+                            /** Format: uuid */
+                            customerId?: string;
+                            externalId?: string;
+                            /** @enum {string} */
+                            status?: "invite_pending" | "invited" | "approve_pending" | "assign_pending" | "joined" | "remove_pending" | "removed";
+                            /** Format: date-time */
+                            invitedAt?: string;
+                            /** Format: date-time */
+                            joinedAt?: string;
+                            /** Format: date-time */
+                            removedAt?: string;
+                            removalReason?: string;
+                            lastError?: string;
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCommunity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        communities?: {
+                            /** @enum {string} */
+                            provider?: "telegram" | "discord";
+                            title?: string;
+                            accessKey?: string;
+                            status?: string;
+                            /** @description Telegram */
+                            inviteLink?: string;
+                            /** @description Discord */
+                            inviteUrl?: string;
+                            /** @description Discord */
+                            needsAccount?: boolean;
+                            /** Format: date-time */
+                            joinedAt?: string;
+                            /** Format: date-time */
+                            removedAt?: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    connectDiscordCommunity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    guildId: string;
+                    roleId: string;
+                    /** @description The server's own invite */
+                    inviteUrl?: string;
+                    accessKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Linked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityIntegration"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    portalDiscordAuthorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Registered with Infi's Discord app. */
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Where the student approves Infi's app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url?: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalDiscordConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    state: string;
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The student's communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
 }
