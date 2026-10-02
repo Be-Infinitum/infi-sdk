@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/elements",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Infi elements, headless: the checkout and portal embeds, the buyer portal's calls and the store read. React components are in @beinfi/elements-react.",
   "license": "MIT",
   "type": "module",

@@ -4,6 +4,8 @@ import { CheckoutPreview } from "./checkout-preview.js";
 import { InfiCheckoutEmbed, type InfiCheckoutEmbedProps } from "./InfiCheckoutEmbed.js";
 import { useElementLocale } from "./locale.js";
 import { useInfi } from "./provider.js";
+import { useSignals } from "./signals.js";
+import { useRef } from "react";
 
 type CheckoutLiveProps = Omit<
   InfiCheckoutEmbedProps,
@@ -44,11 +46,31 @@ export function CheckoutElement(props: CheckoutElementProps) {
 
 function LiveCheckout({ preview: _preview, ...rest }: CheckoutLiveProps & { locale: string }) {
   const infi = useInfi();
+  // The funnel's two checkout steps, when <InfiSignals> is on the page: the
+  // checkout became usable, and the payer finished. Your own callbacks run as
+  // they always did.
+  const signals = useSignals();
+  const started = useRef(false);
+  const { onStateChange, onComplete } = rest;
+  const props: typeof rest = {
+    ...rest,
+    onStateChange: (state, method) => {
+      if (state === "ready" && !started.current) {
+        started.current = true;
+        signals.checkout("started");
+      }
+      onStateChange?.(state, method);
+    },
+    onComplete: (payload) => {
+      signals.checkout("completed");
+      onComplete?.(payload);
+    },
+  };
   const { theme, accentColor, backgroundColor, font, radius } = infi.appearance ?? {};
   const themed = accentColor || backgroundColor || font || radius;
   return (
     <InfiCheckoutEmbed
-      {...rest}
+      {...props}
       slug={infi.slug}
       environment={infi.environment}
       appUrl={infi.appUrl}

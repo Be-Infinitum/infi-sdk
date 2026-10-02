@@ -13,8 +13,8 @@
     "infi:seed": "node --env-file=.env.local scripts/seed.mjs"
   },
   "dependencies": {
-    "@beinfi/elements": "^0.2.0",
-    "@beinfi/elements-react": "^0.2.0",
+    "@beinfi/elements": "^0.3.0",
+    "@beinfi/elements-react": "^0.3.0",
     "@beinfi/sdk": "^0.14.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
