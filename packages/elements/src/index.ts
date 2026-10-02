@@ -133,3 +133,11 @@ export {
   type InfiLocale,
 } from "./locale.js";
 export { detectColorScheme, type ColorScheme } from "./theme.js";
+export {
+  createSignals,
+  type FeedbackInput,
+  type SignalEvent,
+  type SignalKind,
+  type SignalsClient,
+  type SignalsOptions,
+} from "./signals.js";

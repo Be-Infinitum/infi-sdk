@@ -67,7 +67,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@beinfi/elements": ">=0.1.0 <0.3.0",
-    "@beinfi/elements-react": ">=0.1.0 <0.3.0"
+    "@beinfi/elements": ">=0.1.0 <0.4.0",
+    "@beinfi/elements-react": ">=0.1.0 <0.4.0"
   }
 }
