@@ -4,7 +4,8 @@ const shared = {
   format: ["esm", "cjs"] as const,
   dts: true,
   sourcemap: true,
-  external: ["react", "react-dom"],
+  // The code lives in @beinfi/elements(-react); this package only re-exports.
+  external: ["react", "react-dom", "@beinfi/elements", "@beinfi/elements-react"],
   target: "es2022" as const,
 };
 
@@ -29,6 +30,8 @@ export default defineConfig([
     sourcemap: true,
     dts: false,
     target: "es2020",
+    // The <script> file is self-contained: it carries the checkout core in it.
+    noExternal: ["@beinfi/elements"],
     outDir: "dist",
   },
   {

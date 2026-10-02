@@ -1,3 +1,10 @@
+> **Legacy entry point (2026-09-28).** The checkout embed now lives in
+> [`@beinfi/elements`](../elements) and its React component in
+> [`@beinfi/elements-react`](../elements-react) (`<CheckoutElement>` inside
+> `<InfiProvider>`). This package re-exports them under the names below, so
+> nothing breaks; new code should import from the new packages. The
+> `<script>` loader stays here.
+
 # @beinfi/checkout
 
 Infi checkout, embedded in your own page. The buyer pays with pix, card or crypto
@@ -13,7 +20,7 @@ import { InfiCheckoutEmbed } from "@beinfi/checkout/react";
 <InfiCheckoutEmbed
   linkToken="plink_…"
   environment="sandbox"
-  onComplete={({ invoiceId }) => router.push(`/obrigado?i=${invoiceId}`)}
+  onComplete={({ invoiceId }) => router.push(`/thank-you?i=${invoiceId}`)}
 />
 ```
 
@@ -61,9 +68,9 @@ same way it would after any redirect. Query params you already have are
 preserved, and a relative path resolves against the current page:
 
 ```tsx
-<InfiCheckoutEmbed … returnUrl="/obrigado?order=42" />
-// paid      → /obrigado?order=42&status=success&invoice=<invoiceId>
-// gave up   → /obrigado?order=42&status=error&code=payment_expired
+<InfiCheckoutEmbed … returnUrl="/thank-you?order=42" />
+// paid      → /thank-you?order=42&status=success&invoice=<invoiceId>
+// gave up   → /thank-you?order=42&status=error&code=payment_expired
 ```
 
 `status=error` fires only when the checkout is over for this payer — the pix

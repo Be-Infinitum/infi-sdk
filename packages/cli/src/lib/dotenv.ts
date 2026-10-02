@@ -62,3 +62,18 @@ export function readProjectEnv(cwd: string = process.cwd()): ProjectEnv {
   }
   return {};
 }
+
+/**
+ * Set these keys in an env file, keeping every other line as it was. 0600:
+ * it holds a secret key.
+ */
+export function upsertEnv(file: string, vars: Record<string, string>): void {
+  const existing = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const names = Object.keys(vars);
+  const owned = (line: string) => names.some((n) => new RegExp(`^(?:export\\s+)?${n}=`).test(line.trim()));
+  const kept = existing.split("\n").filter((line) => !owned(line));
+  while (kept.length && kept[kept.length - 1] === "") kept.pop();
+  const lines = [...kept, ...names.map((n) => `${n}=${vars[n]}`), ""];
+  fs.writeFileSync(file, lines.join("\n"), { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+}

@@ -41,4 +41,26 @@ describe("getGoLiveStatus", () => {
     expect(status.urls.connect).toContain("go-live");
     expect(status.next.toLowerCase()).toContain("claim");
   });
+
+  it("reads GET /go-live, not /account/go-live, and reports the request", async () => {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        urls.push(String(url));
+        if (String(url).endsWith("/go-live")) {
+          return new Response(
+            JSON.stringify({ request: { id: "r1", status: "declined", declineReason: "volume", createdAt: "t" } }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response("{}", { status: 404 });
+      }),
+    );
+    const status = await getGoLiveStatus({ local: true, json: true, key: "sk_test_x" });
+    expect(urls.some((u) => u.endsWith("/go-live") && !u.includes("/account/"))).toBe(true);
+    expect(status.stage).toBe("go_live_declined");
+    expect(status.next).toContain("volume");
+    expect(status.request?.id).toBe("r1");
+  });
 });

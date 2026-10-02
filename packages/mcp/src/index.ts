@@ -12,6 +12,7 @@ import { getGoLiveStatus } from "@beinfi/cli/go-live";
 import { runBootstrap, runAgentOnboarding } from "@beinfi/cli/bootstrap";
 import { listSkills } from "@beinfi/cli/skills";
 import { readFileSync } from "node:fs";
+import { registerCourseTools } from "./courses.js";
 
 const API_BASE = (process.env.INFI_API_URL ?? "https://api-sandbox.beinfi.com").replace(/\/$/, "");
 
@@ -171,6 +172,32 @@ server.tool(
     return {
       content: [{ type: "text", text: JSON.stringify({ products, webhooks }, null, 2) }],
     };
+  },
+);
+
+// Course, lesson, access and community: one tool per API route.
+registerCourseTools(server, client);
+
+server.tool(
+  "infi_customer_login_settings",
+  "Read or change the store's \"Entrar com Infi\" rule: whether a new e-mail that signs in becomes a customer (default true). Pass createsCustomer to change it; omit it to read.",
+  { createsCustomer: z.boolean().optional() },
+  async ({ createsCustomer }) => {
+    const infi = client();
+    const result =
+      createsCustomer === undefined ? await infi.loginSettings.get() : await infi.loginSettings.set({ createsCustomer });
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+  },
+);
+
+server.tool(
+  "infi_sign_in_sites",
+  "List the store's sites that sign buyers in with Infi (OAuth clients and their exact redirect URIs). Add a site or a redirect with name + redirectUris (adds, never drops).",
+  { name: z.string().optional(), redirectUris: z.array(z.string()).optional() },
+  async ({ name, redirectUris }) => {
+    const infi = client();
+    const result = name && redirectUris ? await infi.oauthClients.upsert({ name, redirectUris }) : await infi.oauthClients.list();
+    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   },
 );
 

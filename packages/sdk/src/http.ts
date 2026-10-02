@@ -12,6 +12,8 @@ export interface RequestOptions {
   body?: unknown;
   /** Requires a secret key; throws if the client was created without one. */
   requireSecret?: boolean;
+  /** Extra request headers (never Authorization: that is the key's). */
+  headers?: Record<string, string>;
   /** Client-supplied key for safe retries (Idempotency-Key header). */
   idempotencyKey?: string;
   /**
@@ -58,6 +60,7 @@ export class Transport {
     const isMutation = method !== "GET" && method !== "HEAD";
     const idempotencyKey = opts.idempotencyKey ?? (isMutation ? newIdempotencyKey() : undefined);
     if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
+    for (const [k, v] of Object.entries(opts.headers ?? {})) if (k.toLowerCase() !== "authorization") headers[k] = v;
     if (opts.body !== undefined) headers["Content-Type"] = "application/json";
 
     const res = await fetch(url, {

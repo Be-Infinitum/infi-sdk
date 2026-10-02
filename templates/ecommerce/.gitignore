@@ -1,0 +1,7 @@
+node_modules
+.next
+# Keys live here — written by `infi login`, never committed, never zipped.
+.env
+.env.local
+.env.live.local
+.env*.local
