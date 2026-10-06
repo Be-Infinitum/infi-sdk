@@ -17,7 +17,19 @@ export type GoLiveStage =
   | "provider_needed"
   | "webhook_pending"
   | "live_ready"
+  | "go_live_requested"
+  | "go_live_approved"
+  | "go_live_declined"
   | "unknown";
+
+/** The sandbox tenant's request to reach live (backend `GET /go-live`). */
+export type GoLiveRequest = {
+  id: string;
+  status: "pending" | "contacted" | "approved" | "declined";
+  declineReason?: string | null;
+  createdAt: string;
+  answeredAt?: string | null;
+};
 
 export type GoLiveStatus = {
   stage: GoLiveStage;
@@ -36,24 +48,26 @@ export type GoLiveStatus = {
     status: string;
     tenantSlug: string;
   };
-  /**
-   * When the backend exposes GET /account/go-live, this is the raw payload.
-   * Until then agents follow `stage` + `next` + `urls`.
-   */
-  backend?: unknown;
+  /** The go-live request, as `GET /go-live` answers (sandbox only). */
+  request?: GoLiveRequest | null;
 };
 
 
-async function tryBackendGoLive(api: string, secretKey: string): Promise<unknown | null> {
+/**
+ * `GET /go-live` (sandbox root route): `{ request: GoLiveRequest | null }`.
+ * This used to read `/account/go-live`, which does not exist, so the command
+ * always fell back to guessing (decisoes.md, baixar).
+ */
+async function tryBackendGoLive(api: string, secretKey: string): Promise<{ request: GoLiveRequest | null } | null> {
   try {
-    const res = await fetch(`${api.replace(/\/$/, "")}/account/go-live`, {
+    const res = await fetch(`${api.replace(/\/$/, "")}/go-live`, {
       headers: {
         Authorization: `Bearer ${secretKey}`,
         Accept: "application/json",
       },
     });
     if (!res.ok) return null;
-    return await res.json();
+    return (await res.json()) as { request: GoLiveRequest | null };
   } catch {
     return null;
   }
@@ -126,26 +140,38 @@ export async function getGoLiveStatus(
     }
   }
 
-  const backend = secretKey ? await tryBackendGoLive(api, secretKey) : null;
-  if (backend && typeof backend === "object" && backend !== null && "stage" in backend) {
-    const b = backend as {
-      stage: GoLiveStage;
-      next?: string;
-      urls?: GoLiveStatus["urls"];
-      blockers?: GoLiveStatus["blockers"];
-    };
-    return {
-      stage: b.stage,
-      mode,
-      next: b.next ?? "Follow the dashboard URL.",
-      urls: {
-        dashboard,
-        ...b.urls,
-        claim: b.urls?.claim ?? claimUrl,
+  const backend = secretKey && mode === "sandbox" ? await tryBackendGoLive(api, secretKey) : null;
+  const request = backend?.request;
+  if (request) {
+    const byStatus: Record<GoLiveRequest["status"], { stage: GoLiveStage; next: string }> = {
+      pending: {
+        stage: "go_live_requested",
+        next: "Your go-live request is with Infi. You will get an e-mail when it is answered.",
       },
-      blockers: b.blockers ?? [],
+      contacted: {
+        stage: "go_live_requested",
+        next: "Infi is talking to you about going live — reply to that conversation to move it forward.",
+      },
+      approved: {
+        stage: "go_live_approved",
+        next:
+          "Approved. Sign in on the live dashboard, connect your provider, then `infi keys create --live` " +
+          "and `infi sync` with the live key — the live account starts empty.",
+      },
+      declined: {
+        stage: "go_live_declined",
+        next: `Declined${request.declineReason ? `: ${request.declineReason}` : "."} Talk to Infi to ask again.`,
+      },
+    };
+    const { stage, next } = byStatus[request.status];
+    return {
+      stage,
+      mode,
+      next,
+      urls: { dashboard, account: `${dashboard}/signup`, connect: connectUrl, claim: claimUrl },
+      blockers: [],
       claimable,
-      backend,
+      request,
     };
   }
 
@@ -206,7 +232,7 @@ export async function getGoLiveStatus(
     },
     blockers,
     claimable,
-    backend: backend ?? undefined,
+    request: backend ? null : undefined,
   };
 }
 

@@ -1,0 +1,27 @@
+{
+  "accessKey": { "key": "curso", "name": "Curso completo" },
+  "grants": [
+    { "product": "curso/vitalicio", "window": "lifetime" },
+    { "product": "curso/assinatura", "window": "subscription" }
+  ],
+  "course": {
+    "title": "Precificação do zero",
+    "description": "Do custo ao preço que vende, em aulas curtas.",
+    "coverUrl": "",
+    "modules": [
+      {
+        "title": "Comece aqui",
+        "lessons": [
+          { "title": "Boas-vindas", "videoUrl": "https://vimeo.com/76979871", "published": true },
+          { "title": "Como usar o curso", "bodyMarkdown": "# Como usar o curso\n\nAssista na ordem. Cada aula termina com uma tarefa curta.", "published": true }
+        ]
+      },
+      {
+        "title": "Na prática",
+        "lessons": [
+          { "title": "Montando a planilha", "videoUrl": "https://www.youtube.com/watch?v=aqz-KE-bpKQ", "published": true, "unlockAfterDays": 7 }
+        ]
+      }
+    ]
+  }
+}

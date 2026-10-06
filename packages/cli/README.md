@@ -12,7 +12,9 @@ bunx @beinfi/cli sandbox create
 
 | Command | Description |
 |---------|-------------|
-| `infi login --token <session>` | Exchange dashboard session for API key (saved to `~/.config/infi/config.json`) |
+| `infi login [--device] [--rotate]` | Approve in the browser (or with a code, for agents); this project gets its own named `sk_test_`, reused on every later login, kept in the OS keychain and written to `.env.local` |
+| `infi keys create --live` | This project's `sk_live_`, approved with a step-up in the dashboard |
+| `infi template pack ecommerce` | The key-free template zip |
 | `infi keys list` | List tenant API keys |
 | `infi keys create` | Create a new secret key |
 | `infi keys revoke <id>` | Revoke a key |
@@ -44,7 +46,9 @@ npm create infi-app my-app
 
 ## Config
 
-`~/.config/infi/config.json` stores profiles after `infi login`.
+`~/.config/infi/config.json` keeps the profile (email, tenant, host) after `infi login`; the keys
+themselves go to the OS keychain (macOS Keychain, libsecret), or a 0600 file where there is none.
+The project's id is `.infi/project.json` — commit it, it is not a secret.
 
 ## Development
 

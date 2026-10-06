@@ -82,6 +82,31 @@ const transport = new StdioClientTransport({ command: "node", args: [dist], env:
 const client = new Client({ name: "onboarding-smoke", version: "1" });
 try {
   await client.connect(transport);
+  const { tools } = await client.listTools();
+  const toolNames = new Set(tools.map((tool) => tool.name));
+  const courseTools = [
+    "infi_access_keys_list",
+    "infi_access_grant",
+    "infi_access_revoke",
+    "infi_courses_list",
+    "infi_course_create",
+    "infi_course_modules_reorder",
+    "infi_lesson_create",
+    "infi_lesson_update",
+    "infi_course_lessons_reorder",
+    "infi_community_telegram_connect",
+    "infi_community_members",
+  ];
+  const missing = courseTools.filter((name) => !toolNames.has(name));
+  if (missing.length) throw new Error(`course/access tools missing: ${missing.join(", ")}`);
+
+  const createLesson = tools.find((tool) => tool.name === "infi_lesson_create");
+  const required = createLesson?.inputSchema?.required ?? [];
+  if (!["courseId", "moduleId", "title"].every((field) => required.includes(field))) {
+    throw new Error("infi_lesson_create must require courseId, moduleId and title");
+  }
+  console.log(`smoke: ${courseTools.length} course/access/community tools are registered with lesson inputs`);
+
   const result = await client.callTool({ name: "infi_onboard", arguments: { cwd, accountName: "Acme" } });
   const payload = JSON.parse(result.content[0].text);
   if (payload.status !== "requires_input" || payload.missingFields.join(",") !== "email,intent") throw new Error("incorrect missing-field response");

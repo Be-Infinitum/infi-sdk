@@ -1,0 +1,14 @@
+{
+  "name": "create-infi-app",
+  "version": "0.3.0",
+  "description": "npm create infi-app --template ecommerce — the Infi templates, scaffolded by the infi CLI.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "create-infi-app": "./bin/create-infi-app.js" },
+  "files": ["bin"],
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@beinfi/cli": ">=0.3.0 <1.0.0"
+  }
+}
