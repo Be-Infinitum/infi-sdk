@@ -17,7 +17,8 @@ export interface BillingMeter {
   key: string;
   displayName?: string;
   unit: "token" | "request" | "unit";
-  aggregation: "sum" | "count" | "unique_count" | "max" | "last";
+  /** What billing does with the events: the backend refuses anything else (422 meter_aggregation_unsupported). */
+  aggregation: "sum" | "count";
   /**
    * JSON path on the usage event for the numeric value (backend ingest).
    * Use `"value"` for the standard `track({ value })` shape.

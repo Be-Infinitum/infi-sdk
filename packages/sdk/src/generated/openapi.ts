@@ -4,6 +4,669 @@
  */
 
 export interface paths {
+    "/account/fiscal/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Cities where an NFS-e can be issued
+         * @description The municipalities Spedy is integrated with. An issuer can only be registered in one of them.
+         */
+        get: operations["listFiscalCities"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the account's fiscal issuers (one per CNPJ) */
+        get: operations["listFiscalIssuers"];
+        put?: never;
+        /**
+         * Register a CNPJ as a fiscal issuer
+         * @description Creates the company at the fiscal provider. The first issuer becomes the default. It stays `pending_certificate` until its A1 certificate is uploaded. A CNPJ can be a live issuer in only one account.
+         */
+        post: operations["createFiscalIssuer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        /** Get a fiscal issuer */
+        get: operations["getFiscalIssuer"];
+        /**
+         * Update an issuer's company details
+         * @description The CNPJ (`taxId`) cannot change; it is ignored here.
+         */
+        put: operations["updateFiscalIssuer"];
+        post?: never;
+        /**
+         * Disable an issuer
+         * @description Refused (409 `fiscal_issuer_in_use`) while a product is routed to it or one of its documents is in progress.
+         */
+        delete: operations["disableFiscalIssuer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/certificate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload the issuer's A1 digital certificate (step-up)
+         * @description Before it is sent to the provider, the certificate is checked: it must open with the password, be unexpired, and name the issuer's CNPJ (root match, so a branch may use its head office's certificate). Neither the file nor the password is stored. Activates the issuer.
+         */
+        put: operations["uploadFiscalCertificate"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set NFS-e series, numbering and the city hall login (step-up)
+         * @description Passed through to the provider. The environment is not settable: a sandbox account always issues in simulation and a live account in production. The password is not stored by Infi.
+         */
+        put: operations["updateFiscalSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/tax-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set the issuer's default service and tax rates
+         * @description Rates are percentages as decimal strings. They are Infi's to compute with — the provider only transports them. Federal withholdings apply only to company buyers of a Regime Normal issuer, each dropped at or below R$ 10,00.
+         */
+        put: operations["updateFiscalTaxProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/catalog/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the LC 116/03 service list (by code or words, accents ignored) */
+        get: operations["searchFiscalServices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/catalog/ncm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search current 8-digit NCM codes (by code prefix or words) */
+        get: operations["searchFiscalNCM"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What this CNPJ's notes would say — nothing issued or stored
+         * @description The stored configuration with the request's unsaved answers laid over it. A service answers two scenarios (to a person, to a company); a good (productId with model nfe/nfce) answers in-state and another state.
+         */
+        post: operations["simulateFiscalNote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/review-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The accountant's read-only link to this CNPJ's tax configuration */
+        post: operations["fiscalReviewLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/accountant-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that the accountant reviewed the configuration (recommended, not required) */
+        post: operations["markFiscalAccountantReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/ibpt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Connect the CNPJ's IBPT token (Lei 12.741 rates; step-up)
+         * @description Checked with a real lookup first; stored in the secret store, never returned.
+         */
+        put: operations["setFiscalIBPTToken"];
+        post?: never;
+        /** Disconnect the IBPT token; the typed rates are used again */
+        delete: operations["clearFiscalIBPTToken"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/approx-rates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        /** IBPT's Lei 12.741 rates for a code (fills the form) */
+        get: operations["getFiscalApproxRates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-review/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** The accountant's view of a CNPJ's tax configuration (unauthenticated) */
+        get: operations["getPublicFiscalReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-review/{token}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The accountant signs the configuration off (unauthenticated) */
+        post: operations["approvePublicFiscalReview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/tax-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the CNPJ's taxes are configured in Spedy's panel
+         * @description Under taxMode spedy the taxes come from the tax groups configured in Spedy's panel, which has no API. Confirming releases the notes that waited (provider_tax_setup_pending). The first confirmation stands.
+         */
+        post: operations["confirmFiscalTaxSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/fiscal/issuers/{issuerID}/tax-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Backoffice: confirm a CNPJ's taxes are configured at Spedy (admin, ops; audited) */
+        post: operations["staffConfirmFiscalTaxSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/fiscal/issuers/{issuerID}/tax-mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Backoffice: switch who computes a CNPJ's taxes (admin, ops; audited) */
+        post: operations["staffSetFiscalTaxMode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/issuers/{issuerID}/default": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make this the issuer for products not routed elsewhere */
+        post: operations["setDefaultFiscalIssuer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/fiscal/products/{productID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        /** How a product is issued */
+        get: operations["getProductFiscalProfile"];
+        /** Route a product to a CNPJ and override its service */
+        put: operations["putProductFiscalProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List notas fiscais
+         * @description One per paid sale per CNPJ that sold part of it.
+         */
+        get: operations["listFiscalDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** Get a nota fiscal */
+        get: operations["getFiscalDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** The DANFSe (PDF) of an issued nota */
+        get: operations["getFiscalDocumentPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}/xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** The authorized XML of a nota */
+        get: operations["getFiscalDocumentXML"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-documents/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /**
+         * The buyer's link to a nota fiscal (unauthenticated)
+         * @description The token is the capability. A note not yet authorized shows as processing, without files.
+         */
+        get: operations["getPublicFiscalDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-documents/{token}/pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** The note's PDF through the buyer's link */
+        get: operations["getPublicFiscalDocumentPDF"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/fiscal-documents/{token}/xml": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        /** The note's XML through the buyer's link */
+        get: operations["getPublicFiscalDocumentXML"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/fiscal/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Backoffice: notas across tenants, with the provider's error text */
+        get: operations["staffListFiscalDocuments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/fiscal/documents/{documentID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        /** Backoffice: one nota and its provider webhook history */
+        get: operations["staffGetFiscalDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/fiscal/documents/{documentID}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Backoffice: send a rejected or failed nota again (admin, ops; audited)
+         * @description Same rule as the merchant's retry; a blank reason is 422.
+         */
+        post: operations["staffRetryFiscalDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/tenants/{tenantID}/fiscal/issuers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantID: string;
+            };
+            cookie?: never;
+        };
+        /** Backoffice: a tenant's fiscal issuers */
+        get: operations["staffListFiscalIssuers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/fiscal-documents/{documentID}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a rejected or failed nota again
+         * @description Recomputes the tax from the issuer's configuration as it is now. A rejected note is corrected in place at the provider, not numbered again. Refused (409 fiscal_document_not_retryable) unless the note is rejected or failed, and for a sale that was reversed (cancellation requested).
+         */
+        post: operations["retryFiscalDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/webhook/provider/spedy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Spedy nota status webhook
+         * @description One per Spedy account. Standard Webhooks signature (webhook-id, webhook-timestamp, webhook-signature) over the raw body; unsigned deliveries are refused. Deduplicated by the event id.
+         */
+        post: operations["spedyWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/routing/configuration": {
         parameters: {
             query?: never;
@@ -89,15 +752,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/public/platform-plans": {
+    "/public/plans": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Published Infi platform plans for the landing and calculators */
-        get: operations["getPublicPlatformPlans"];
+        /** Published Infi plans read from plans/plan_components (BE-403) — the landing and the sandbox plan screen read this. Published only, never draft or archived; no plan/component/price/tenant id in the response. */
+        get: operations["getPublicPlans"];
         put?: never;
         post?: never;
         delete?: never;
@@ -113,7 +776,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Effective plan, approved payment volume, invoice projection and entitlements */
+        /** The tenant's current Infi plan, the period and plan segment in course, and any pending change */
         get: operations["getAccountPlan"];
         put?: never;
         post?: never;
@@ -123,7 +786,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/account/plan/activate": {
+    "/account/plan/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The tenant's plan changes, one status at a time, most recent first
+         * @description Keyset-paged, ordered by `requestedAt` descending then `id`. Applied, scheduled and canceled changes are listed separately, by `status` (default `applied` — the history of what took effect and when). Pass `nextCursor` back as `cursor` for the next page; its absence means the list ended.
+         */
+        get: operations["listAccountPlanChanges"];
+        put?: never;
+        /**
+         * Ask to move to another published plan
+         * @description An upgrade (a target whose recurring fee is greater than the current one) is applied at once and takes effect at the top of the hour in course — never before the period in course starts. Anything else, an equal fee included, is scheduled for the end of the period in course. One change is pending at a time: a new request replaces the scheduled one, an upgrade cancels a scheduled downgrade, and the same target as the scheduled change returns that change. Asking for the plan the tenant is already on withdraws whatever is pending and answers 204. Requires an `Idempotency-Key`: a retry with the same key replays the first response and never records a second change.
+         */
+        post: operations["changeAccountPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/plan/changes/{changeID}/cancel": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,8 +819,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Accept the current Terms and activate a postpaid live plan */
-        post: operations["activateAccountPlan"];
+        /**
+         * Withdraw a scheduled plan change
+         * @description Canceling a change already canceled returns it unchanged. Another tenant's change id answers exactly like an id that does not exist.
+         */
+        post: operations["cancelAccountPlanChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -170,6 +860,48 @@ export interface paths {
         put?: never;
         /** Connect a merchant-owned provider account */
         post: operations["connectProvider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/providers/{provider}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re-check a connected provider account
+         * @description Calls the provider with the stored credential and refreshes the connection's status. Use it after fixing something on the provider's side (a key, a webhook) to see the connection move to `connected`.
+         */
+        post: operations["verifyProviderConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/providers/help": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask Infi for help getting a provider account
+         * @description For a merchant who has no payment provider account yet. Records the request and notifies Infi's team, who get in touch at `email`.
+         */
+        post: operations["requestProviderHelp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -434,33 +1166,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pay/{slug}/links/{token}/checkout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
-                slug: components["parameters"]["PaySlug"];
-                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
-                token: components["parameters"]["LinkToken"];
-            };
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Materialize an invoice from a payment link (unauthenticated, legacy)
-         * @description Creates the customer (idempotent on `email`) and either starts a subscription billed upfront, for a product with a billing cycle, or opens a one-off invoice. Then send the payer to `redirectUrl` to actually pay.
-         *     Arrears `usage` pricing has nothing to charge upfront and is rejected 400.
-         *     Legacy: prefer `POST .../sessions` + `.../sessions/{sessionID}/charge`, which enforces the `taxId` that pix on Asaas requires. This route accepts `taxId` but does not require it, so a pix charge on the resulting invoice can still fail with `customer_tax_id_required`.
-         */
-        post: operations["checkoutPaymentLink"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/pay/{slug}/links/{token}/sessions": {
         parameters: {
             query?: never;
@@ -478,7 +1183,7 @@ export interface paths {
         /**
          * Open (or reuse) a checkout session for a payment link (unauthenticated)
          * @description Step 1 of two-step link checkout: record the payer's contact details. The invoice is NOT created here — it is materialized at charge time.
-         *     `taxId` is mandatory on this route (unlike `/checkout`) because Asaas refuses to create a payer without a CPF/CNPJ, and discovering that at charge time is worse.
+         *     `taxId` is mandatory on this route because Asaas refuses to create a payer without a CPF/CNPJ, and discovering that at charge time is worse.
          *     Reuses a live session for the same payer instead of opening a second one.
          */
         post: operations["createLinkCheckoutSession"];
@@ -540,6 +1245,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/public/storefronts/{slug}/sessions/{sessionID}/coupon": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply a coupon to a shop cart (unauthenticated)
+         * @description The shop cart's twin of the link-session coupon: only before the charge exists (after it, 409 — the checkout hides the field). A preview over the prices frozen in the cart; the discount is applied once, when the cart becomes its Order, and the coupon is spent only when that Order is paid. A coupon that runs out between the charge and the payment is still honoured — the buyer pays the price they were shown, and `timesRedeemed` may pass `maxRedemptions`, visible to the merchant.
+         */
+        post: operations["applyStorefrontSessionCoupon"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pay/{slug}/links/{token}/sessions/{sessionID}/charge": {
         parameters: {
             query?: never;
@@ -560,6 +1285,580 @@ export interface paths {
          * @description Step 2: creates the customer + invoice from the session, then charges it. Same request body and error surface as `POST /pay/{slug}/invoices/{invoiceID}/charge`.
          */
         post: operations["chargeLinkCheckoutSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a code to open the store's buyer portal
+         * @description Any address may sign in to a store, bought or not: the code is always mailed, and verifying it makes an unknown address a customer of the store (no order). Five codes per address per hour at this store (`too_many_requests`), then wait. The code lives 5 minutes, five tries.
+         */
+        post: operations["portalLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/login/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Spend the login code for a 30-day portal session
+         * @description Every refusal (wrong, expired, spent, exhausted, other store) is the same 409 `challenge_invalid`. The token is shown once; the element hands it to the site by postMessage and the site gives it back on every load.
+         */
+        post: operations["portalLoginVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The current portal session */
+        get: operations["portalSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out of this device */
+        post: operations["portalLogout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/logout-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign out of every device at this store */
+        post: operations["portalLogoutAll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/action-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a fresh code to confirm one sensitive action
+         * @description Code sessions only (409 `action_code_not_applicable` for a merchant token). Cancel, change card and refund each need one.
+         */
+        post: operations["portalActionCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/action-codes/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Spend the fresh code for a single-use action grant
+         * @description The grant (10 minutes, one action) goes in `X-Buyer-Action-Grant` on the sensitive request. A failed action leaves it unspent.
+         */
+        post: operations["portalActionCodeVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The buyer's paid orders at this store, with receipt and guarantee
+         * @description Every customer of this store with the session's proved e-mail (duplicates included, joined on read), or the one customer a merchant token names. Never another store's orders.
+         */
+        get: operations["portalOrders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/downloads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The buyer's downloads; a refunded one says so instead of linking */
+        get: operations["portalDownloads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The buyer's subscriptions, card on file, and whether the card can change */
+        get: operations["portalSubscriptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/balances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The buyer's wallet balances (credits), per product and meter */
+        get: operations["portalBalances"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The buyer's open bills at this store, and where to pay each */
+        get: operations["portalOpenInvoices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/subscriptions/{subscriptionID}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel at the end of the paid period (sensitive)
+         * @description Nothing new is billed; the paid period stays usable and the billing boundary ends the subscription instead of renewing it. No proration. Needs `X-Buyer-Action-Grant` on a code session, or a `portal:write` merchant token (`portal:read` → 403 `buyer_token_read_only`). Emits `subscription.cancel_scheduled`; `subscription.canceled` at the boundary. Both carry the reason as `cancelReason`; undoing clears it.
+         */
+        post: operations["portalCancelSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/subscriptions/{subscriptionID}/undo-cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a scheduled cancellation (sensitive) */
+        post: operations["portalUndoCancelSubscription"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/subscriptions/{subscriptionID}/card-setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a no-charge card setup (Stripe SetupIntent)
+         * @description Only where the store has its own Stripe connected — card never goes through Asaas, which is pix only (409 `card_setup_unavailable`; the new card then comes in paying the next bill). Confirm it in the Payment Element with `clientSecret` + `publishableKey`, then call `/card`.
+         */
+        post: operations["portalCardSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/subscriptions/{subscriptionID}/card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Keep the confirmed card as the default for renewals (sensitive)
+         * @description The setup is read back from Stripe and must belong to this payer. Nothing is charged. The mandate version is recorded with the card.
+         */
+        post: operations["portalCompleteCard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/orders/{orderID}/refund-request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a full refund (sensitive)
+         * @description Inside the order's guarantee (the shortest `guaranteeDays` of its products, 7 by default) the refund is automatic through the ordinary refund path: pending until the provider returns the money, and a full refund revokes the download. Outside it — or if the automatic refund fails — the ask waits in the store's queue (`/billing/refund-requests`). One open ask per order; a retry answers 200 with it. Emits `refund_request.created`.
+         */
+        post: operations["portalRefundRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/buyer-tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint a portal token for one of your customers (server side, sk_ only)
+         * @description For stores with their own login. One hour; the element renews it through your getToken(). `portal:read` (default) never acts; `portal:write` acts without Infi's code, on your responsibility, and needs a key with `billing:write`. A dashboard session or a `pk_` is refused (403 `secret_key_required`). Never creates the customer.
+         */
+        post: operations["createBuyerToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/buyer-tokens/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke every portal token of one customer, or one token
+         * @description `externalId` revokes every token of that customer. `token` revokes that one `bt_` (the user signed out of the store's login on one device); a dead or foreign token answers `revoked: 0`.
+         */
+        post: operations["revokeBuyerTokens"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/.well-known/openid-configuration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** OpenID Provider metadata */
+        get: operations["oidcDiscovery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/jwks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The keys id_tokens are signed with (RS256) */
+        get: operations["oidcJwks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Start a sign-in (browser navigation)
+         * @description Authorization code with PKCE (S256 only). `scope` must include `openid`; also `email`, `profile`, `purchases`. An unknown client or an unregistered `redirect_uri` answers 400 and never redirects. Other errors return to `redirect_uri` with `error`. A person signed in on Infi who already agreed with this store goes straight back with `code`; anyone else goes to Infi's sign-in page. `ui_locales` picks its language.
+         */
+        get: operations["oauthAuthorize"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trade the code for tokens (the store's server)
+         * @description Form body. The client secret is the store's `sk_` (Basic or `client_secret`). The code is single-use, lives 60 seconds and is burnt by a failed attempt. Errors are RFC 6749 §5.2 (`error`, `error_description`), not the API envelope. `access_token` is a buyer token (`bt_`, 30 days) usable with `GET /v1/buyer-tokens/verify`, the portal and `/oauth/userinfo`; the id_token's `sub` is the store's customer id.
+         */
+        post: operations["oauthToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/userinfo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who an access token is (OIDC UserInfo) */
+        get: operations["oauthUserInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete my Infi account (the buyer, from Infi's page)
+         * @description Needs Infi's session cookie from a sign-in in the last 15 minutes (`recent_sign_in_required` otherwise). Erases the identity, its addresses, links to stores' customers, consents, sessions and tokens; every store keeps its own customer record.
+         */
+        delete: operations["oauthDeleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/oauth-clients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's sites that sign in with Infi */
+        get: operations["listOAuthClients"];
+        put?: never;
+        /** Register a site, or add redirect URIs to the one with that name */
+        post: operations["upsertOAuthClient"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/login-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's sign-in rule */
+        get: operations["getLoginSettings"];
+        /** Change the store's sign-in rule */
+        put: operations["putLoginSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/buyer-tokens/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Who a buyer token signs in, and what they have at this store
+         * @description For the store's own server, with its `sk_`: the page holds the `bt_` (from the login element or a merchant mint) and the server asks who it is before showing a gated page. `access` lists each product bought and not fully refunded or charged back (`purchase`), and each subscription still running (`subscription`: active, trialing or past_due). A token of another store answers 401 like any invalid one. A GET, so nothing caches it: every call reads the access as it is now.
+         */
+        get: operations["verifyBuyerToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/refund-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Refunds buyers asked for from the portal */
+        get: operations["listRefundRequests"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/refund-requests/{requestID}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a refund request (full refund through the refund path) */
+        post: operations["approveRefundRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/refund-requests/{requestID}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a refund request */
+        post: operations["declineRefundRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -671,11 +1970,163 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Exchange dashboard session for CLI API key
-         * @description Verifies a CIAM session token (Clerk JWT from `beinfi login`) and mints
-         *     a tenant-scoped secret API key for CLI use. Requires a users row.
+         * Exchange a Clerk session for the project's CLI key
+         * @description For a CLI that already holds a Clerk session. Returns the key of THIS
+         *     project (`projectId`), named "create-infi-app · project · machine":
+         *     minted the first time, then reused (`reused: true`, no `secret` — the
+         *     CLI kept its copy) on every later login from the project. `rotate:
+         *     true` revokes it and mints a new one (the CLI lost its copy). Owner
+         *     only. Never mints `sk_live_` without an `X-Step-Up-Token` for this
+         *     session (403 `live_key_requires_step_up`). A body without `projectId`
+         *     is refused (422): update the CLI.
          */
         post: operations["exchangeCLIToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cli/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve a CLI login in the dashboard (loopback callback, PKCE)
+         * @description The dashboard page `infi login` opens calls this with the logged-in
+         *     Clerk session and the CLI's S256 challenge, then redirects the browser
+         *     to `redirectUri?code=…&state=…`. `redirectUri` must be
+         *     `http://127.0.0.1:<port>` or `http://localhost:<port>`. The code lives
+         *     5 minutes. On live it needs `X-Step-Up-Token` (the CLI never gets a
+         *     live key without it).
+         */
+        post: operations["authorizeCLILogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cli/exchange": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trade the login code for the project's key (CLI)
+         * @description Single attempt: a wrong `codeVerifier` spends the code (400 `invalid_grant`).
+         */
+        post: operations["exchangeCLICode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cli/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start a device-code login (an agent with no browser) */
+        post: operations["startCLIDeviceLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cli/device/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve the code a CLI shows (dashboard)
+         * @description On live, needs `X-Step-Up-Token`. The code is read in any case, with or without the dash.
+         */
+        post: operations["approveCLIDeviceLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cli/device/deny": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deny the code a CLI shows (dashboard) */
+        post: operations["denyCLIDeviceLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/cli/device/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Poll a device-code login (CLI)
+         * @description RFC 8628 answers as 400 `error_code`: `authorization_pending`, `slow_down` (poll no faster than `interval`), `expired_token`, `access_denied`. Approved: 201 with the project's key, once.
+         */
+        post: operations["pollCLIDeviceLogin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/businesses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open another business from the same login
+         * @description Creates a new business (tenant) owned by the session's subject, who must
+         *     already belong to one. Each business has its own catalog, provider,
+         *     customers, plan and domain; the dashboard picks one per call with
+         *     `X-Tenant-Slug`. Audited as `tenant.business_created`.
+         *
+         *     **Sandbox only.** On live a business is admitted by go-live (ADR 0003),
+         *     so this answers 403 `live_business_by_go_live`. At most 10 businesses per
+         *     login (409 `business_limit_reached`).
+         */
+        post: operations["createBusiness"];
         delete?: never;
         options?: never;
         head?: never;
@@ -696,6 +2147,15 @@ export interface paths {
          * @description Verifies a CIAM session token and creates a Pulse tenant, default app, and
          *     users row for the operator. Idempotent when the subject already has a tenant
          *     (MVP: one tenant per subject). Does not create API keys; the dashboard uses the CIAM session.
+         *
+         *     **On live** (ADR 0009) the first login also needs `acceptedTermsVersion`
+         *     equal to the current Terms version (`termsVersion` on
+         *     `POST /auth/session/sync`). One transaction creates the tenant (a slug
+         *     taken on live gets the next free suffix), writes the membership, records
+         *     the acceptance and starts the tenant's active payg subscription, whose
+         *     period begins at the acceptance. There is no pending state: a refusal
+         *     writes nothing. A replay by a member answers 200 with the existing
+         *     membership.
          */
         post: operations["bootstrapSession"];
         delete?: never;
@@ -942,6 +2402,58 @@ export interface paths {
         patch: operations["updateProduct"];
         trace?: never;
     };
+    "/products/{productID}/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Read the product editor's draft
+         * @description The unpublished product page and price, starting from the live product. `createsVersion` is the version publishing would make live when the draft's price differs from the published one, else null.
+         */
+        get: operations["getProductDraft"];
+        /**
+         * Autosave the product editor's draft
+         * @description Idempotent. `content` merges over the current draft (a field sent replaces, a field absent stays); `pricing` lands on the working draft version, which is opened — carrying the published version's meter prices and terms forward — only when it differs from what buyers pay. Nothing here is live until `POST .../draft/publish`.
+         */
+        put: operations["putProductDraft"];
+        post?: never;
+        /**
+         * Discard the product editor's draft
+         * @description Drops the unpublished content and the working draft version; a product never published keeps its version 1.
+         */
+        delete: operations["discardProductDraft"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{productID}/draft/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish the product editor's draft
+         * @description Applies the content to the product and, when the price changed, publishes the working draft as the default version (N+1) — one transaction. Links pinned to an older version keep selling its price.
+         */
+        post: operations["publishProductDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/products/{productID}/versions": {
         parameters: {
             query?: never;
@@ -1164,7 +2676,11 @@ export interface paths {
         delete: operations["revokePaymentLink"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Change a payment link's own look
+         * @description Sets the link's button color, background and font. Per field, absent leaves it and "" clears it, so the link inherits the product and the business again. Never changes what the link sells.
+         */
+        patch: operations["updatePaymentLink"];
         trace?: never;
     };
     "/products/{productID}/meters/{meterID}": {
@@ -1222,6 +2738,87 @@ export interface paths {
         post?: never;
         /** Delete a product's deliverable */
         delete: operations["deleteDeliverable"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List tenant contacts
+         * @description A paginated, exportable contact list. It does not provide CRM stages, tags, notes, or saved views.
+         */
+        get: operations["listContacts"];
+        put?: never;
+        /** Create or refresh a tenant contact */
+        post: operations["createContact"];
+        /** Permanently delete a contact by email */
+        delete: operations["deleteContactByEmail"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import contacts from CSV
+         * @description Accepts at most 1 MiB and 5,000 rows. `email` is required; optional `name`, `phone`, and `consent` columns map to contact fields. Other headers become bounded string attributes.
+         */
+        post: operations["importContacts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export contacts as CSV
+         * @description Exports every matching contact; attribute keys are emitted as additional CSV columns.
+         */
+        get: operations["exportContacts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contacts/{contactID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contactID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Permanently delete a contact */
+        delete: operations["deleteContact"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1406,7 +3003,7 @@ export interface paths {
         put?: never;
         /**
          * Debit a meter balance
-         * @description Decreases the enrollment's balance for the given meter. Rejects with 409 when the balance is insufficient. Idempotent when `idempotencyKey` is supplied.
+         * @description Decreases the enrollment's balance for the given meter. Never refused for lack of balance: the balance may go negative, and the deficit at cycle close is overage. To stop at zero, gate before the work with `GET /customers/{customerID}/state` or the product's consumption floor. Idempotent when `idempotencyKey` is supplied.
          */
         post: operations["walletDebit"];
         delete?: never;
@@ -1531,6 +3128,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/billing/account/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Consumption in the tenant's own OPEN Infi billing cycle, against its plan
+         * @description How much of each metered item this tenant has consumed in the OPEN billing cycle of its own account with Infi, and how much its plan includes. Never the merchant's own customers' usage — that is `GET /metering/usage`. `hasPlan` and `hasQuota` answer different questions: `hasPlan: false` means the subscription predates plans altogether (every subscription created before this layer), so no item on it has a franchise at all; `hasPlan: true` with one item's `hasQuota: false` means the plan itself simply does not cover that item, so every unit of it is overage from the first one.
+         */
+        get: operations["getAccountUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/billing/subscriptions": {
         parameters: {
             query?: never;
@@ -1561,6 +3178,8 @@ export interface paths {
         /**
          * Create an ad-hoc invoice (manual line items) for a customer
          * @description Opens and finalizes a manual invoice bound to a tenant-level customer (the payer), with free-form line items and no subscription. The returned invoice is `open` and payable via the public checkout / charge endpoint. Set `send: true` to emit an `invoice.sent` event (email delivery).
+         *
+         *     With `draft: true` it stays a `draft` the dashboard editor keeps writing: no number, no event, nothing sent, `lineItems` may be empty. Change it with `PATCH /billing/invoices/{invoiceID}`, preview it with `.../preview.pdf`, and finish it with `.../finalize`.
          */
         post: operations["createInvoice"];
         delete?: never;
@@ -1655,8 +3274,11 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                /** @description Tenant customer UUID (customers.id). */
-                customerID: components["parameters"]["CustomerID"];
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
             };
             cookie?: never;
         };
@@ -1773,8 +3395,11 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                /** @description Tenant customer UUID (customers.id). */
-                customerID: components["parameters"]["CustomerID"];
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
             };
             cookie?: never;
         };
@@ -1799,6 +3424,54 @@ export interface paths {
         };
         /** Get an invoice */
         get: operations["getInvoice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change an editor draft (autosave)
+         * @description Only a draft created with `draft: true`; anything else, including a draft the system owns, is `409 invoice_not_draft`. Absent fields are left; `lineItems` replaces every line. Nothing is booked or sent.
+         */
+        patch: operations["updateInvoiceDraft"];
+        trace?: never;
+    };
+    "/billing/invoices/{invoiceID}/finalize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finalize an editor draft
+         * @description Numbers the draft, emits `invoice.finalized` and, with `send`, emails it — the same path as creating an invoice without `draft`. Needs at least one line.
+         */
+        post: operations["finalizeInvoiceDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/invoices/{invoiceID}/preview.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Preview a draft invoice as PDF
+         * @description Drafts only. Rendered inline, never cached, and marked on its face as a draft with no number — it previews the bill without being one. A finalized invoice has its real `invoice.pdf`.
+         */
+        get: operations["previewInvoicePdf"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1858,6 +3531,28 @@ export interface paths {
         put?: never;
         /** Mark an invoice uncollectible */
         post: operations["markInvoiceUncollectible"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/billing/invoices/{invoiceID}/mark-paid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark an invoice as paid outside Infi
+         * @description Settles an open invoice you were paid for another way (cash, a pix to your own key). Any charge still pending on it is canceled first, so the buyer cannot also pay it here; if one cannot be canceled the call fails with 409 `charge_in_flight` and nothing changes. Emits `invoice.paid` with `outOfBand: true`. No `payment.confirmed` is sent: no payment ran.
+         */
+        post: operations["markInvoicePaidOutOfBand"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1945,7 +3640,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -1967,7 +3662,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -1986,7 +3681,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -2009,7 +3704,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                refundID: string;
+                refundID: components["schemas"]["RefundId"];
             };
             cookie?: never;
         };
@@ -2031,7 +3726,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
@@ -2167,7 +3862,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                couponID: string;
+                couponID: components["schemas"]["CouponId"];
             };
             cookie?: never;
         };
@@ -2259,16 +3954,12 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * How this tenant collects, and its Infi Managed application
-         * @description Two ways a production tenant collects money (ADR 0031): `byop`, on the merchant's own provider accounts, or `managed`, on Infi's — simpler to run, and gated on a KYC/KYB application a reviewer approves. Sandbox always answers `byop` with `managedAvailable: false`: it already collects through Infi for everyone.
+         * This tenant's Infi Pay state and application
+         * @description Infi Pay is one provider in the tenant's routing order (ADR 0008): the fallback behind its own providers unless `PUT /billing/routing/policy` places `infi_pagarme`. It sells once Pagar.me registers the recipient created from this application. Sandbox answers `managedAvailable: false`: it already collects through Infi for everyone.
          */
         get: operations["getCollectionMode"];
         put?: never;
-        /**
-         * Switch collection mode
-         * @description `managed` requires an approved application and a deployment with the Infi provider configured. `byop` requires the enterprise permission (`byopEnabled`, ADR 0065) — it used to be always allowed and is not any more. Either refusal is a 409; a deployment with no Infi provider is 503.
-         */
-        post: operations["setCollectionMode"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2309,6 +4000,68 @@ export interface paths {
          * @description Files one request for the enterprise BYOP permission (ADR 0065) and answers with it, so the dashboard can switch to "we will be in touch" from the same call. Idempotent: one pending request per tenant, and a second call returns the first one with its original note rather than replacing it. When the caller is a dashboard session, the reply-to address is the session's verified e-mail and `contactEmail` in the body is ignored — a merchant should not be able to send our answer somewhere they will never read it.
          */
         post: operations["requestByopAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/stripe/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create (or fetch) the tenant's Stripe Connect account
+         * @description Idempotent: reads before it creates, and this route also sits behind the `/account` group's Idempotency-Key replay guard. Requires a contact email on the tenant (409 otherwise) and a platform account for the tenant's country (422 otherwise, currently BR-only).
+         */
+        post: operations["createStripeAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/collection-mode/stripe/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint an Account Session for the embedded onboarding components
+         * @description The browser renders `account_onboarding`, `notification_banner` and `account_management` against `clientSecret`. Refuses rather than creating: the account is `POST .../stripe/account`'s job, and minting a session for one that does not exist would report a Stripe error for our own ordering mistake.
+         *
+         *     Unlike every other mutation under `/account`, this route takes no `Idempotency-Key` and stores nothing: the response is a live client secret, and persisting it for replay would keep it long after it was meant to expire. Minting a second one instead is harmless.
+         */
+        post: operations["createStripeSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/support/tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a support ticket
+         * @description Files a ticket with the Infi team and answers once it is stored; the worker then opens the Linear issue and e-mails the founders, retrying until both land. Both deployments. Reachable while the account is suspended for an unpaid bill — that merchant is the one who most needs it. For a dashboard session the reply-to address is the session's verified e-mail and `contactEmail` in the body is ignored.
+         */
+        post: operations["createSupportTicket"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2394,6 +4147,120 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/collection-mode/managed/kyc-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a Pagar.me identity verification link
+         * @description Creates a short-lived Pagar.me hosted identity-verification link for the recipient attached to this application. The link is returned only to the authenticated tenant and is not stored.
+         */
+        post: operations["createManagedPagarmeKycLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/signals/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send what visitors did on your pages (publishable key)
+         * @description What `@beinfi/elements` sends from the merchant's own site (BE-438): pages, sections, scroll, CTA clicks, checkout steps, JavaScript and network errors, and the merchant's own events. Up to 50 per request. The query string of every path is dropped, property names and values that look personal (e-mail, CPF, phone, card, name) are dropped, and error messages are scrubbed. Any origin may call it (no credentials). Not billed: this is not metering.
+         */
+        post: operations["ingestSignalEvents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/public/signals/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a visitor's feedback (publishable key)
+         * @description A rating (1-5), a reaction, a message, or any of them together (BE-437). E-mails, CPFs and phones typed into the message are removed. Classified afterwards: by rule from the rating or reaction, and by a model when the deployment has one.
+         */
+        post: operations["submitFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/signals/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What visitors did and said, and why customers left, over a period */
+        get: operations["getSignalsSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/signals/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback, newest first */
+        get: operations["listFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/signals/feedback/{feedbackID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Triage a piece of feedback
+         * @description A theme or sentiment set here overrides the classifier's for good (`classifiedBy` becomes `merchant`).
+         */
+        patch: operations["triageFeedback"];
+        trace?: never;
+    };
     "/account/tenant": {
         parameters: {
             query?: never;
@@ -2410,6 +4277,51 @@ export interface paths {
         head?: never;
         /** Update the authenticated tenant */
         patch: operations["patchTenant"];
+        trace?: never;
+    };
+    "/account/appearance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve the appearance of the business, a product or a link
+         * @description Every stored level beside the effective value and where it came from, so an editor can show what is inherited. A link implies its product. Resolution: accent link → product → business; background link; font link → business; radius business; then the default.
+         */
+        get: operations["getAppearance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether this account is open, closing, or closed */
+        get: operations["getAccountClosure"];
+        put?: never;
+        /**
+         * Close this Infi account (owner only)
+         * @description On live, with a plan, the plan cancels at the end of the period already paid and the account closes then (`closesAt`). Until then the request can be withdrawn. Without a plan, and on sandbox, it closes at once. A closed account takes no new charges, its customers' subscriptions end with it, and the dashboard reads but writes only to refund buyers. Ledger, notes and audit are kept. Emits `account.closure_requested`, then `account.closed`. A plan that is past due answers 409 `account_closure_plan_unpaid`.
+         */
+        post: operations["requestAccountClosure"];
+        /**
+         * Withdraw the closure while the account is still open (owner only)
+         * @description Keeps the plan renewing. On sandbox it also reopens a closed account; on live a closed account is reopened by support.
+         */
+        delete: operations["withdrawAccountClosure"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/account/tenant/logo/presign": {
@@ -2515,7 +4427,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                endpointID: string;
+                endpointID: components["schemas"]["WebhookEndpointId"];
             };
             cookie?: never;
         };
@@ -2527,7 +4439,10 @@ export interface paths {
         delete: operations["deleteWebhook"];
         options?: never;
         head?: never;
-        /** Activate or deactivate a webhook endpoint */
+        /**
+         * Update a webhook endpoint's events or active state
+         * @description Send `isActive`, `events`, or both; what is not sent is left as it is. `events` replaces the whole list. The URL and the signing secret do not change here (the secret is `rotate-secret`).
+         */
         patch: operations["patchWebhook"];
         trace?: never;
     };
@@ -2536,7 +4451,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                endpointID: string;
+                endpointID: components["schemas"]["WebhookEndpointId"];
             };
             cookie?: never;
         };
@@ -2576,7 +4491,7 @@ export interface paths {
             query?: never;
             header?: never;
             path: {
-                subscriptionID: components["parameters"]["SubscriptionID"];
+                subscriptionID: string;
             };
             cookie?: never;
         };
@@ -2602,6 +4517,63 @@ export interface paths {
         get: operations["listNotificationDeliveries"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rail/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify an agent's payment before serving the request
+         * @description Called by the merchant's middleware (`@beinfi/sdk/rail`) with the agent's
+         *     `X-PAYMENT` header, before doing the work. A verdict is always a `200`:
+         *     `isValid: false` carries the protocol's `invalidReason`, which the agent's
+         *     client dispatches on, and `detail`, which says which misconfiguration
+         *     produced it, for the merchant's logs.
+         *
+         *     `drawnFromBalance: true` means the call was paid from the agent's prepaid
+         *     balance: release the response right away and do not call `/rail/settle`.
+         */
+        post: operations["railVerify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rail/settle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Settle a verified payment after the work is done
+         * @description Called with the payment the middleware is holding a response for,
+         *     addressed by `network` + `payer` + `nonce`. The `status` decides what to
+         *     do with that response:
+         *
+         *     - `settled` — the money moved. Release it.
+         *     - `refused` — nothing moved. Withhold it and tell the agent to pay.
+         *     - `unknown` — sent and never answered. Withhold it, but do not report a
+         *       refusal and do not retry: the payment may have landed.
+         *
+         *     No `Idempotency-Key`: the authorization's nonce is what makes a repeat
+         *     settle the same payment rather than a second one.
+         */
+        post: operations["railSettle"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2747,10 +4719,900 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/access-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's access keys */
+        get: operations["listAccessKeys"];
+        put?: never;
+        /** Create an access key (what a product can grant) */
+        post: operations["createAccessKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-keys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Rename an access key */
+        patch: operations["renameAccessKey"];
+        trace?: never;
+    };
+    "/access-keys/{key}/holders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everyone ever granted a key, and whether it holds now */
+        get: operations["listAccessKeyHolders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/products/{productID}/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What buying a product grants */
+        get: operations["getProductAccess"];
+        /**
+         * Replace what buying a product grants
+         * @description Grants already made keep the window they were sold with. `subscription` is refused on a product that is not a subscription (422 `access_window_needs_subscription`).
+         */
+        put: operations["setProductAccess"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant a key by hand (bonus, support case); audited */
+        post: operations["grantAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access-grants/{grantID}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a grant by hand; audited */
+        post: operations["revokeAccessGrant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/customers/{externalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every key one customer holds or held */
+        get: operations["getCustomerAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/access/customers/{externalID}/keys/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The gate — does this customer hold this key now?
+         * @description An unknown key is 404, never "no access".
+         */
+        get: operations["checkCustomerAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every access key the buyer holds or held at this store */
+        get: operations["portalAccess"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/access/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One key as the buyer holds it (hasAccess false when never held) */
+        get: operations["portalAccessKey"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's courses (drafts included) */
+        get: operations["listCourses"];
+        put?: never;
+        /** Create a course, opened by an access key */
+        post: operations["createCourse"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        /** The whole course tree, with content and drafts */
+        get: operations["getCourse"];
+        put?: never;
+        post?: never;
+        /** Delete a course, its lessons and everyone's progress on it */
+        delete: operations["deleteCourse"];
+        options?: never;
+        head?: never;
+        /** Edit a course (title, description, cover, key, published) */
+        patch: operations["updateCourse"];
+        trace?: never;
+    };
+    "/courses/{courseID}/modules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a module at the end */
+        post: operations["createCourseModule"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder the modules (every module, once) */
+        put: operations["reorderCourseModules"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/{moduleID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a module and its lessons */
+        delete: operations["deleteCourseModule"];
+        options?: never;
+        head?: never;
+        /** Rename a module */
+        patch: operations["renameCourseModule"];
+        trace?: never;
+    };
+    "/courses/{courseID}/modules/{moduleID}/lessons/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reorder one module's lessons (every lesson, once) */
+        put: operations["reorderCourseLessons"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/lessons": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a lesson (video link from your provider, optional markdown, drip) */
+        post: operations["createCourseLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/courses/{courseID}/lessons/{lessonID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        /** One lesson, with content */
+        get: operations["getCourseLesson"];
+        put?: never;
+        post?: never;
+        /** Delete a lesson and everyone's progress on it */
+        delete: operations["deleteCourseLesson"];
+        options?: never;
+        head?: never;
+        /** Edit a lesson; an empty videoUrl or bodyMarkdown removes it */
+        patch: operations["updateCourseLesson"];
+        trace?: never;
+    };
+    "/courses/{courseID}/students/{externalID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The course as one of your customers sees it (access, drip, progress) */
+        get: operations["getCourseStudent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's published courses with the student's access and progress */
+        get: operations["portalCourses"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A course's outline for the student — states, never content */
+        get: operations["portalCourse"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One lesson for the student
+         * @description `available` carries `video` and `bodyMarkdown`; `locked` (drip, with `unlocksAt`) and `no_access` carry the state only.
+         */
+        get: operations["portalLesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/courses/{courseID}/lessons/{lessonID}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an available lesson done */
+        post: operations["portalCompleteLesson"];
+        /** Unmark a lesson */
+        delete: operations["portalUncompleteLesson"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/telegram/bot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Infi's Telegram bot — who to add to the group as an admin */
+        get: operations["getTelegramBot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a Telegram group to an access key
+         * @description Make Infi's bot an admin of the group (invite users, ban members) first; otherwise 422 `telegram_bot_not_admin`. Holders of the key get a one-time invite (join request, approved only for them while they hold the key); losing the key removes them. Everyone already holding it is queued at once.
+         */
+        post: operations["connectTelegramCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The store's communities */
+        get: operations["listCommunityIntegrations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations/{integrationID}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stop managing a community (nobody is removed for it) */
+        delete: operations["disableCommunityIntegration"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/integrations/{integrationID}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who was invited, added and removed, and why */
+        get: operations["listCommunityMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The student's communities, with their own invite while unused */
+        get: operations["portalCommunity"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/discord": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Link a Discord server's paid role to an access key
+         * @description Infi's Discord bot must be in the server and the role must exist there (422 `discord_guild_not_reachable`). Holders connect their Discord account from the member area and get the role once they are in the server; losing the key takes it.
+         */
+        post: operations["connectDiscordCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community/discord/authorize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start connecting the student's Discord account (OAuth, identify) */
+        post: operations["portalDiscordAuthorize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pay/{slug}/portal/community/discord/connect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Finish the Discord connection with the code and state Discord returned
+         * @description The state is one-time and bound to this person at this store. Only the Discord user id is kept.
+         */
+        post: operations["portalDiscordConnect"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * @description A customer's id. Starts with `cus_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example cus_6Tq0Y2rGJ1aQ9zXk3LmPbV
+         */
+        CustomerId: string;
+        /**
+         * @description A product's id. Starts with `prod_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example prod_1d4YogBuw00jAySh5mbUpk
+         */
+        ProductId: string;
+        /**
+         * @description An invoice's id. Starts with `inv_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example inv_6yi30EKotIwGHZdePSdsFc
+         */
+        InvoiceId: string;
+        /**
+         * @description A payment's id. Starts with `pay_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example pay_585vbbvnwDyuyeA3MTOitd
+         */
+        PaymentId: string;
+        /**
+         * @description A subscription's id. Starts with `sub_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example sub_2Kp7rWqT0aLm4XcVb8NzJe
+         */
+        SubscriptionId: string;
+        /**
+         * @description A coupon's id. Starts with `coup_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example coup_4Hn9sQ1vR7tY2uB0wE3iOa
+         */
+        CouponId: string;
+        /**
+         * @description A refund's id. Starts with `re_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example re_7Gm2kP5xD9cF0jL3hN6qSb
+         */
+        RefundId: string;
+        /**
+         * @description A webhook endpoint's id. Starts with `we_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example we_3Tz8yU1oI4pA7sD0fG2hJk
+         */
+        WebhookEndpointId: string;
+        /**
+         * @description A business's (tenant's) id. Starts with `acct_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
+         * @example acct_4Lx2cV5bN8mQ1wE4rT7yUi
+         */
+        AccountId: string;
+        /** @description The buyer's fiscal address (who the nota fiscal names). An NF-e cannot be issued without it. */
+        BuyerAddress: {
+            zip?: string;
+            street?: string;
+            number?: string;
+            complement?: string;
+            district?: string;
+            city?: string;
+            /** @description 7-digit IBGE code */
+            cityCode?: string;
+            /** @description Two-letter UF */
+            state?: string;
+            country?: string;
+        };
+        FiscalAddress: {
+            /** @description CEP */
+            postalCode: string;
+            street: string;
+            number: string;
+            complement?: string;
+            district: string;
+            /** @description 7-digit IBGE code */
+            cityCode: string;
+            cityName: string;
+            /** @description Two-letter UF */
+            state: string;
+        };
+        FiscalCompanyInput: {
+            /** @description CNPJ */
+            taxId: string;
+            legalName: string;
+            tradeName?: string;
+            email?: string;
+            /** @description Inscrição municipal */
+            municipalTaxNumber?: string;
+            /** @description Inscrição estadual, or ISENTO. Required for NF-e and NFC-e. */
+            stateTaxNumber?: string;
+            /**
+             * @description Only under regimeNormal
+             * @enum {string}
+             */
+            profitRegime?: "presumido" | "real";
+            /**
+             * @description What the setup assistant asked
+             * @enum {string}
+             */
+            sells?: "services" | "goods" | "both";
+            /** @enum {string} */
+            taxRegime: "simplesNacional" | "simplesNacionalExcessoSublimite" | "regimeNormal" | "simplesNacionalMEI";
+            /** @enum {string} */
+            specialTaxRegime?: "municipalMicroenterprise" | "estimate" | "societyOfProfessionals" | "cooperative" | "individualMicroenterprise" | "microenterpriseAndSmallBusiness" | "noSpecialRegime" | "others";
+            /** @enum {string} */
+            simplesNacionalTaxRegime?: "federalAndMunicipalBySimplesNacional" | "federalBySimplesAndIssqnByNfse" | "federalAndMunicipalByNfse";
+            /** @description 7 digits */
+            cnae?: string;
+            address: components["schemas"]["FiscalAddress"];
+        };
+        FiscalTaxProfile: {
+            /** @description Item da lista LC 116/03 */
+            federalServiceCode?: string;
+            cityServiceCode?: string;
+            nbsCode?: string;
+            nationalTaxationCode?: string;
+            serviceDescription?: string;
+            /** @enum {string} */
+            taxationType?: "taxationInMunicipality" | "taxationOutsideMunicipality" | "exemption" | "immune" | "suspendedByCourt" | "suspendedByAdministrativeProcedure" | "exportation" | "nonIncidence";
+            /** @example 2.01 */
+            issRate?: string;
+            issWithheldForCompanies?: boolean;
+            irRate?: string;
+            pisRate?: string;
+            cofinsRate?: string;
+            csllRate?: string;
+            inssRate?: string;
+            /** @description Lei 12.741/12 (IBPT) */
+            approxFederalRate?: string;
+            approxStateRate?: string;
+            approxMunicipalRate?: string;
+            approxSource?: string;
+            /** @description Issue on every paid sale */
+            autoIssue?: boolean;
+            /** @description PIS on goods (Regime Normal); zero under the Simples */
+            goodsPisRate?: string;
+            goodsCofinsRate?: string;
+            /** @description The destination state's internal ICMS rate and FCP, per UF, for the DIFAL of a Regime Normal interstate sale to a final consumer. Never assumed: without the state, the note stops with icms_destination_rate_missing. */
+            icmsDestinationRates?: {
+                [key: string]: {
+                    /** @example 20.5 */
+                    rate?: string;
+                    /** @example 2 */
+                    fcpRate?: string;
+                };
+            };
+        };
+        FiscalIssuer: {
+            /** Format: uuid */
+            id?: string;
+            taxId?: string;
+            legalName?: string;
+            tradeName?: string;
+            email?: string;
+            municipalTaxNumber?: string;
+            stateTaxNumber?: string;
+            /** @enum {string} */
+            profitRegime?: "presumido" | "real";
+            /** @enum {string} */
+            sells?: "services" | "goods" | "both";
+            /** @description The NFC-e CSC is configured */
+            nfceEnabled?: boolean;
+            /**
+             * @description Who issues the notes — shown as "powered by"
+             * @enum {string}
+             */
+            provider?: "spedy";
+            /**
+             * @description Who computes the taxes. infi (default): Infi's own calculation (taxProfile), the note sent complete. spedy: Spedy, from the tax groups configured for this CNPJ in its panel — notes wait until taxSetupAt is set. Switched by staff.
+             * @enum {string}
+             */
+            taxMode?: "spedy" | "infi";
+            /**
+             * Format: date-time
+             * @description When the CNPJ's taxes were confirmed configured in Spedy's panel
+             */
+            taxSetupAt?: string;
+            taxSetupBy?: string;
+            /**
+             * Format: date-time
+             * @description Cleared by any change to the tax configuration
+             */
+            accountantReviewedAt?: string;
+            accountantReviewedBy?: string;
+            accountantReviewNote?: string;
+            /** @description Lei 12.741 rates come from IBPT */
+            ibptConnected?: boolean;
+            taxRegime?: string;
+            specialTaxRegime?: string;
+            simplesNacionalTaxRegime?: string;
+            cnae?: string;
+            address?: components["schemas"]["FiscalAddress"];
+            /**
+             * @description The NFS-e environment; a document's own environment is development (SEFAZ homologação) for NF-e/NFC-e on sandbox.
+             * @enum {string}
+             */
+            environment?: "simulation" | "production";
+            /** @enum {string} */
+            status?: "pending_certificate" | "active" | "disabled";
+            isDefault?: boolean;
+            certificate?: {
+                /** Format: date-time */
+                expiresAt?: string;
+                subject?: string;
+            };
+            taxProfile?: components["schemas"]["FiscalTaxProfile"];
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        FiscalCatalogResult: {
+            /** @description The list's source and version */
+            version?: string;
+            items?: {
+                code?: string;
+                description?: string;
+            }[];
+        };
+        StaffFiscalDocument: components["schemas"]["FiscalDocument"] & {
+            /** Format: uuid */
+            tenantId?: string;
+            tenantSlug?: string;
+            issuerTaxId?: string;
+            issuerTradeName?: string;
+            /** @description The provider's or authority's text — staff only */
+            errorMessage?: string;
+            providerId?: string;
+            providerStatus?: string;
+            attempts?: number;
+            /** Format: date-time */
+            nextAttemptAt?: string;
+        };
+        ProductFiscalProfile: {
+            productId?: components["schemas"]["ProductId"];
+            /** Format: uuid */
+            issuerId?: string;
+            federalServiceCode?: string;
+            cityServiceCode?: string;
+            nbsCode?: string;
+            nationalTaxationCode?: string;
+            serviceDescription?: string;
+            issRate?: string;
+            /** @enum {string} */
+            documentModel?: "nfse" | "nfe" | "nfce";
+            ncm?: string;
+            cest?: string;
+            gtin?: string;
+            origin?: number;
+            unit?: string;
+            cfopInternal?: number;
+            cfopInterstate?: number;
+            icmsCsosn?: number;
+            icmsCst?: number;
+            icmsRate?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        FiscalDocument: {
+            /** Format: uuid */
+            id?: string;
+            invoiceId?: components["schemas"]["InvoiceId"];
+            /** Format: uuid */
+            issuerId?: string;
+            /** @enum {string} */
+            model?: "nfse" | "nfe" | "nfce";
+            /** @enum {string} */
+            status?: "pending" | "processing" | "issued" | "rejected" | "failed" | "cancel_pending" | "canceled" | "voided";
+            environment?: string;
+            amount?: string;
+            number?: string;
+            authorityProtocol?: string;
+            /** Format: date-time */
+            issuedAt?: string;
+            /** Format: date-time */
+            canceledAt?: string;
+            /** Format: date-time */
+            cancelRequestedAt?: string;
+            /** @description issuer_not_ready, provider_refused, provider_forbidden, provider_unavailable, authority_rejected, cancel_refused, credential_unavailable, receiver_address_missing, nfce_interstate, nfce_not_enabled, ncm_missing, icms_rate_missing, icms_destination_rate_missing, state_tax_number_missing, provider_tax_setup_pending (a hold, not a failure: the note waits, pending, for the CNPJ's taxes to be configured at Spedy). Append-only. */
+            errorCode?: string;
+            /** @description The city hall's reason, when errorCode is authority_rejected */
+            rejectionReason?: string;
+            /** @description The calculation the note was issued with — rule version, inputs and result. */
+            tax?: {
+                ruleVersion?: string;
+                /** Format: date-time */
+                computedAt?: string;
+                input?: Record<string, never>;
+                result?: Record<string, never>;
+            };
+            /**
+             * Format: uuid
+             * @description The note this one corrects after a partial refund; sent once that one is cancelled.
+             */
+            replacesId?: string;
+            /** Format: date-time */
+            supersededAt?: string;
+            /**
+             * Format: uri
+             * @description The buyer's page for the note: {app}/nota/{token}
+             */
+            publicUrl?: string;
+            /** @enum {string} */
+            provider?: "spedy";
+            /**
+             * @description Who computed this note's taxes
+             * @enum {string}
+             */
+            calculatedBy?: "spedy" | "infi";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
         /** @enum {string} */
         RoutingStrategy: "cheapest" | "most_stable" | "manual";
         RoutingRoute: {
@@ -2857,24 +5719,6 @@ export interface components {
                 neutral?: boolean;
             }[];
         };
-        PlatformPlanTier: {
-            /** @enum {string} */
-            key: "free" | "enterprise";
-            /** @description Monthly base; always "0.00" on the public plan */
-            monthly?: string;
-            /** @description Fraction of approved BRL payment volume; 0.02 means 2%; absent for Enterprise */
-            unitAmount?: string;
-            automatic: boolean;
-        };
-        PlatformEntitlement: {
-            key: string;
-            /** @enum {string} */
-            type: "boolean" | "limit";
-            value: unknown;
-            meter?: string;
-            /** @enum {string} */
-            action: "notify" | "overage" | "upgrade" | "block";
-        };
         PlatformFeatureCatalog: {
             key: string;
             /** @enum {string} */
@@ -2896,51 +5740,129 @@ export interface components {
             /** @enum {string} */
             action: "notify" | "overage" | "upgrade" | "block";
         };
-        PlatformPlanCatalog: {
-            /** Format: uuid */
-            productId: string;
-            /** Format: uuid */
-            versionId: string;
-            version: number;
+        /** @description BE-403's public catalog: every published plan of one product, in one currency, read from plans/plan_components. */
+        PublishedPlanCatalog: {
             /** @example BRL */
             currency: string;
-            /** @constant */
-            meter: "approved_transactions";
-            tiers: components["schemas"]["PlatformPlanTier"][];
-            features: components["schemas"]["PlatformFeatureCatalog"][];
+            plans: components["schemas"]["PublishedPlan"][];
         };
+        /** @description No plan/component/price/tenant id anywhere on this object — `key` + `version` is the plan's own public, stable identity. */
+        PublishedPlan: {
+            /** @example pro */
+            key: string;
+            version: number;
+            /** Format: date-time */
+            publishedAt: string;
+            /** @description Mensalidade (recurring_fee component); "0" when the plan has none. */
+            monthlyFee: string;
+            meteredComponents: components["schemas"]["PublishedPlanMeteredComponent"][];
+            /**
+             * @description Infi Pay (managed collection) fee on top of the PSP's own fee, as a fraction of the amount ("0.01" = 1%). Applies only to a tenant with Infi Pay enabled; a tenant on its own provider pays the byop_transactions rate instead.
+             * @example 0.01
+             */
+            infiPaySpread: string;
+        };
+        PublishedPlanMeteredComponent: {
+            /** @description The meter's NAME */
+            meter: string;
+            /** @description Price per unit above the allowance */
+            rate: string;
+            /** @description Free units included per cycle. A component with no declared allowance (payg, charged from the first unit) reads as "0" here — the public catalog does not distinguish that from an explicit zero allowance. */
+            allowance: string;
+        };
+        /** @description What Infi bills the tenant by right now (BE-413). No subscription, plan or tenant id: plans are named by key and version. */
         AccountPlan: {
+            /** @description The plan the subscription is pinned to. Null only for a subscription that predates plans (an account enrolled before the generic engine, until it is migrated to payg). */
+            plan: components["schemas"]["AccountPlanVersion"] | null;
             /** @enum {string} */
-            plan: "free" | "enterprise";
-            /** Format: uuid */
-            subscriptionId: string;
-            /** @description BRL volume confirmed in the current billing period */
-            approvedVolume: string;
-            /** @description Fraction applied to approved volume; absent for Enterprise */
-            takeRate?: string;
-            accumulatedCost?: string;
-            /** Format: date-time */
-            nextInvoiceAt: string;
-            /** @enum {string} */
-            billingStatus: "active" | "grace" | "suspended";
-            /** Format: date-time */
-            graceExpiresAt?: string | null;
-            /** Format: uuid */
-            pendingPriceVersionId?: string | null;
-            /** Format: date-time */
-            pendingPriceVersionAt?: string | null;
-            entitlements: {
-                [key: string]: components["schemas"]["PlatformEntitlement"];
-            };
+            subscriptionStatus: "incomplete" | "trialing" | "active" | "past_due" | "paused" | "canceled";
+            /**
+             * @description When the period is billed. A plan change never moves a subscription to the other mode (`plan_change_clock_mismatch`).
+             * @enum {string}
+             */
+            billingMode: "arrears" | "advance";
+            period: components["schemas"]["TimeWindow"];
+            /** @description The plan segment in course: the part of the period billed by the current plan. It starts where the last upgrade took effect (the period start when there was none) and ends with the period. */
+            segment: components["schemas"]["TimeWindow"];
+            /** @description The scheduled change, if any; it takes effect at `period.end`. */
+            pendingChange: components["schemas"]["PlanChange"] | null;
         };
-        ActivateAccountPlanRequest: {
+        AccountPlanVersion: {
+            /** @example payg */
+            key: string;
+            /** @example 1 */
+            version: number;
+            /**
+             * @description An archived version keeps billing the subscriptions pinned to it; it is only no longer offered.
+             * @enum {string}
+             */
+            status: "published" | "archived";
+        };
+        TimeWindow: {
+            /** Format: date-time */
+            start: string;
+            /**
+             * Format: date-time
+             * @description Exclusive.
+             */
+            end: string;
+        };
+        PlanChangeRequest: {
+            /** @description A plan key as GET /public/plans lists it. */
+            key: string;
+            version: number;
+        };
+        PlanChange: {
+            /** Format: uuid */
+            id: string;
+            /** @description The plan changed from; null for the move of an account from the model before plans to payg. */
+            from: components["schemas"]["PlanIdentity"] | null;
+            to: components["schemas"]["PlanIdentity"];
+            /**
+             * @description upgrade is a target with a greater recurring fee; everything else, an equal fee included, is downgrade.
+             * @enum {string}
+             */
+            direction: "upgrade" | "downgrade";
             /** @enum {string} */
-            plan: "free";
-            /** @constant */
-            termsVersion: "2026-08-22";
-            /** Format: email */
-            billingEmail: string;
-            taxId?: string;
+            status: "scheduled" | "applied" | "canceled";
+            /**
+             * Format: date-time
+             * @description When the change takes (or took) effect: the top of the hour it was requested in for an upgrade, the end of the period in course otherwise.
+             */
+            effectiveAt: string;
+            /** Format: date-time */
+            requestedAt: string;
+            /** Format: date-time */
+            appliedAt: string | null;
+            /** Format: date-time */
+            canceledAt: string | null;
+        };
+        PlanChangePage: {
+            changes: components["schemas"]["PlanChange"][];
+            /** @description Present only when another page may exist. */
+            nextCursor?: string;
+        };
+        /** @description The tenant's consumption against its OWN Infi plan, for the currently open billing cycle. Not `UsageReport` (`GET /metering/usage`) — that is the merchant's own customers' consumption. */
+        AccountUsage: {
+            /** Format: date-time */
+            periodStart: string;
+            /** Format: date-time */
+            periodEnd: string;
+            /** @description False only when the subscription predates plans entirely (every subscription created before this layer) — a property of the SUBSCRIPTION, not of any one item. "Not on a plan at all" (`hasPlan: false`) is a different sentence from "this plan doesn't cover this item" (`hasPlan: true`, that item's `hasQuota: false`). */
+            hasPlan: boolean;
+            items: components["schemas"]["AccountUsageItem"][];
+        };
+        AccountUsageItem: {
+            /** @example event_ingestions */
+            meter: string;
+            /** @description Decimal string, like every quantity in this contract. */
+            used: string;
+            /** @description Decimal string. */
+            freeUnits: string;
+            /** @description max(0, used - freeUnits), as a decimal string. Never negative — remaining balance is a different question, and a negative overage would become a credit in the hand of whoever multiplies it by a price without checking the sign. */
+            overage: string;
+            /** @description Whether the plan DECLARES a franchise for this item. False means the component charges from the very first unit — different from a franchise declared as zero, which is `true` with `freeUnits: "0"`. */
+            hasQuota: boolean;
         };
         /** @description Browser-safe BYOP connection metadata. Secret keys and KYB documents are never returned. */
         ProviderConnection: {
@@ -2996,6 +5918,16 @@ export interface components {
              * @enum {string}
              */
             paymentMethod?: "pix" | "boleto" | "card" | "crypto";
+            /** @description The sale's notas fiscais once authorized, each with the buyer's link. */
+            fiscalDocuments?: {
+                /** @enum {string} */
+                model: "nfse" | "nfe" | "nfce";
+                /** @enum {string} */
+                status: "issued" | "cancel_pending" | "canceled";
+                number?: string;
+                /** @description The buyer's page on the dashboard host: /nota/{token} (live) or /nota/sandbox/{token} */
+                path: string;
+            }[];
             /** @description Card-on-file authorization the payer must accept. Present only when card is available and the invoice is still open. `version` is what the client must echo as `consentTextVersion` when charging with `saveInstrument`. */
             mandate?: {
                 version: string;
@@ -3048,11 +5980,8 @@ export interface components {
             status: "UNCLAIMED" | "CLAIMED";
             tenantSlug: string;
             accountName: string;
-            /**
-             * Format: uuid
-             * @description The seeded "App usage" product. Provisioned unsellable on purpose — draft version 1, no key, no price — so publish a version and add a price before selling against it.
-             */
-            productId: string;
+            /** @description The seeded "App usage" product. Provisioned unsellable on purpose — draft version 1, no key, no price — so publish a version and add a price before selling against it. */
+            productId: components["schemas"]["ProductId"];
             /** @description `sk_test_*`, returned once and never again. */
             apiKeySecret: string;
             /**
@@ -3078,8 +6007,7 @@ export interface components {
             status: "UNCLAIMED" | "CLAIMED";
             tenantSlug: string;
             accountName?: string;
-            /** Format: uuid */
-            productId?: string;
+            productId?: components["schemas"]["ProductId"];
             /** @enum {string} */
             ref: "lovable" | "mcp" | "cursor" | "cli";
             /** Format: date-time */
@@ -3096,10 +6024,8 @@ export interface components {
         };
         ClaimTenantResponse: {
             tenantSlug: string;
-            /** Format: uuid */
-            tenantId: string;
-            /** Format: uuid */
-            productId?: string;
+            tenantId: components["schemas"]["AccountId"];
+            productId?: components["schemas"]["ProductId"];
             /**
              * @description Same vocabulary as session sync, and the two must agree. A claimed tenant is named, so this is `complete`. Untyped until now, which is how it went on emitting `integrate` after that step was deleted.
              * @enum {string}
@@ -3172,8 +6098,7 @@ export interface components {
             };
         };
         Product: {
-            /** Format: uuid */
-            id?: string;
+            id?: components["schemas"]["ProductId"];
             /** @description Stable per-tenant natural key (billing-as-code). */
             key?: string | null;
             name?: string;
@@ -3189,12 +6114,28 @@ export interface components {
             /** @description Rendered address of the product photo, served by GET /public/media/{tenantID}/{file}. */
             imageUrl?: string | null;
             requiresShipping?: boolean;
+            /** @description Refund window a portal ask resolves inside on its own. */
+            guaranteeDays?: number;
+            /** @description This product's own accent, over the business theme (link > product > business). "" clears it on a write; null inherits. */
+            accentColor?: string | null;
+            media?: components["schemas"]["ProductMedia"][];
+            faq?: components["schemas"]["ProductFAQ"][];
+            purchaseButtonText?: string | null;
+            postPurchaseRedirectUrl?: string | null;
+            storeVisible?: boolean;
+            /**
+             * Format: date-time
+             * @description The editor's last autosave of an unpublished draft; null when there is none.
+             */
+            draftSavedAt?: string | null;
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
             updatedAt?: string;
         };
         CreateProductRequest: {
+            /** @description Refund window: a buyer's refund asked from the portal inside it is automatic; after it, the store decides. 7 (the CDC floor) when absent. */
+            guaranteeDays?: number;
             /** @description Stable per-tenant natural key. Creating twice with the same key returns the same product rather than failing; pricing that differs from its current version is refused with 422 (`pricing_immutable`). */
             key?: string | null;
             name: string;
@@ -3208,12 +6149,23 @@ export interface components {
             /** @enum {string|null} */
             billingCycle?: "weekly" | "monthly" | "annual" | null;
             basePrice?: string | null;
+            /** @description This product's own accent, over the business theme (link > product > business). "" clears it on a write; null inherits. */
+            accentColor?: string | null;
+            /** @description Absent leaves the media; an empty list clears them. */
+            media?: components["schemas"]["ProductMedia"][];
+            /** @description Absent leaves the FAQ; an empty list clears it. */
+            faq?: components["schemas"]["ProductFAQ"][];
+            /** @description The buy button's words. "" goes back to the element's default. */
+            purchaseButtonText?: string | null;
+            /** @description Absolute http(s) URL the buyer lands on after paying. A link's own successUrl wins over it. "" clears it. */
+            postPurchaseRedirectUrl?: string | null;
+            /** @description false keeps the product off every storefront's public read and cart; its links keep selling. */
+            storeVisible?: boolean | null;
         };
         Version: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            productId?: string;
+            productId?: components["schemas"]["ProductId"];
             version?: number;
             /** @enum {string|null} */
             billingCycle?: "weekly" | "monthly" | "annual" | null;
@@ -3288,11 +6240,29 @@ export interface components {
          * @description Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.
          * @enum {string}
          */
-        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "usage.threshold_reached";
+        WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "contact.created" | "contact.updated" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached" | "fiscal_document.issued" | "fiscal_document.rejected" | "fiscal_document.failed" | "fiscal_document.canceled" | "subscription.cancel_scheduled" | "subscription.cancel_unscheduled" | "subscription.canceled" | "refund_request.created" | "payment.duplicate_detected" | "payment.duplicate_refunded" | "refund_request.declined";
+        /** @description Body of fiscal_document.issued, .rejected, .failed and .canceled. */
+        FiscalDocumentEventData: {
+            /** Format: uuid */
+            fiscalDocumentId: string;
+            invoiceId: components["schemas"]["InvoiceId"];
+            /** Format: uuid */
+            issuerId: string;
+            /** @enum {string} */
+            model: "nfse" | "nfe" | "nfce";
+            status: string;
+            amount?: string;
+            number?: string;
+            errorCode?: string;
+            /**
+             * Format: uri
+             * @description The buyer's link, on issued and canceled.
+             */
+            publicUrl?: string;
+        };
         /** @description Body of customer.created. */
         CustomerCreatedData: {
-            /** Format: uuid */
-            customerId: string;
+            customerId: components["schemas"]["CustomerId"];
             /** @description Your own user id for this customer. */
             externalId: string;
             /** Format: date-time */
@@ -3302,18 +6272,38 @@ export interface components {
             taxId?: string;
             country?: string;
         };
+        /** @description Body of contact.created and contact.updated. */
+        ContactEventData: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            name?: string;
+            phone?: string;
+            /** @enum {string} */
+            source: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
+            /** @enum {string} */
+            consent: "unknown" | "given" | "withdrawn";
+            /** Format: date-time */
+            consentAt?: string;
+            attributes: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         /** @description Body of invoice.finalized and invoice.sent. */
         InvoiceAmountData: {
-            /** Format: uuid */
-            invoiceId: string;
+            invoiceId: components["schemas"]["InvoiceId"];
             /** @description Decimal string. */
             total: string;
             currency: string;
         };
         /** @description Body of invoice.paid — the invoice settled. No paymentId: an invoice can settle across more than one payment. */
         InvoicePaidData: {
-            /** Format: uuid */
-            invoiceId: string;
+            invoiceId: components["schemas"]["InvoiceId"];
             /** @description Decimal string. */
             amount: string;
             currency: string;
@@ -3322,23 +6312,21 @@ export interface components {
              * @description Product enrollment billed. Absent on ad-hoc invoices.
              */
             customerId?: string;
-            /**
-             * Format: uuid
-             * @description Tenant-level customer. Absent on subscription invoices.
-             */
-            payerId?: string;
+            /** @description Tenant-level customer. Absent on subscription invoices. */
+            payerId?: components["schemas"]["CustomerId"];
+            /** @description True when the merchant marked it paid outside Infi; no payment ran. */
+            outOfBand?: boolean;
+            /** @description The merchant's note on an out-of-band settlement. */
+            reason?: string;
         };
         /** @description Body of invoice.voided and invoice.uncollectible. */
         InvoiceRefData: {
-            /** Format: uuid */
-            invoiceId: string;
+            invoiceId: components["schemas"]["InvoiceId"];
         };
         /** @description Body of payment.confirmed. */
         PaymentConfirmedData: {
-            /** Format: uuid */
-            paymentId: string;
-            /** Format: uuid */
-            invoiceId: string;
+            paymentId: components["schemas"]["PaymentId"];
+            invoiceId: components["schemas"]["InvoiceId"];
             /** @description Decimal string. */
             amount: string;
             currency: string;
@@ -3347,29 +6335,34 @@ export interface components {
              * @description Product enrollment billed. Absent on ad-hoc invoices.
              */
             customerId?: string;
-            /**
-             * Format: uuid
-             * @description Tenant-level customer. Absent on subscription invoices.
-             */
-            payerId?: string;
+            /** @description Tenant-level customer. Absent on subscription invoices. */
+            payerId?: components["schemas"]["CustomerId"];
         };
         /** @description Body of payment.failed. */
         PaymentFailedData: {
-            /** Format: uuid */
-            paymentId: string;
-            /** Format: uuid */
-            invoiceId: string;
+            paymentId: components["schemas"]["PaymentId"];
+            invoiceId: components["schemas"]["InvoiceId"];
         };
         /** @description Body of payment.refunded and payment.chargeback. accessRevoked says whether the buyer's deliverable download grants were cut, so a merchant can mirror the decision in its own entitlements. */
         PaymentReversedData: {
-            /** Format: uuid */
-            paymentId: string;
-            /** Format: uuid */
-            invoiceId: string;
+            paymentId: components["schemas"]["PaymentId"];
+            invoiceId: components["schemas"]["InvoiceId"];
             /** @description Decimal string. */
             amount: string;
             currency: string;
             accessRevoked: boolean;
+        };
+        /** @description Body of plan.changed — a subscription's plan change took effect. Plans are named by their public key and version, never by id. effectiveAt is when the new plan starts rating the subscription: for an upgrade, the top of the hour it was requested in, announced at once; for any other change, the end of the period it was requested in, announced when that period closes. from is null when the subscription had no plan before (a move off the model before plans, which takes effect at a period boundary like any scheduled change). */
+        PlanChangedData: {
+            subscriptionId: components["schemas"]["SubscriptionId"];
+            from: components["schemas"]["PlanIdentity"] | null;
+            to: components["schemas"]["PlanIdentity"];
+            /** Format: date-time */
+            effectiveAt: string;
+        };
+        PlanIdentity: {
+            key: string;
+            version: number;
         };
         WalletMutationRequest: {
             meter: string;
@@ -3393,15 +6386,18 @@ export interface components {
         Meter: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            productId?: string;
+            productId?: components["schemas"]["ProductId"];
             /** @description Slug used by track(). */
             name?: string;
             displayName?: string;
             /** @enum {string} */
             unit?: "token" | "request" | "unit";
-            /** @enum {string} */
+            /**
+             * @description Billing sums each event's `value` (a missing value counts as 1, which is what `count` relies on). Only `sum` and `count` can be created; `unique_count`, `max` and `last` appear only on meters created before they were refused, and those bill as a sum.
+             * @enum {string}
+             */
             aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
+            /** @description Stored as given; billing does not read it. */
             valueProperty?: string | null;
             status?: string;
         };
@@ -3409,8 +6405,7 @@ export interface components {
         PaymentLink: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            productId?: string;
+            productId?: components["schemas"]["ProductId"];
             /** @description Opaque public token; the payer URL is /pay/{tenantSlug}/links/{token}. */
             token?: string;
             /** @description The payer-facing address, built server-side. Present so no caller has to re-supply the tenant slug the server already stores in order to learn where to send someone. */
@@ -3421,6 +6416,12 @@ export interface components {
              */
             productVersionId?: string | null;
             active?: boolean;
+            /**
+             * @description If true, a checkout that expires copies its email and name into the tenant contact list with unknown consent. Expired session fields are then deleted either way.
+             * @default false
+             */
+            captureAbandoned: boolean;
+            appearance?: components["schemas"]["LinkAppearance"];
             /** Format: date-time */
             revokedAt?: string | null;
             /** Format: date-time */
@@ -3443,12 +6444,18 @@ export interface components {
             successUrl?: string | null;
             cancelUrl?: string | null;
             /**
+             * @description Opt in to copying the email and name of a buyer who starts checkout and does not finish into the tenant contact list.
+             * @default false
+             */
+            captureAbandoned: boolean;
+            /**
              * Format: uuid
              * @description Sell a specific published version instead of the product's default. This is how a promotional price reaches a buyer: the version is published but not default, so nothing resolves into it by accident and only a link that names it can sell it.
              *
              *     Omit for the default version, which is what an ordinary link sells. Refused if the version is not a published version of this product.
              */
             productVersionId?: string | null;
+            appearance?: components["schemas"]["LinkAppearance"];
         };
         /** @description A product defined inline on a link create, resolved by its natural `key`. A new key creates the product; a known key reuses it, and pricing that differs from the current version publishes a NEW version. That bump is safe because the link created here pins the version it got, so links already in circulation keep selling what they advertised. */
         InlineProductSpec: {
@@ -3480,9 +6487,13 @@ export interface components {
             displayName?: string;
             /** @enum {string} */
             unit?: "token" | "request" | "unit";
-            /** @enum {string} */
-            aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
-            /** @description JSON path on the event carrying the numeric value; unused by `count`. */
+            /**
+             * @description `sum` bills the sum of the events' `value`; `count` bills the number of events, whatever `value` they carry. Anything else is refused with 422 `meter_aggregation_unsupported`.
+             * @default sum
+             * @enum {string}
+             */
+            aggregation: "sum" | "count";
+            /** @description Optional and stored as given; billing reads the event's own `value`. */
             valueProperty?: string | null;
         };
         InlinePriceSpec: {
@@ -3492,22 +6503,32 @@ export interface components {
             model: "flat" | "per_unit" | "tiered" | "volume" | "package";
             /** @description Decimal string. */
             unitAmount?: string | null;
-            /** @description Tier configuration for tiered/volume/package. */
-            tiers?: Record<string, never>;
+            /** @description Tiers for tiered/volume/package, validated as on createPrice. */
+            tiers?: components["schemas"]["PriceTier"][];
             currency?: string;
         };
         CreatePaymentLinkWithProductRequest: {
             product: components["schemas"]["InlineProductSpec"];
             successUrl?: string | null;
             cancelUrl?: string | null;
+            /**
+             * @description Opt in to keeping abandoned checkout contacts in this tenant's contacts list.
+             * @default false
+             */
+            captureAbandoned: boolean;
         };
         CreateMeterRequest: {
             name: string;
             displayName: string;
             /** @enum {string} */
             unit: "token" | "request" | "unit";
-            /** @enum {string} */
-            aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
+            /**
+             * @description `sum` bills the sum of each event's `value` (a missing value counts as 1); `count` bills the number of events, whatever `value` they carry. `unique_count`, `max` and `last` are refused with 422 `meter_aggregation_unsupported`.
+             * @default sum
+             * @enum {string}
+             */
+            aggregation: "sum" | "count";
+            /** @description Optional and stored as given; billing does not read it. */
             valueProperty?: string | null;
         };
         /** @description Mutable meter fields; omitted fields are unchanged. `name` is immutable. */
@@ -3515,14 +6536,16 @@ export interface components {
             displayName?: string;
             /** @enum {string} */
             unit?: "token" | "request" | "unit";
-            /** @enum {string} */
-            aggregation?: "sum" | "count" | "unique_count" | "max" | "last";
+            /**
+             * @description Switching to any other aggregation is refused with 422 `meter_aggregation_unsupported`. A meter created before that refusal keeps its stored aggregation when this field is omitted.
+             * @enum {string}
+             */
+            aggregation?: "sum" | "count";
         };
         Deliverable: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            productId?: string;
+            productId?: components["schemas"]["ProductId"];
             /** @enum {string} */
             kind?: "file" | "link";
             fileName?: string | null;
@@ -3567,15 +6590,25 @@ export interface components {
             model: "flat" | "per_unit" | "tiered" | "volume" | "package";
             unitAmount?: string | null;
             /**
-             * @description Graduated/volume/package tier config. Only checked for being valid JSON server-side, so an object is accepted as well as an array.
+             * @description Graduated/volume/package tiers, checked with the rules billing rates them by: at least one tier for `tiered`/`volume`/`package`, a positive `size` on a package's first tier, and every amount a decimal string. Anything else is 422 on `tiers`.
              * @default []
              */
-            tiers: unknown;
+            tiers: components["schemas"]["PriceTier"][];
             /**
              * @description Optional — defaults to the product's currency.
              * @example BRL
              */
             currency?: string;
+        };
+        PriceTier: {
+            /** @description Inclusive cumulative upper bound, decimal string. Absent or null: the unbounded last band. */
+            upTo?: string | null;
+            /** @description Decimal string. Required. */
+            unitAmount: string;
+            /** @description Decimal string added when the band is used. */
+            flatAmount?: string | null;
+            /** @description Units per package; package model only. */
+            size?: string | null;
         };
         Price: {
             /** Format: uuid */
@@ -3621,15 +6654,62 @@ export interface components {
             }[];
             currency?: string;
         };
+        Contact: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: email
+             * @description Unverified address; never an identity credential.
+             */
+            email: string;
+            name?: string | null;
+            phone?: string | null;
+            /** @enum {string} */
+            source: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
+            /** Format: uuid */
+            sourceRef?: string | null;
+            customerId?: components["schemas"]["CustomerId"] | null;
+            /** @enum {string} */
+            consent: "unknown" | "given" | "withdrawn";
+            /** Format: date-time */
+            consentAt?: string | null;
+            attributes: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        CreateContactRequest: {
+            /** Format: email */
+            email: string;
+            name?: string | null;
+            phone?: string | null;
+            /**
+             * @default unknown
+             * @enum {string}
+             */
+            consent: "unknown" | "given" | "withdrawn";
+            attributes?: {
+                [key: string]: string;
+            };
+        };
+        ContactImportResponse: {
+            imported: number;
+            created: number;
+            updated: number;
+        };
         /** @description Tenant-level end payer (unique externalId per tenant). */
         Customer: {
-            /** Format: uuid */
-            id?: string;
+            id?: components["schemas"]["CustomerId"];
             externalId?: string;
             name?: string | null;
             email?: string | null;
             /** @description CPF/CNPJ. */
             taxId?: string | null;
+            /** @description Contact phone (E.164 digits, no leading `+`). Data for reaching, finding or weighing the buyer (dunning, LGPD, antifraud) — never an identifier: a phone typed into a public checkout proves nothing about who typed it, so nothing resolves an identity from it. */
+            phone?: string | null;
             pspRef?: string | null;
             /** Format: date-time */
             createdAt?: string;
@@ -3644,13 +6724,9 @@ export interface components {
              * @description Enrollment ID.
              */
             id?: string;
-            /**
-             * Format: uuid
-             * @description Tenant customer ID.
-             */
-            customerId?: string;
-            /** Format: uuid */
-            productId?: string;
+            /** @description Tenant customer ID. */
+            customerId?: components["schemas"]["CustomerId"];
+            productId?: components["schemas"]["ProductId"];
             externalId?: string;
             name?: string | null;
             email?: string | null;
@@ -3671,6 +6747,11 @@ export interface components {
             name?: string | null;
             email?: string | null;
             taxId?: string | null;
+            /**
+             * @description ISO 3166-1 alpha-2 code (`BR`, `US`), normalized to upper case. Used to route the customer's charges; unset means routing by currency and method only.
+             * @example BR
+             */
+            country?: string | null;
             pspRef?: string | null;
             metadata?: {
                 [key: string]: unknown;
@@ -3688,8 +6769,7 @@ export interface components {
         };
         /** @description A merchant discount applied to subscription invoices for a Stripe-style duration. `percentOff` is a decimal string. */
         Coupon: {
-            /** Format: uuid */
-            id: string;
+            id: components["schemas"]["CouponId"];
             code: string;
             percentOff: string;
             /** @enum {string} */
@@ -3718,8 +6798,7 @@ export interface components {
             redeemBy?: string | null;
         };
         UsageEvent: {
-            /** Format: uuid */
-            productId?: string;
+            productId?: components["schemas"]["ProductId"];
             /** @description The customer's external id. */
             customerId?: string;
             meter: string;
@@ -3758,8 +6837,7 @@ export interface components {
             meters: components["schemas"]["MeterUsage"][];
         };
         Subscription: {
-            /** Format: uuid */
-            id?: string;
+            id?: components["schemas"]["SubscriptionId"];
             /** Format: uuid */
             customerId?: string;
             /** Format: uuid */
@@ -3780,6 +6858,13 @@ export interface components {
             startedAt?: string;
             /** Format: date-time */
             canceledAt?: string | null;
+            /** @description Why it was, or will be, canceled. Absent when nobody said. */
+            cancelReason?: {
+                code?: string;
+                note?: string;
+                /** @enum {string} */
+                source?: "buyer" | "merchant";
+            };
             items?: components["schemas"]["SubscriptionItem"][];
         };
         SubscriptionItem: {
@@ -3799,22 +6884,19 @@ export interface components {
         SubscriptionPeriod: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            subscriptionId?: string;
+            subscriptionId?: components["schemas"]["SubscriptionId"];
             /** Format: date-time */
             periodStart?: string;
             /** Format: date-time */
             periodEnd?: string;
             /** @enum {string} */
             status?: "open" | "closed" | "invoiced";
-            /** Format: uuid */
-            invoiceId?: string | null;
+            invoiceId?: components["schemas"]["InvoiceId"] | null;
         };
         UsageAlert: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            subscriptionId?: string;
+            subscriptionId?: components["schemas"]["SubscriptionId"];
             /** Format: uuid */
             meterId?: string | null;
             thresholdPct?: number | null;
@@ -3822,23 +6904,21 @@ export interface components {
             active?: boolean;
         };
         Invoice: {
-            /** Format: uuid */
-            id?: string;
+            id?: components["schemas"]["InvoiceId"];
             /**
              * Format: uuid
              * @description Product enrollment (subscription invoices).
              */
             customerId?: string | null;
-            /**
-             * Format: uuid
-             * @description Tenant-level customer (ad-hoc invoices).
-             */
-            payerId?: string | null;
-            /** Format: uuid */
-            subscriptionId?: string | null;
+            /** @description Tenant-level customer (ad-hoc invoices). */
+            payerId?: components["schemas"]["CustomerId"] | null;
+            subscriptionId?: components["schemas"]["SubscriptionId"] | null;
             invoiceNumber?: string | null;
-            /** @enum {string} */
-            status?: "draft" | "open" | "paid" | "void" | "uncollectible";
+            /**
+             * @description `pending` is a checkout's Order before it is paid (ADR 0004): no number yet, nothing owed until the buyer pays, and it becomes `paid` directly when they do or `void` when the checkout expires. Invoice lists omit it unless `status=pending` is asked for.
+             * @enum {string}
+             */
+            status?: "draft" | "pending" | "open" | "paid" | "void" | "uncollectible";
             currency?: string;
             subtotal?: string;
             tax?: string;
@@ -3862,11 +6942,10 @@ export interface components {
             lineItems?: components["schemas"]["InvoiceLineItem"][];
         };
         CreateInvoiceRequest: {
-            /**
-             * Format: uuid
-             * @description Tenant customer (payer) id, from POST /metering/customers.
-             */
-            payerId: string;
+            /** @description Keep it an editor draft (no number, no event, not sent). `lineItems` is required otherwise. */
+            draft?: boolean;
+            /** @description Tenant customer (payer) id, from POST /metering/customers. */
+            payerId: components["schemas"]["CustomerId"];
             /** @description ISO 4217; defaults to BRL. */
             currency?: string;
             /** Format: date-time */
@@ -3876,7 +6955,7 @@ export interface components {
             /** @description Hosted checkout returns here after payment. */
             successUrl?: string | null;
             cancelUrl?: string | null;
-            lineItems: {
+            lineItems?: {
                 description: string;
                 /** @description Defaults to 1. */
                 quantity?: string;
@@ -3933,11 +7012,11 @@ export interface components {
             proration?: boolean;
         };
         Refund: {
-            /** Format: uuid */
-            id?: string;
+            id?: components["schemas"]["RefundId"];
             /** @description Decimal string. */
             amount?: string;
             reason?: string | null;
+            reasonCode?: string | null;
             /**
              * @description A pending row reserves the amount but has no financial effect yet. For asynchronous providers such as Adyen it remains pending after the provider accepts the modification, until a verified outcome webhook makes it succeeded or failed. A succeeded refund can later become reversed.
              *     Crypto adds two states, because Infi holds no key and cannot send the USDC back itself. `manual_required` means the merchant still has to return the funds from their own wallet and submit the transaction signature to PUT /billing/refunds/{refundID}/evidence. `needs_review` means evidence was submitted but not accepted — the signature was rejected, or MoonPay could not be reached — and it can be resubmitted. Neither state has moved any money in the BRL ledger.
@@ -3950,8 +7029,7 @@ export interface components {
             createdAt?: string;
         };
         DeliverableGrant: {
-            /** Format: uuid */
-            paymentId?: string;
+            paymentId?: components["schemas"]["PaymentId"];
             /** @description The bearer capability inside downloadUrl. Treat it like a password: anyone holding it downloads the paid product with no further proof of purchase. */
             token?: string;
             /** @description Buyer-facing download link. Answers 410 once revokedAt is set. */
@@ -3971,14 +7049,12 @@ export interface components {
         };
         /** @description Safe public polling projection. It intentionally excludes PSP references, payer identity, decline details and transient browser-action material. */
         PublicPaymentStatus: {
-            /** Format: uuid */
-            id: string;
-            /** Format: uuid */
-            paymentId: string;
+            id: components["schemas"]["PaymentId"];
+            paymentId: components["schemas"]["PaymentId"];
             /** @enum {string} */
             status: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
             /** @enum {string} */
-            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi_asaas" | "stub";
+            provider: "adyen" | "stripe" | "asaas" | "efi" | "woovi" | "infi_asaas" | "infi_pagarme" | "stub";
             /** @enum {string} */
             method: "pix" | "boleto" | "card";
             invoiceStatus: string;
@@ -3992,16 +7068,20 @@ export interface components {
             method: "pix";
             /** @constant */
             flow: "pix";
+            /** @description True when live Managed Pagar.me needs the payer phone and billing address to create its customer. */
+            requiresPayerDetails?: boolean;
         };
         PublicCardPaymentOption: {
             /** @constant */
             method: "card";
             /** @enum {string} */
-            provider: "adyen" | "stripe";
+            provider: "adyen" | "stripe" | "infi_pagarme";
             /** @enum {string} */
-            flow: "adyen_session" | "stripe_payment_intent";
-            /** @description False for Adyen phase one; Stripe may offer a mandate. */
-            supportsSavedInstrument: boolean;
+            flow: "adyen_session" | "stripe_payment_intent" | "pagarme_card_token";
+            /** @description False for Pagar.me Managed cards; Stripe may offer a mandate. */
+            supportsSavedInstrument?: boolean;
+            /** @description Browser-safe Pagar.me key required only by pagarme_card_token. */
+            publicKey?: string;
         };
         /** @description Tagged transient browser handoff. Switch on `type`; never infer the provider protocol from legacy fields or accept these values from the browser on a later request. */
         PaymentNextAction: components["schemas"]["AdyenSessionAction"] | components["schemas"]["StripePaymentIntentAction"];
@@ -4048,10 +7128,8 @@ export interface components {
             currency: string;
         };
         Payment: {
-            /** Format: uuid */
-            id?: string;
-            /** Format: uuid */
-            invoiceId?: string;
+            id?: components["schemas"]["PaymentId"];
+            invoiceId?: components["schemas"]["InvoiceId"];
             /** @example asaas */
             provider?: string;
             providerId?: string | null;
@@ -4077,8 +7155,7 @@ export interface components {
             createdAt?: string;
             /** @description Who paid, resolved through the invoice (ad-hoc invoices name a tenant customer directly, subscription invoices name a product enrollment). Present only on the tenant-facing dashboard reads — GET /billing/payments and GET /billing/payments/{paymentID}. Null when the invoice has no resolvable customer. */
             payer?: {
-                /** Format: uuid */
-                id?: string;
+                id?: components["schemas"]["CustomerId"];
                 name?: string | null;
                 email?: string | null;
             } | null;
@@ -4218,8 +7295,7 @@ export interface components {
         };
         /** @description One row of the shelf as the merchant edits it. */
         StorefrontShelfItem: {
-            /** Format: uuid */
-            productId: string;
+            productId: components["schemas"]["ProductId"];
             name: string;
             imageUrl?: string | null;
             position: number;
@@ -4229,8 +7305,7 @@ export interface components {
             productStatus: "active" | "archived";
         };
         PublicStorefrontItem: {
-            /** Format: uuid */
-            productId: string;
+            productId: components["schemas"]["ProductId"];
             name: string;
             description?: string | null;
             imageUrl?: string | null;
@@ -4244,6 +7319,12 @@ export interface components {
             billingCycle?: "weekly" | "monthly" | "annual" | null;
             requiresShipping: boolean;
             availableOnsite: boolean;
+            /** @description The product's resolved accent (its own, else the business theme's, else the default). */
+            accentColor?: string;
+            media?: components["schemas"]["ProductMedia"][];
+            faq?: components["schemas"]["ProductFAQ"][];
+            purchaseButtonText?: string;
+            guaranteeDays?: number;
         };
         /** @description The shop as a buyer's browser receives it. No tenant, no price version, no ids of the merchant's internal graph. */
         PublicStorefront: {
@@ -4258,6 +7339,7 @@ export interface components {
             pickupNote?: string | null;
             /** @description Flat shipping for this shop. Never present on a pickup-only shop, where it would read as a delivery option that does not exist. */
             shippingAmount?: string | null;
+            appearance?: components["schemas"]["Appearance"];
             items: components["schemas"]["PublicStorefrontItem"][];
         };
         /** @description Public display payload for a payment link's landing page. */
@@ -4280,6 +7362,7 @@ export interface components {
             successUrl?: string | null;
             /** @description Where "back to the merchant" goes, if set on the link. */
             cancelUrl?: string | null;
+            appearance?: components["schemas"]["Appearance"];
         };
         PaymentLinkProduct: {
             name: string;
@@ -4291,6 +7374,10 @@ export interface components {
             price?: string;
             /** @example BRL */
             currency: string;
+            media?: components["schemas"]["ProductMedia"][];
+            faq?: components["schemas"]["ProductFAQ"][];
+            purchaseButtonText?: string;
+            guaranteeDays?: number;
         };
         /** @description Response to creating/reusing a link checkout session (step 1). */
         LinkCheckoutSession: {
@@ -4317,16 +7404,10 @@ export interface components {
             name?: string;
             /** Format: date-time */
             expiresAt: string;
-            /**
-             * Format: uuid
-             * @description Set once the charge step has materialized the invoice.
-             */
-            invoiceId?: string;
-            /**
-             * Format: uuid
-             * @description Set once a charge has been created.
-             */
-            paymentId?: string;
+            /** @description Set once the charge step has materialized the invoice. */
+            invoiceId?: components["schemas"]["InvoiceId"];
+            /** @description Set once a charge has been created. */
+            paymentId?: components["schemas"]["PaymentId"];
         };
         /** @description What a coupon does to a payment-link purchase, computed server-side. The browser renders these figures; it must not derive a total of its own, because the invoice is priced by the backend at materialization. */
         LinkCheckoutSessionCoupon: {
@@ -4347,11 +7428,19 @@ export interface components {
             /** @example BRL */
             currency: string;
         };
+        /** @description `CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ. Send `taxId` after a `customer_tax_id_required` (422): it is stored on the payer only when the payer has none, and never changes one already on file. A malformed value is 400. */
+        InvoiceChargeRequest: components["schemas"]["CheckoutChargeRequest"] & {
+            /** @description CPF (11 digits) or CNPJ (14), punctuation allowed. */
+            taxId?: string;
+        };
         /** @description `method` is validated server-side and answers **422** (not 400) when missing or outside the enum. */
         CheckoutChargeRequest: {
             /** @enum {string} */
             method: "pix" | "boleto" | "card" | "crypto";
             card?: components["schemas"]["CheckoutCardInput"];
+            /** @description Required for Managed Pagar.me customer creation. */
+            payerPhone?: string;
+            payerAddress?: components["schemas"]["CheckoutPayerAddress"];
             /** @description Payer opted to store the card for future automatic charges. Requires `consentTextVersion`; a save without it is refused (422) rather than stored as an unprovable authorization. */
             saveInstrument?: boolean;
             /** @description The mandate wording the payer actually saw — echo `CheckoutSession.mandate.version`. Required when `saveInstrument` is true, and must name a known version. */
@@ -4364,21 +7453,39 @@ export interface components {
              */
             surface: "hosted" | "embed";
         };
-        /** @description Raw card + holder fields for an embedded card charge (method=card). Sent over TLS to the checkout endpoint, which tokenizes them at the PSP and never persists the PAN/CVV. All fields are required by the PSP tokenizer. */
+        /** @description Either the legacy BYOP raw fields or a Pagar.me token minted directly in the browser. Managed Pagar.me requests must send pagarmeToken plus its billing address; PAN and CVV must never be sent to Infi. */
         CheckoutCardInput: {
-            number: string;
-            holderName: string;
+            pagarmeToken?: string;
+            number?: string;
+            holderName?: string;
             /** @example 12 */
-            expiryMonth: string;
+            expiryMonth?: string;
             /** @example 2030 */
-            expiryYear: string;
-            ccv: string;
+            expiryYear?: string;
+            ccv?: string;
             /** Format: email */
-            holderEmail: string;
-            holderCpfCnpj: string;
-            holderPostalCode: string;
-            holderAddressNumber: string;
+            holderEmail?: string;
+            holderCpfCnpj?: string;
+            holderPostalCode?: string;
+            holderAddressNumber?: string;
             holderPhone?: string;
+            billingStreet?: string;
+            billingNumber?: string;
+            billingComplement?: string;
+            billingNeighborhood?: string;
+            billingCity?: string;
+            billingState?: string;
+            billingPostalCode?: string;
+        } | unknown | unknown;
+        /** @description Brazilian payer billing address required by Managed Pagar.me for Pix and card customer creation. */
+        CheckoutPayerAddress: {
+            street: string;
+            number: string;
+            complement?: string;
+            neighborhood: string;
+            city: string;
+            state: string;
+            zipCode: string;
         };
         /**
          * @description The first five are required; `bank_statement` is optional and speeds up review.
@@ -4406,7 +7513,7 @@ export interface components {
             /** @description UF */
             state?: string;
         };
-        /** @description KYC — the legal representative who answers for the company. */
+        /** @description KYC — the shareholder and legal representative whose identity is verified by Pagar.me. */
         ManagedRepresentative: {
             fullName?: string;
             /** @description CPF */
@@ -4416,8 +7523,45 @@ export interface components {
             email?: string;
             phone?: string;
             role?: string;
+            /** @description Monthly income in BRL, decimal string. */
+            monthlyIncome?: string;
+            occupation?: string;
+            isShareholder?: boolean;
+            isLegalRepresentative?: boolean;
+            address?: components["schemas"]["ManagedPersonAddress"];
         };
-        /** @description Where a managed merchant's payouts go — one Pix key, declared in the application and reviewed with it. A CNPJ key must be the company's own; a CPF key is accepted only for an MEI and must be the representative's. E-mail, phone and random keys are checked for shape here and for ownership by the reviewer. Stored normalized (digits for CPF/CNPJ/PHONE, lower-case otherwise). Once approved, it is the only destination a managed payout may name — `POST /billing/payouts` answers 409 `payout_destination_not_registered` for any other key. */
+        ManagedPersonAddress: {
+            /** @description CEP */
+            postalCode?: string;
+            address?: string;
+            addressNumber?: string;
+            complement?: string;
+            reference?: string;
+            district?: string;
+            city?: string;
+            /** @description UF */
+            state?: string;
+        };
+        /** @description Bank account registered as the Pagar.me recipient's settlement destination. */
+        ManagedBankAccount: {
+            holderName?: string;
+            /** @enum {string} */
+            holderType?: "" | "company" | "individual";
+            /** @description CPF or CNPJ */
+            holderTaxId?: string;
+            /** @description Three-digit bank code. */
+            bankCode?: string;
+            branchNumber?: string;
+            branchCheckDigit?: string;
+            accountNumber?: string;
+            accountCheckDigit?: string;
+            /** @enum {string} */
+            type?: "" | "checking" | "savings";
+        };
+        /**
+         * @deprecated
+         * @description Legacy Pix-key destination retained for older applications. New Managed applications register the settlement bank account on a Pagar.me recipient, and payouts use that verified recipient without accepting a per-request destination key.
+         */
         ManagedPayoutAccount: {
             pixKey?: string;
             /** @enum {string} */
@@ -4426,7 +7570,9 @@ export interface components {
         ManagedApplicationInput: {
             company?: components["schemas"]["ManagedCompany"];
             representative?: components["schemas"]["ManagedRepresentative"];
+            /** @deprecated */
             payoutAccount?: components["schemas"]["ManagedPayoutAccount"];
+            bankAccount?: components["schemas"]["ManagedBankAccount"];
         };
         ManagedApplication: {
             /** Format: uuid */
@@ -4435,7 +7581,12 @@ export interface components {
             status: "draft" | "pending_review" | "approved" | "rejected";
             company: components["schemas"]["ManagedCompany"];
             representative: components["schemas"]["ManagedRepresentative"];
+            /** @deprecated */
             payoutAccount: components["schemas"]["ManagedPayoutAccount"];
+            bankAccount: components["schemas"]["ManagedBankAccount"];
+            pagarmeRecipientStatus: string;
+            pagarmeKycStatus: string;
+            pagarmeKycReason?: string;
             /** @description Present after a rejection; what to fix. */
             rejectionReason?: string;
             /** Format: date-time */
@@ -4449,6 +7600,14 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ManagedPagarmeKycLink: {
+            /** Format: uri */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Optional QR code returned by Pagar.me. */
+            qrCode?: string;
+        };
         ManagedDocument: {
             /** Format: uuid */
             id: string;
@@ -4461,11 +7620,9 @@ export interface components {
             createdAt: string;
         };
         CollectionModeView: {
-            /** @enum {string} */
-            mode: "byop" | "managed";
-            /** @description Live deployment with the Infi provider configured. False in sandbox. */
+            /** @description Live deployment with the complete Managed Pagar.me configuration. False in sandbox. */
             managedAvailable: boolean;
-            /** @description May this tenant connect its own provider accounts? Managed is the way every account activates production; bringing your own provider is an enterprise feature granted per account (ADR 0065). False means `POST /account/collection-mode` with `byop` answers 409 — ask instead, with `POST /account/collection-mode/byop/request`. */
+            /** @description May this tenant be routed through its own provider accounts? On by default; staff can revoke it (ADR 0065), and a revoked tenant routes only through Infi Pay. Ask for it back with `POST /account/collection-mode/byop/request`. */
             byopEnabled: boolean;
             /** @description The tenant's open request for BYOP, or null. Present means someone is waiting on us, so offer "we will be in touch" rather than the button. */
             byopRequest?: components["schemas"]["ByopAccessRequest"] | null;
@@ -4475,6 +7632,8 @@ export interface components {
             requiredDocuments: components["schemas"]["ManagedDocumentType"][];
             missingDocuments: components["schemas"]["ManagedDocumentType"][];
             canSubmit: boolean;
+            /** @description The Stripe Connect mirror, or null before the tenant starts onboarding (or on a deployment with no Connect wired). Mirrors what `POST .../stripe/account` returns, so the read side never re-derives it and drifts. */
+            stripe?: components["schemas"]["StripeAccountView"] | null;
         };
         ByopAccessRequest: {
             /** Format: uuid */
@@ -4489,18 +7648,100 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
-        Tenant: {
+        /** @description Only what the dashboard branches on. The raw requirement codes are deliberately not here — they are provider vocabulary and are never rendered to a tenant outside the embedded component — and neither is the connected-account id nor pixAllowed, which is hardcoded false until the payout-destination match ships. Each returns additively when something consumes it. */
+        StripeAccountView: {
+            /** @description Live capability state. Flips when a requirement is re-raised. */
+            cardAllowed: boolean;
+            /** @description Something is outstanding on the account. May be true while cardAllowed is still true: a requirement with a future deadline has not disabled the capability yet, and that is when the tenant most needs to be told. */
+            requirementsDue: boolean;
+        };
+        StripeSessionView: {
+            /** @description Short-lived; minted per component mount and never cached. */
+            clientSecret: string;
+        };
+        AccountClosure: {
+            /** @enum {string} */
+            state?: "active" | "closing" | "closed";
+            /** Format: date-time */
+            requestedAt?: string;
+            /** Format: date-time */
+            closesAt?: string;
+            /** Format: date-time */
+            closedAt?: string;
+            reasonCode?: string;
+            reason?: string;
+            /** @description True on sandbox */
+            reopenable?: boolean;
+        };
+        Feedback: {
             /** Format: uuid */
             id?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            rating?: number;
+            reaction?: string;
+            message?: string;
+            path?: string;
+            visitorId?: string;
+            sessionId?: string;
+            externalId?: string;
+            /** @enum {string} */
+            status?: "new" | "reviewed" | "resolved";
+            theme?: string;
+            /** @enum {string} */
+            sentiment?: "positive" | "neutral" | "negative";
+            /** @enum {string} */
+            classifiedBy?: "rule" | "model" | "merchant";
+            /** Format: date-time */
+            classifiedAt?: string;
+        };
+        SignalsSummary: {
+            /** Format: date-time */
+            from?: string;
+            /** Format: date-time */
+            to?: string;
+            kinds?: {
+                kind?: string;
+                events?: number;
+                sessions?: number;
+            }[];
+            funnel?: {
+                visited?: number;
+                started?: number;
+                completed?: number;
+            };
+            errors?: {
+                name?: string;
+                events?: number;
+                sessions?: number;
+                /** @description Sessions with this error that started a checkout and never finished it. */
+                abandonedSessions?: number;
+                /** Format: date-time */
+                lastSeen?: string;
+                lastPath?: string;
+            }[];
+            exits?: {
+                path?: string;
+                sessions?: number;
+            }[];
+            feedback?: {
+                sentiment?: string;
+                theme?: string;
+                total?: number;
+            }[];
+            /** @description Why customers left (BE-436), by event and reason code. */
+            churn?: {
+                event?: string;
+                code?: string;
+                events?: number;
+            }[];
+        };
+        Tenant: {
+            id?: components["schemas"]["AccountId"];
             slug?: string;
             name?: string;
             /** @enum {string} */
             status?: "active" | "suspended" | "closed";
-            /**
-             * @description How this tenant collects in production (ADR 0031). `byop` runs on the merchant's own connected provider accounts; `managed` runs on Infi's, after an approved KYC/KYB application. Always `byop` in sandbox.
-             * @enum {string}
-             */
-            collectionMode?: "byop" | "managed";
             /**
              * Format: uri
              * @description The merchant's terms of use, quoted in the payment mandate a payer accepts before being charged off-session. null when unset.
@@ -4508,10 +7749,17 @@ export interface components {
              */
             termsUrl?: string | null;
             /**
+             * Format: email
+             * @description The merchant's contact address: Reply-To on payer-facing email and where Infi sends the merchant's own account notices. null when unset, in which case the owner's login email is used instead.
+             * @example contato@acme.ai
+             */
+            supportEmail?: string | null;
+            /**
              * Format: uri
              * @description The merchant logo the hosted checkout and the embed render next to the merchant name. Absolute, served by `GET /pay/{slug}/logo/{file}`, and immutable per upload (a new upload is a new URL). null when unset; the checkout then shows the merchant's initials.
              */
             logoUrl?: string | null;
+            appearance?: components["schemas"]["BusinessAppearance"];
             /** Format: date-time */
             createdAt?: string;
             /** Format: date-time */
@@ -4565,14 +7813,17 @@ export interface components {
             /** Format: email */
             email: string;
             tenant: {
-                /** Format: uuid */
-                id: string;
+                id: components["schemas"]["AccountId"];
                 slug: string;
                 name: string;
             };
             /** @description The welcome key, minted only on the sandbox deployment (an sk_test_ key). Absent on live: a live account starts unactivated and gets no credentials until Go Live — see ADR 0057. */
             apiKey: components["schemas"]["CreatedApiKey"] & {
+                /** @description Only when the key was minted by this call. */
                 secret?: string;
+                name?: string;
+                /** @description The project already held this key; no secret is returned. */
+                reused?: boolean;
             };
         };
         SessionBootstrapRequest: {
@@ -4582,21 +7833,21 @@ export interface components {
             slug?: string;
             /** @description Partner or channel attribution (e.g. lovable, cli, web) */
             signupSource?: string;
+            /** @description The Infi Terms version the operator accepted. Required on live for the first login and must equal `termsVersion` from `POST /auth/session/sync`; sending it is the acceptance. Ignored on sandbox and for a subject already attached. */
+            acceptedTermsVersion?: string;
         };
         SessionBootstrapResponse: {
             /** Format: email */
             email: string;
             tenant: {
-                /** Format: uuid */
-                id: string;
+                id: components["schemas"]["AccountId"];
                 slug: string;
                 name: string;
             };
             user: {
                 /** Format: uuid */
                 id: string;
-                /** Format: uuid */
-                tenantId: string;
+                tenantId: components["schemas"]["AccountId"];
                 /** Format: email */
                 email: string;
                 role: string;
@@ -4615,8 +7866,7 @@ export interface components {
             /** @description Partner or channel attribution stored on the tenant */
             signupSource?: string;
             memberships: {
-                /** Format: uuid */
-                tenantId: string;
+                tenantId: components["schemas"]["AccountId"];
                 slug: string;
                 name: string;
                 role: string;
@@ -4627,10 +7877,22 @@ export interface components {
                 /** @description Providers in the `connected` state, the same set charges route on. */
                 providers: string[];
             };
+            /**
+             * @description Which of the two deployments answered, so the dashboard need not be told at build time.
+             * @enum {string}
+             */
+            mode?: "sandbox" | "live";
+            /**
+             * @description What THIS deployment can say about the caller, and only that: sandbox answers ["sandbox"], live answers ["production"]. Neither computes the union — sandbox cannot read the live database and there is deliberately no cross-deployment call — so a client assembles it by calling the other host, where 403 is the answer "not granted".
+             *
+             *     Never read from a token claim. Both deployments share one CIAM instance, so a claim travels to both hosts and would BE production access; the grant is a membership row in the database the request landed on.
+             */
+            environments?: ("sandbox" | "production")[];
+            /** @description Live only, and only while `needsBootstrap` is true: the Infi Terms version the first live login must accept. Show that version and send it back as `acceptedTermsVersion` on `POST /auth/session/bootstrap`. */
+            termsVersion?: string;
         };
         WebhookEndpoint: {
-            /** Format: uuid */
-            id?: string;
+            id?: components["schemas"]["WebhookEndpointId"];
             /** Format: uri */
             url?: string;
             /** @description Subscribed event types. Not constrained to WebhookEventType: dispatch matches on `event_type = ANY(events)` with no allowlist, so any event the outbox emits is subscribable. WebhookEventType documents the ones with a described payload. */
@@ -4646,8 +7908,7 @@ export interface components {
         WebhookDelivery: {
             /** Format: uuid */
             id?: string;
-            /** Format: uuid */
-            endpointId?: string | null;
+            endpointId?: components["schemas"]["WebhookEndpointId"] | null;
             eventType?: string;
             eventId?: string;
             /** @enum {string} */
@@ -4689,6 +7950,87 @@ export interface components {
          * @example eip155:8453
          */
         RailNetwork: string;
+        RailVerifyRequest: {
+            /** @description The agent's `X-PAYMENT` header, verbatim (base64). */
+            payment: string;
+            /** @description Product key whose meter prices this route. */
+            product: string;
+            /** @description Meter key the route consumes. */
+            meter: string;
+            /** @description Units the route consumed, as a decimal string. Absent means one. */
+            quantity?: string;
+            /** @description The protocol's payment payload, passed through as-is. */
+            paymentPayload?: {
+                [key: string]: unknown;
+            };
+            /** @description The protocol's payment requirements the middleware quoted. `resource` and `maxAmountRequired` are read from it. */
+            paymentRequirements?: {
+                [key: string]: unknown;
+            };
+            /** @description The resource URL, for callers that do not send `paymentRequirements`. */
+            resource?: string;
+            /**
+             * @description `grace` when the middleware already served this call during an outage and is reporting it afterwards. Any other value is ignored.
+             * @enum {string}
+             */
+            verifiedBy?: "grace";
+        };
+        RailVerifyResponse: {
+            isValid: boolean;
+            /**
+             * @description The protocol's reason code when `isValid` is false.
+             * @example insufficient_funds
+             */
+            invalidReason?: string;
+            /** @description Which cause produced `invalidReason`, for your logs. */
+            detail?: string;
+            /** @description The paying wallet address. */
+            payer?: string;
+            agent?: {
+                /** Format: uuid */
+                id?: string;
+                /**
+                 * Format: uuid
+                 * @description The agent's enrollment; read its usage with `GET /metering/usage`.
+                 */
+                enrollmentId?: string;
+                address?: string;
+                network?: string;
+            };
+            /** @description The outage allowance the middleware may serve under. */
+            grace?: {
+                window?: string;
+                maxPerAgent?: string;
+                maxTotal?: string;
+            };
+            /** @description Paid from the agent's prepaid balance; do not call `/rail/settle`. */
+            drawnFromBalance?: boolean;
+        };
+        RailSettleRequest: {
+            /** @example eip155:8453 */
+            network: string;
+            /** @description The paying wallet address, as returned by `/rail/verify`. */
+            payer: string;
+            /** @description The authorization's nonce. */
+            nonce: string;
+            /** @description What to settle, in the asset's atomic units, for partial settlement. `"0"` charges nothing; omitting it settles the authorized amount. */
+            settleAmount?: string;
+            /** @description Units consumed. Accepted; not used to price yet. */
+            quantity?: string;
+            meter?: string;
+            /** @description Settle a payment that buys prepaid balance: what settles is credited to the agent, and later calls draw from it instead of settling again. */
+            grantBalance?: boolean;
+        };
+        RailSettleResponse: {
+            /** @enum {string} */
+            status: "settled" | "refused" | "unknown";
+            /** @description Why it was refused or is unknown. */
+            reason?: string;
+            /** @description The on-chain transaction when `settled`. */
+            transaction?: string;
+            /** @description What actually moved, in atomic units. */
+            settled?: string;
+        };
         RailConfig: {
             network: components["schemas"]["RailNetwork"];
             /** @description ERC-20 contract address on EVM, mint on SVM. Never a ticker. */
@@ -4832,8 +8174,429 @@ export interface components {
             graceMaxPerAgent: string;
             graceMaxTotal: string;
         };
+        ProductDraftContent: {
+            name?: string;
+            description?: string | null;
+            media?: components["schemas"]["ProductMedia"][];
+            faq?: components["schemas"]["ProductFAQ"][];
+            purchaseButtonText?: string | null;
+            postPurchaseRedirectUrl?: string | null;
+            accentColor?: string | null;
+            guaranteeDays?: number;
+            storeVisible?: boolean;
+        };
+        ProductDraftPricing: {
+            /** @enum {string|null} */
+            billingCycle?: "weekly" | "monthly" | "annual" | null;
+            basePrice?: string | null;
+        };
+        ProductDraft: {
+            content: components["schemas"]["ProductDraftContent"];
+            pricing: components["schemas"]["ProductDraftPricing"];
+            /**
+             * Format: date-time
+             * @description The last autosave; null when nothing is unpublished.
+             */
+            savedAt: string | null;
+            /** @description What buyers get now; null before the first publish. */
+            publishedVersion: number | null;
+            /** @description The version publishing would make live; null while the price equals the published one. */
+            createsVersion: number | null;
+        };
+        ProductMedia: {
+            /** @enum {string} */
+            type: "image" | "video";
+            /** @description An image's key from `POST /catalog/images/presign` (this account's only). Absent on a video. */
+            objectKey?: string;
+            /** @description A video's https link on a write; on a read, also the image's derived address. */
+            url?: string;
+            alt?: string;
+        };
+        ProductFAQ: {
+            question: string;
+            answer: string;
+        };
+        /** @description A buyer page's resolved look — values only. Resolved link → product → business → default (docs/product-specs/templates/dashboard-v1-api.md). */
+        Appearance: {
+            /** @example #5B21B6 */
+            accentColor: string;
+            /** @example #FFFFFF */
+            backgroundColor: string;
+            font: components["schemas"]["AppearanceFont"];
+            radius: components["schemas"]["AppearanceRadius"];
+        };
+        /** @enum {string} */
+        AppearanceFont: "system" | "inter" | "geist" | "roboto" | "poppins" | "lora";
+        /** @enum {string} */
+        AppearanceRadius: "none" | "small" | "medium" | "large" | "full";
+        /** @description The business theme every product and link inherits. On a write, an absent field is left alone and "" clears it (back to the default). */
+        BusinessAppearance: {
+            /** @example #0F766E */
+            accentColor?: string | null;
+            /** @enum {string|null} */
+            font?: "system" | "inter" | "geist" | "roboto" | "poppins" | "lora" | "" | null;
+            /** @enum {string|null} */
+            radius?: "none" | "small" | "medium" | "large" | "full" | "" | null;
+        };
+        /** @description A checkout link's own look: `accentColor` is its button. On a write, an absent field is left alone and "" clears it (inherit again). */
+        LinkAppearance: {
+            /** @example #DC2626 */
+            accentColor?: string | null;
+            /** @example #111827 */
+            backgroundColor?: string | null;
+            /** @enum {string|null} */
+            font?: "system" | "inter" | "geist" | "roboto" | "poppins" | "lora" | "" | null;
+        };
+        AppearanceValue: {
+            value: string;
+            /** @enum {string} */
+            source: "link" | "product" | "business" | "default";
+        };
+        AppearanceResolution: {
+            business: components["schemas"]["BusinessAppearance"];
+            product: {
+                accentColor?: string | null;
+            } | null;
+            link: components["schemas"]["LinkAppearance"] | null;
+            defaults: components["schemas"]["Appearance"];
+            effective: {
+                accentColor: components["schemas"]["AppearanceValue"];
+                backgroundColor: components["schemas"]["AppearanceValue"];
+                font: components["schemas"]["AppearanceValue"];
+                radius: components["schemas"]["AppearanceValue"];
+            };
+        };
+        PortalOrder: {
+            id?: components["schemas"]["InvoiceId"];
+            number?: string;
+            status?: string;
+            currency?: string;
+            total?: string;
+            /** Format: date-time */
+            paidAt?: string;
+            receiptUrl?: string;
+            lines?: {
+                description?: string;
+                quantity?: string;
+                amount?: string;
+            }[];
+            payment?: {
+                id?: components["schemas"]["PaymentId"];
+                method?: string;
+                status?: string;
+                amount?: string;
+                refundedAmount?: string;
+                refundPendingAmount?: string;
+            };
+            guarantee?: {
+                days?: number;
+                /** Format: date-time */
+                endsAt?: string;
+                withinWindow?: boolean;
+            };
+            refundRequest?: components["schemas"]["PortalRefundRequest"];
+        };
+        PortalRefundRequest: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            status?: "pending" | "approved" | "declined";
+            withinWindow?: boolean;
+            /** @description `automatic`, or the store's actor. */
+            decidedBy?: string;
+            note?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        PortalCard: {
+            brand?: string;
+            last4?: string;
+            expMonth?: number;
+            expYear?: number;
+        };
+        PortalSubscription: {
+            id?: components["schemas"]["SubscriptionId"];
+            productName?: string;
+            status?: string;
+            billingCycle?: string;
+            /** Format: date-time */
+            nextBillingDate?: string;
+            cancelAtPeriodEnd?: boolean;
+            /** Format: date-time */
+            accessUntil?: string;
+            /** Format: date-time */
+            canceledAt?: string;
+            card?: components["schemas"]["PortalCard"];
+            canChangeCard?: boolean;
+            /** @description What the current period has used so far, per meter. Absent without meters. */
+            usage?: components["schemas"]["PortalUsageLine"][];
+            /**
+             * Format: date-time
+             * @description When the current period began.
+             */
+            usageSince?: string;
+        };
+        PortalUsageLine: {
+            meter?: string;
+            unit?: string;
+            /** @description Decimal. */
+            quantity?: string;
+            /** @description Decimal; the period's price so far */
+            amount?: string;
+            currency?: string;
+        };
+        PortalBalance: {
+            productName?: string;
+            /** @description The balance's meter: credits, tokens… */
+            meter?: string;
+            /** @description Decimal. */
+            balance?: string;
+        };
+        PortalOpenInvoice: {
+            id?: components["schemas"]["InvoiceId"];
+            number?: string;
+            description?: string;
+            currency?: string;
+            /** @description Decimal. */
+            total?: string;
+            /** @description Decimal. */
+            amountDue?: string;
+            /** Format: date-time */
+            dueDate?: string;
+            /** @description Path of the public checkout for this invoice: /pay/{slug}/invoices/{id}. */
+            payUrl?: string;
+        };
+        PortalCodeVerify: {
+            /** Format: uuid */
+            challengeId: string;
+            code: string;
+        };
+        CLIProject: {
+            /** @description The CLI's stable id for this project. */
+            projectId: string;
+            projectName?: string;
+            machine?: string;
+        };
+        AccessKey: {
+            /** Format: uuid */
+            id?: string;
+            key?: string;
+            name?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        AccessRule: {
+            key: string;
+            readonly name?: string;
+            /** @enum {string} */
+            window: "lifetime" | "subscription" | "days";
+            /** @description Required for `days`. */
+            days?: number;
+        };
+        AccessGrant: {
+            /** Format: uuid */
+            id?: string;
+            key?: string;
+            keyName?: string;
+            customerId?: components["schemas"]["CustomerId"];
+            /** @enum {string} */
+            source?: "purchase" | "manual";
+            /** @enum {string} */
+            window?: "lifetime" | "subscription" | "days";
+            /** Format: date-time */
+            startsAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            subscriptionId?: components["schemas"]["SubscriptionId"];
+            subscriptionStatus?: string;
+            productId?: components["schemas"]["ProductId"];
+            invoiceId?: components["schemas"]["InvoiceId"];
+            paymentId?: components["schemas"]["PaymentId"];
+            reason?: string;
+            /** Format: date-time */
+            revokedAt?: string;
+            /** @enum {string} */
+            revokedReason?: "refunded" | "charged_back" | "manual";
+            /** Format: date-time */
+            createdAt?: string;
+            /** @enum {string} */
+            state?: "active" | "past_due" | "ended";
+        };
+        /** @description One key as a person holds it, every grant folded. `past_due` still has access, with a warning. `since` is when the earliest live grant started (a course's drip counts from it). */
+        KeyAccess: {
+            key?: string;
+            name?: string;
+            hasAccess?: boolean;
+            /** @enum {string} */
+            state?: "active" | "past_due" | "ended";
+            /** Format: date-time */
+            since?: string;
+            /**
+             * Format: date-time
+             * @description Absent for lifetime or while a subscription keeps it.
+             */
+            until?: string;
+            /** @description expired, refunded, charged_back, manual, or subscription_<status>. */
+            endedReason?: string;
+            grants?: components["schemas"]["AccessGrant"][];
+        };
+        CourseWrite: {
+            title?: string;
+            /** @description The key that opens the course. Required to create. */
+            accessKey?: string;
+            description?: string;
+            coverUrl?: string;
+            published?: boolean;
+        };
+        Course: {
+            /** Format: uuid */
+            id?: string;
+            accessKey?: string;
+            title?: string;
+            description?: string;
+            coverUrl?: string;
+            published?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            modules?: components["schemas"]["CourseModule"][];
+        };
+        CourseModule: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            position?: number;
+            lessons?: components["schemas"]["Lesson"][];
+        };
+        LessonVideo: {
+            url?: string;
+            /** @enum {string} */
+            provider?: "youtube" | "vimeo" | "panda" | "bunny" | "other";
+        };
+        LessonWrite: {
+            /**
+             * Format: uuid
+             * @description Required to create; moves the lesson on edit.
+             */
+            moduleId?: string;
+            title?: string;
+            /** @description An https link from your provider; the provider is detected. */
+            videoUrl?: string;
+            bodyMarkdown?: string;
+            /** @description Drip */
+            unlockAfterDays?: number;
+            published?: boolean;
+        };
+        Lesson: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            moduleId?: string;
+            title?: string;
+            position?: number;
+            video?: components["schemas"]["LessonVideo"];
+            bodyMarkdown?: string;
+            unlockAfterDays?: number;
+            published?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        StudentLesson: {
+            /** Format: uuid */
+            id?: string;
+            /** Format: uuid */
+            moduleId?: string;
+            title?: string;
+            position?: number;
+            /** @enum {string} */
+            state?: "available" | "locked" | "no_access";
+            /** Format: date-time */
+            unlocksAt?: string;
+            hasVideo?: boolean;
+            hasText?: boolean;
+            completed?: boolean;
+            /** Format: date-time */
+            completedAt?: string;
+            video?: components["schemas"]["LessonVideo"];
+            bodyMarkdown?: string;
+        };
+        StudentCourse: {
+            /** Format: uuid */
+            id?: string;
+            title?: string;
+            description?: string;
+            coverUrl?: string;
+            access?: components["schemas"]["KeyAccess"];
+            progress?: {
+                completed?: number;
+                total?: number;
+                percent?: number;
+            };
+            continue?: {
+                /** Format: uuid */
+                lessonId?: string;
+                /** Format: uuid */
+                moduleId?: string;
+                title?: string;
+            };
+            modules?: {
+                /** Format: uuid */
+                id?: string;
+                title?: string;
+                lessons?: components["schemas"]["StudentLesson"][];
+            }[];
+        };
+        CommunityIntegration: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            provider?: "telegram" | "discord";
+            accessKey?: string;
+            /** @description Telegram chat id or Discord guild id. */
+            externalId?: string;
+            roleId?: string;
+            inviteUrl?: string;
+            title?: string;
+            /** @enum {string} */
+            status?: "active" | "disabled";
+            /** Format: date-time */
+            createdAt?: string;
+        };
     };
     responses: {
+        /** @description A challenge was opened (a code is mailed only to a known address) */
+        PortalChallenge: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    challengeId?: string;
+                    /** Format: date-time */
+                    expiresAt?: string;
+                };
+            };
+        };
+        /** @description A portal token, shown once */
+        BuyerToken: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @example bt_3f... */
+                    token?: string;
+                    /** Format: date-time */
+                    expiresAt?: string;
+                    /** @enum {string} */
+                    origin?: "code" | "merchant";
+                    /** @enum {string} */
+                    scope?: "portal:read" | "portal:write";
+                };
+            };
+        };
         /** @description Malformed request */
         BadRequest: {
             headers: {
@@ -4908,8 +8671,41 @@ export interface components {
                 "application/json": components["schemas"]["MiddlewareError"];
             };
         };
+        /** @description What buying the product grants */
+        AccessRules: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    rules?: components["schemas"]["AccessRule"][];
+                };
+            };
+        };
+        /** @description The course tree */
+        CourseTree: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Course"];
+            };
+        };
+        /** @description The course as the student sees it */
+        StudentCourse: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["StudentCourse"];
+            };
+        };
     };
     parameters: {
+        /** @description The single-use grant from `/portal/action-codes/verify`. Required on a code session; ignored for a `portal:write` merchant token. */
+        BuyerActionGrant: string;
+        /** @description The store's (tenant's) slug. */
+        PortalSlug: string;
         /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
         IdempotencyKey: string;
         Limit: number;
@@ -4919,13 +8715,13 @@ export interface components {
         /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
         LinkToken: string;
         SessionID: string;
-        ProductID: string;
+        ProductID: components["schemas"]["ProductId"];
         VersionID: string;
         MeterID: string;
         /** @description Payment link UUID. Revoke resolves the link by tenant + linkID only — the `productID` in the path is not used to scope it. */
         LinkID: string;
         /** @description Tenant customer UUID (customers.id). */
-        CustomerID: string;
+        CustomerID: components["schemas"]["CustomerId"];
         /** @description Product enrollment UUID (product_customers.id). */
         EnrollmentID: string;
         /**
@@ -4933,18 +8729,1164 @@ export interface components {
          *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
          */
         LegacyEnrollmentID: string;
-        SubscriptionID: string;
-        InvoiceID: string;
-        PaymentID: string;
+        SubscriptionID: components["schemas"]["SubscriptionId"];
+        InvoiceID: components["schemas"]["InvoiceId"];
+        PaymentID: components["schemas"]["PaymentId"];
         /** @description Stored payment method UUID (payment_instruments.id). */
         InstrumentID: string;
     };
-    requestBodies: never;
+    requestBodies: {
+        Order: {
+            content: {
+                "application/json": {
+                    ids: string[];
+                };
+            };
+        };
+    };
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listFiscalCities: {
+        parameters: {
+            query?: {
+                /** @description Name search */
+                q?: string;
+                /** @description Two-letter UF */
+                state?: string;
+                /** @description 7-digit IBGE code */
+                code?: string;
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: {
+                            code?: string;
+                            name?: string;
+                            state?: string;
+                            /** @description The city hall's NFS-e system */
+                            provider?: string;
+                            nationalRegimes?: string;
+                        }[];
+                        hasMore: boolean;
+                    };
+                };
+            };
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listFiscalIssuers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuers, the default first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FiscalIssuer"][];
+                    };
+                };
+            };
+        };
+    };
+    createFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalCompanyInput"];
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalCompanyInput"];
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    disableFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer, disabled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    uploadFiscalCertificate: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: byte
+                     * @description The .pfx file
+                     */
+                    certificate: string;
+                    password: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    updateFiscalSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    series?: string;
+                    /** Format: int64 */
+                    nextNumber?: number;
+                    nextBatchNumber?: number;
+                    /** @enum {string} */
+                    issueType?: "normal" | "annfs" | "alt";
+                    userName?: string;
+                    password?: string;
+                    authNumber?: string;
+                    nfe?: {
+                        series?: string;
+                        /** Format: int64 */
+                        nextNumber?: number;
+                    };
+                    /** @description The CSC is passed to the provider (it signs the QR code) and not stored by Infi. */
+                    nfce?: {
+                        series?: string;
+                        /** Format: int64 */
+                        nextNumber?: number;
+                        tokenId?: string;
+                        csc?: string;
+                    };
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    updateFiscalTaxProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FiscalTaxProfile"];
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    searchFiscalServices: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalCatalogResult"];
+                };
+            };
+        };
+    };
+    searchFiscalNCM: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matches */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalCatalogResult"];
+                };
+            };
+        };
+    };
+    simulateFiscalNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description default 100 */
+                    amount?: string;
+                    productId?: components["schemas"]["ProductId"];
+                    taxRegime?: string;
+                    taxProfile?: components["schemas"]["FiscalTaxProfile"];
+                };
+            };
+        };
+        responses: {
+            /** @description Scenarios */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        scenarios?: {
+                            key?: string;
+                            /** @enum {string} */
+                            model?: "nfse" | "nfe" | "nfce";
+                            /** @enum {string} */
+                            receiver?: "individual" | "company" | "foreign" | "unidentified";
+                            destUf?: string;
+                            /** @description TaxResult (fiscal.Calculate) */
+                            service?: Record<string, never>;
+                            /** @description GoodsResult (fiscal.CalculateGoods) */
+                            goods?: Record<string, never>;
+                            errorCode?: string;
+                            approxSource?: string;
+                        }[];
+                    };
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    fiscalReviewLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Link ({app}/revisao-fiscal/{token}) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        url?: string;
+                    };
+                };
+            };
+        };
+    };
+    markFiscalAccountantReview: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reviewedBy: string;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    setFiscalIBPTToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    token: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    clearFiscalIBPTToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    getFiscalApproxRates: {
+        parameters: {
+            query: {
+                kind: "product" | "service";
+                /** @description NCM or LC 116 item */
+                code: string;
+            };
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rates (percent) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        federalRate?: string;
+                        stateRate?: string;
+                        municipalRate?: string;
+                        source?: string;
+                    };
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPublicFiscalReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Configuration and simulated notes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description A projection for the accountant: taxId, legalName, tradeName, registrations, taxRegime, profitRegime, sells, cnae, cityName, state, taxMode, taxProfile, ibptConnected and the review stamp. No credentials, certificate or account settings. */
+                        issuer?: Record<string, never>;
+                        scenarios?: Record<string, never>[];
+                        products?: {
+                            name?: string;
+                            profile?: components["schemas"]["ProductFiscalProfile"];
+                            scenarios?: Record<string, never>[];
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    approvePublicFiscalReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    crc?: string;
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Reviewed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        reviewedAt?: string;
+                        reviewedBy?: string;
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    confirmFiscalTaxSetup: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    staffConfirmFiscalTaxSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    staffSetFiscalTaxMode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    mode: "spedy" | "infi";
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    setDefaultFiscalIssuer: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                issuerID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalIssuer"];
+                };
+            };
+        };
+    };
+    getProductFiscalProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile; empty fields mean the default issuer and its service */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFiscalProfile"];
+                };
+            };
+        };
+    };
+    putProductFiscalProfile: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /**
+                     * Format: uuid
+                     * @description null = the default issuer
+                     */
+                    issuerId?: string | null;
+                    federalServiceCode?: string;
+                    cityServiceCode?: string;
+                    nbsCode?: string;
+                    nationalTaxationCode?: string;
+                    serviceDescription?: string;
+                    issRate?: string;
+                    /**
+                     * @description nfse: a service. nfe: goods sold at a distance. nfce: goods to a consumer in the issuer's state.
+                     * @enum {string}
+                     */
+                    documentModel?: "nfse" | "nfe" | "nfce";
+                    /** @description 8 digits; required for goods */
+                    ncm?: string;
+                    cest?: string;
+                    gtin?: string;
+                    origin?: number;
+                    /** @description default UN */
+                    unit?: string;
+                    /** @description default 5102 */
+                    cfopInternal?: number;
+                    /** @description default 6108 (to a final consumer) */
+                    cfopInterstate?: number;
+                    /** @description Simples; default 102 */
+                    icmsCsosn?: number;
+                    /** @description Regime Normal; default 0 (CST 00) */
+                    icmsCst?: number;
+                    /** @description Regime Normal, in-state sales */
+                    icmsRate?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductFiscalProfile"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listFiscalDocuments: {
+        parameters: {
+            query?: {
+                invoiceId?: components["schemas"]["InvoiceId"];
+                status?: "pending" | "processing" | "issued" | "rejected" | "failed" | "cancel_pending" | "canceled" | "voided";
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documents, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data: components["schemas"]["FiscalDocument"][];
+                    };
+                };
+            };
+        };
+    };
+    getFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalDocument"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getFiscalDocumentPDF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getFiscalDocumentXML: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description XML */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPublicFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Note */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        model?: "nfse" | "nfe" | "nfce";
+                        /** @enum {string} */
+                        status?: "processing" | "issued" | "cancel_pending" | "canceled";
+                        number?: string;
+                        amount?: string;
+                        issuerName?: string;
+                        issuerTaxId?: string;
+                        /** Format: date-time */
+                        issuedAt?: string;
+                        /** Format: date-time */
+                        canceledAt?: string;
+                        /** @description On this API: /public/fiscal-documents/{token}/pdf */
+                        pdfPath?: string;
+                        xmlPath?: string;
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getPublicFiscalDocumentPDF: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getPublicFiscalDocumentXML: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description XML */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/xml": string;
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    staffListFiscalDocuments: {
+        parameters: {
+            query?: {
+                tenantId?: string;
+                status?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Documents */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["StaffFiscalDocument"][];
+                    };
+                };
+            };
+        };
+    };
+    staffGetFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document and events */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        document?: components["schemas"]["StaffFiscalDocument"];
+                        events?: {
+                            eventId?: string;
+                            eventType?: string;
+                            providerStatus?: string;
+                            applied?: boolean;
+                            /** Format: date-time */
+                            receivedAt?: string;
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    staffRetryFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Document, pending */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalDocument"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    staffListFiscalIssuers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenantID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Issuers */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["FiscalIssuer"][];
+                    };
+                };
+            };
+        };
+    };
+    retryFiscalDocument: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                documentID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Document, pending */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalDocument"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    spedyWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Received */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
     getRoutingConfiguration: {
         parameters: {
             query?: never;
@@ -5071,25 +10013,28 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    getPublicPlatformPlans: {
+    getPublicPlans: {
         parameters: {
-            query?: never;
+            query?: {
+                currency?: "BRL" | "USD";
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Current immutable published platform catalog version */
+            /** @description Every published plan of the platform's product in this currency */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PlatformPlanCatalog"];
+                    "application/json": components["schemas"]["PublishedPlanCatalog"];
                 };
             };
-            /** @description No complete published platform catalog is configured */
+            400: components["responses"]["BadRequest"];
+            /** @description No platform product is configured for this currency */
             503: {
                 headers: {
                     [name: string]: unknown;
@@ -5107,7 +10052,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current tenant plan */
+            /** @description What the tenant is billed by right now */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -5116,45 +10061,168 @@ export interface operations {
                     "application/json": components["schemas"]["AccountPlan"];
                 };
             };
-            /** @description Terms and a live plan have not been activated */
-            428: {
+            401: components["responses"]["Unauthorized"];
+            /** @description `platform_account_not_found` — the tenant has no Infi subscription (a sandbox tenant, or one that never entered live). `no_open_period` — the subscription has no open billing period right now (canceled, or a boundary still running). */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
             };
         };
     };
-    activateAccountPlan: {
+    listAccountPlanChanges: {
+        parameters: {
+            query?: {
+                status?: "applied" | "scheduled" | "canceled";
+                limit?: number;
+                /** @description Opaque; only a `nextCursor` this endpoint returned. */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of changes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanChangePage"];
+                };
+            };
+            /** @description `bad_request` — the cursor is not one this endpoint issued, or the status is not one of the three. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description `platform_account_not_found`, as on GET /account/plan. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
+    changeAccountPlan: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ActivateAccountPlanRequest"];
+                "application/json": components["schemas"]["PlanChangeRequest"];
             };
         };
         responses: {
-            /** @description Idempotently activated plan; no initial charge is created */
-            201: {
+            /** @description The change: `effectiveAt` is when it takes effect; `status` is `applied` for an upgrade and `scheduled` otherwise. */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccountPlan"];
+                    "application/json": components["schemas"]["PlanChange"];
                 };
             };
-            /** @description Sandbox does not require or create a subscription */
-            409: {
+            /** @description The target is the current plan; any pending change was withdrawn */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            422: components["responses"]["ValidationFailed"];
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description `platform_account_not_found`, as on GET /account/plan. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description `plan_change_boundary_pending` — the period in course has ended and its boundary has not been billed yet; an upgrade waits for it, so retry in a few minutes. `subscription_not_on_plan` — the subscription predates plans and has none to change from. `invalid_transition` — the subscription is canceled or has no open period. `idempotency_key_reused` (nested middleware envelope) — the key was used with another body. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"] | components["schemas"]["MiddlewareError"];
+                };
+            };
+            /** @description `validation_failed` — no published plan of the tenant's product has that key and version (field `plan`). The change would move the subscription somewhere it cannot go: `plan_change_currency_mismatch`, `plan_change_product_mismatch`, `plan_change_cadence_mismatch`, or `plan_change_clock_mismatch` — the target bills its recurring fee on the other clock (in advance vs in arrears; a plan with included credit always bills in advance), so e.g. payg cannot move to a plan with included credit. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+        };
+    };
+    cancelAccountPlanChange: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                changeID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The canceled change */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanChange"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            /** @description `not_found` — no such change on this tenant's subscription; or `platform_account_not_found`. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description `plan_change_already_applied` — it already took effect. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConflictError"] | components["schemas"]["MiddlewareError"];
+                };
+            };
         };
     };
     listProviderConnections: {
@@ -5211,6 +10279,71 @@ export interface operations {
                     "application/json": components["schemas"]["ProviderConnection"];
                 };
             };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    verifyProviderConnection: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refreshed connection state */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderConnection"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    requestProviderHelp: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** Format: email */
+                    email: string;
+                    phone?: string | null;
+                    notes?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Request recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        received: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -5294,7 +10427,7 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
@@ -5320,7 +10453,7 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
@@ -5355,7 +10488,7 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
@@ -5390,13 +10523,13 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CheckoutChargeRequest"];
+                "application/json": components["schemas"]["InvoiceChargeRequest"];
             };
         };
         responses: {
@@ -5448,8 +10581,8 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
-                invoiceID: string;
-                paymentID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -5503,7 +10636,7 @@ export interface operations {
             header?: never;
             path: {
                 slug: string;
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
@@ -5609,57 +10742,6 @@ export interface operations {
             429: components["responses"]["RateLimited"];
         };
     };
-    checkoutPaymentLink: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Tenant slug (`tenants.slug`), e.g. `app-aaadd389`. */
-                slug: components["parameters"]["PaySlug"];
-                /** @description The payment link's opaque `plink_*` token. This IS the capability — holding it is the whole authorization, which is why these routes take no API key. */
-                token: components["parameters"]["LinkToken"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: email */
-                    email: string;
-                    name?: string;
-                    /** @description Payer CPF (11 digits) or CNPJ (14). Optional here but needed before a pix charge can succeed on Asaas — punctuation is stripped. */
-                    taxId?: string;
-                };
-            };
-        };
-        responses: {
-            /** @description Invoice materialized */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** Format: uuid */
-                        invoiceId: string;
-                        /** @description Site-relative path to the hosted checkout, `/pay/{slug}/invoices/{invoiceId}` — not an absolute URL. */
-                        redirectUrl: string;
-                    };
-                };
-            };
-            /** @description `email` missing, or the product is arrears `usage` pricing (nothing to charge upfront). */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["RateLimited"];
-        };
-    };
     createLinkCheckoutSession: {
         parameters: {
             query?: never;
@@ -5680,6 +10762,9 @@ export interface operations {
                     name?: string;
                     /** @description CPF (11 digits) or CNPJ (14) — required. Punctuation is stripped; anything that does not normalize to 11 or 14 digits is a 400. */
                     taxId: string;
+                    /** @description Contact phone, optional. Data for reaching, finding or weighing the buyer later (dunning, LGPD, antifraud) — never an identifier, and never required to check out. */
+                    phone?: string | null;
+                    billingAddress?: components["schemas"]["BuyerAddress"];
                 };
             };
         };
@@ -5797,6 +10882,41 @@ export interface operations {
             429: components["responses"]["RateLimited"];
         };
     };
+    applyStorefrontSessionCoupon: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The storefront's slug. */
+                slug: string;
+                sessionID: components["parameters"]["SessionID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example CAMPANHA */
+                    code: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The code, and what the buyer will be charged. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkCheckoutSessionCoupon"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     chargeLinkCheckoutSession: {
         parameters: {
             query?: never;
@@ -5867,6 +10987,999 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
+    portalLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: email */
+                    email: string;
+                    /** @description Language of the e-mailed code: pt-BR or en (any regional tag narrows). Absent or unsupported → Accept-Language → pt-BR. */
+                    locale?: string;
+                };
+            };
+        };
+        responses: {
+            202: components["responses"]["PortalChallenge"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    portalLoginVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalCodeVerify"];
+            };
+        };
+        responses: {
+            201: components["responses"]["BuyerToken"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    portalSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        origin?: "code" | "merchant";
+                        /** @enum {string} */
+                        scope?: "portal:read" | "portal:write";
+                        maskedEmail?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                        actionsNeedCode?: boolean;
+                        actionsPermitted?: boolean;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalLogout: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalLogoutAll: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Every session of this person at this store revoked */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalActionCode: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: components["responses"]["PortalChallenge"];
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    portalActionCodeVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PortalCodeVerify"];
+            };
+        };
+        responses: {
+            /** @description Grant */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        grant?: string;
+                        /** @example X-Buyer-Action-Grant */
+                        header?: string;
+                        /** Format: date-time */
+                        expiresAt?: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    portalOrders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Orders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        orders?: components["schemas"]["PortalOrder"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalDownloads: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Downloads */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        downloads?: {
+                            /** Format: uuid */
+                            id?: string;
+                            productName?: string;
+                            /** @enum {string} */
+                            kind?: "file" | "link";
+                            fileName?: string;
+                            orderId?: components["schemas"]["InvoiceId"];
+                            /** @description Absent when revoked. */
+                            url?: string;
+                            revoked?: boolean;
+                            revokedReason?: string;
+                            /** Format: date-time */
+                            revokedAt?: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalSubscriptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Subscriptions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        subscriptions?: components["schemas"]["PortalSubscription"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalBalances: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Balances */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        balances?: components["schemas"]["PortalBalance"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalOpenInvoices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Open invoices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        invoices?: components["schemas"]["PortalOpenInvoice"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalCancelSubscription: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The single-use grant from `/portal/action-codes/verify`. Required on a code session; ignored for a `portal:write` merchant token. */
+                "X-Buyer-Action-Grant"?: components["parameters"]["BuyerActionGrant"];
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                subscriptionID: components["parameters"]["SubscriptionID"];
+            };
+            cookie?: never;
+        };
+        /** @description Optional. Why the buyer is leaving. */
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    reasonCode?: "too_expensive" | "not_using" | "technical_issue" | "missing_feature" | "switched_service" | "temporary" | "other";
+                    /** @description Free text. Alone */
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Scheduled */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalSubscription"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    portalUndoCancelSubscription: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The single-use grant from `/portal/action-codes/verify`. Required on a code session; ignored for a `portal:write` merchant token. */
+                "X-Buyer-Action-Grant"?: components["parameters"]["BuyerActionGrant"];
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                subscriptionID: components["parameters"]["SubscriptionID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Renewing again */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalSubscription"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    portalCardSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                subscriptionID: components["parameters"]["SubscriptionID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Setup */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        provider?: "stripe";
+                        setupId?: string;
+                        clientSecret?: string;
+                        publishableKey?: string;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    portalCompleteCard: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The single-use grant from `/portal/action-codes/verify`. Required on a code session; ignored for a `portal:write` merchant token. */
+                "X-Buyer-Action-Grant"?: components["parameters"]["BuyerActionGrant"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                subscriptionID: components["parameters"]["SubscriptionID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    setupId: string;
+                    /** @example v1 */
+                    consentTextVersion: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Card kept */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PortalCard"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    portalRefundRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description The single-use grant from `/portal/action-codes/verify`. Required on a code session; ignored for a `portal:write` merchant token. */
+                "X-Buyer-Action-Grant"?: components["parameters"]["BuyerActionGrant"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                orderID: components["schemas"]["InvoiceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    reasonCode?: "not_as_described" | "did_not_use" | "technical_issue" | "quality" | "duplicate_purchase" | "changed_mind" | "other";
+                    /** @description Free text. Alone */
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The ask already open */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        refundRequest?: components["schemas"]["PortalRefundRequest"];
+                    };
+                };
+            };
+            /** @description Asked */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        refundRequest?: components["schemas"]["PortalRefundRequest"];
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    createBuyerToken: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    externalId: string;
+                    /**
+                     * @default portal:read
+                     * @enum {string}
+                     */
+                    scope?: "portal:read" | "portal:write";
+                };
+            };
+        };
+        responses: {
+            201: components["responses"]["BuyerToken"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    revokeBuyerTokens: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    externalId?: string;
+                    /** @description One bt_ to revoke */
+                    token?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        revoked?: number;
+                    };
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    oidcDiscovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discovery document (RFC 8414) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oidcJwks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JWK set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oauthAuthorize: {
+        parameters: {
+            query: {
+                response_type: "code";
+                client_id: string;
+                redirect_uri: string;
+                scope: string;
+                state?: string;
+                nonce?: string;
+                code_challenge: string;
+                code_challenge_method: "S256";
+                ui_locales?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description To the store with code (or error) */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    oauthToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": {
+                    /** @enum {string} */
+                    grant_type: "authorization_code";
+                    code: string;
+                    redirect_uri: string;
+                    client_id: string;
+                    /** @description The store's sk_ */
+                    client_secret?: string;
+                    code_verifier: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Tokens */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access_token?: string;
+                        /** @enum {string} */
+                        token_type?: "Bearer";
+                        expires_in?: number;
+                        id_token?: string;
+                        scope?: string;
+                    };
+                };
+            };
+            /** @description RFC 6749 error (invalid_grant, unsupported_grant_type, …) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description invalid_client: the sk_ is not the store's */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oauthUserInfo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description sub, email, email_verified, name */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    oauthDeleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    listOAuthClients: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sites */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    upsertOAuthClient: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    redirectUris: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Existing site */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Created (clientId) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getLoginSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description A new address becomes a customer on its first sign-in (default true) */
+                        createsCustomer?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    putLoginSettings: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    createsCustomer: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Saved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verifyBuyerToken: {
+        parameters: {
+            query?: never;
+            header: {
+                "X-Buyer-Token": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The signed-in buyer */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        buyer: {
+                            email?: string;
+                            name?: string;
+                            customerIds: components["schemas"]["CustomerId"][];
+                            externalIds: string[];
+                        };
+                        /** @enum {string} */
+                        origin: "code" | "merchant";
+                        /** @enum {string} */
+                        scope: "portal:read" | "portal:write";
+                        /** Format: date-time */
+                        expiresAt: string;
+                        access: {
+                            productId: components["schemas"]["ProductId"];
+                            /** @description The manifest key, e.g. ecommerce/ebook */
+                            key?: string;
+                            name: string;
+                            /** @enum {string} */
+                            kind: "purchase" | "subscription";
+                            /** @enum {string} */
+                            subscriptionStatus?: "active" | "trialing" | "past_due";
+                            /** Format: date-time */
+                            renewsAt?: string;
+                            cancelAtPeriodEnd?: boolean;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listRefundRequests: {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "declined";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Refund requests */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        refundRequests?: (components["schemas"]["PortalRefundRequest"] & {
+                            invoiceId?: components["schemas"]["InvoiceId"];
+                            paymentId?: components["schemas"]["PaymentId"];
+                            customerId?: components["schemas"]["CustomerId"];
+                            reason?: string;
+                            /** @description The buyer's code (portalRefundRequest). */
+                            reasonCode?: string;
+                            /** Format: date-time */
+                            windowEndsAt?: string;
+                            refundId?: components["schemas"]["RefundId"];
+                        })[];
+                    };
+                };
+            };
+        };
+    };
+    approveRefundRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                requestID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    declineRefundRequest: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                requestID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Shown to the buyer in the portal. */
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Declined */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
     downloadDeliverable: {
         parameters: {
             query?: never;
@@ -5888,6 +12001,15 @@ export interface operations {
                 content?: never;
             };
             404: components["responses"]["NotFound"];
+            /** @description The purchase was fully refunded or charged back (`download_revoked`) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             503: components["responses"]["ServiceUnavailable"];
         };
     };
@@ -5992,20 +12114,22 @@ export interface operations {
             header: {
                 /** @description Bearer session token from dashboard login */
                 Authorization: string;
+                "X-Step-Up-Token"?: string;
             };
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": {
+                "application/json": components["schemas"]["CLIProject"] & {
                     /** @description Required when the user belongs to multiple tenants */
                     tenantSlug?: string;
+                    rotate?: boolean;
                 };
             };
         };
         responses: {
-            /** @description API key minted */
+            /** @description The project's key */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -6016,6 +12140,239 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    authorizeCLILogin: {
+        parameters: {
+            query?: never;
+            header: {
+                Authorization: string;
+                "X-Step-Up-Token"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CLIProject"] & {
+                    tenantSlug?: string;
+                    codeChallenge: string;
+                    /** @enum {string} */
+                    codeChallengeMethod: "S256";
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description One-time code for the CLI */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        redirectUri?: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    exchangeCLICode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    codeVerifier: string;
+                    rotate?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The project's key */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CLITokenResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    startCLIDeviceLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CLIProject"];
+            };
+        };
+        responses: {
+            /** @description Show `userCode` and `verificationUri` to the person; poll with `deviceCode` */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        deviceCode?: string;
+                        /** @example BCDF-GHJK */
+                        userCode?: string;
+                        verificationUri?: string;
+                        verificationUriComplete?: string;
+                        /** @example 600 */
+                        expiresIn?: number;
+                        /** @example 5 */
+                        interval?: number;
+                    };
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    approveCLIDeviceLogin: {
+        parameters: {
+            query?: never;
+            header: {
+                Authorization: string;
+                "X-Step-Up-Token"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userCode: string;
+                    tenantSlug?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Approved; shows which project asked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        projectId?: string;
+                        projectName?: string;
+                        machine?: string;
+                        /** @enum {string} */
+                        status?: "approved" | "denied";
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    denyCLIDeviceLogin: {
+        parameters: {
+            query?: never;
+            header: {
+                Authorization: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    userCode: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Denied */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    pollCLIDeviceLogin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    deviceCode: string;
+                    rotate?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The project's key */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CLITokenResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+        };
+    };
+    createBusiness: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Bearer session token from dashboard login */
+                Authorization: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                    /** @description Derived from the name when absent. */
+                    slug?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Business created, caller is its owner */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionBootstrapResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -6055,7 +12412,32 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             409: components["responses"]["Conflict"];
-            422: components["responses"]["ValidationFailed"];
+            /**
+             * @description `validation_failed` (missing accountName for a new account), or on live
+             *     `terms_acceptance_required` — `acceptedTermsVersion` is missing or is not
+             *     the current version. Nothing was written; show the current Terms and retry.
+             */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /**
+             * @description Live only. `live_billing_unavailable` — live cannot start the merchant's
+             *     plan (no billable entry plan configured). An Infi fault; nothing was
+             *     written.
+             */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     syncSession: {
@@ -6245,8 +12627,7 @@ export interface operations {
             content: {
                 "application/json": {
                     items: {
-                        /** Format: uuid */
-                        productId: string;
+                        productId: components["schemas"]["ProductId"];
                         /** @default true */
                         visible?: boolean;
                         /**
@@ -6471,6 +12852,20 @@ export interface operations {
                     status?: "active" | "archived";
                     /** @description The `objectKey` from `POST /catalog/images/presign`. Absent leaves the photo; "" clears it. Refused when the key was not minted for this account. Unlike name/description this one IS a partial field. */
                     imageObjectKey?: string | null;
+                    /** @description Refund window in days (7–30). Absent leaves it. */
+                    guaranteeDays?: number | null;
+                    /** @description The product's accent (#RRGGBB). Absent leaves it; "" inherits the business theme again. */
+                    accentColor?: string | null;
+                    /** @description Absent leaves the media; an empty list clears them. */
+                    media?: components["schemas"]["ProductMedia"][];
+                    /** @description Absent leaves the FAQ; an empty list clears it. */
+                    faq?: components["schemas"]["ProductFAQ"][];
+                    /** @description The buy button's words. "" goes back to the element's default. */
+                    purchaseButtonText?: string | null;
+                    /** @description Absolute http(s) URL the buyer lands on after paying. A link's own successUrl wins over it. "" clears it. */
+                    postPurchaseRedirectUrl?: string | null;
+                    /** @description false keeps the product off every storefront's public read and cart; its links keep selling. */
+                    storeVisible?: boolean | null;
                     /** @description Whether buying this obliges a physical delivery. `type` (agent|item) does not answer that, and the checkout has to know before deciding to ask for an address. Absent leaves it. */
                     requiresShipping?: boolean | null;
                 };
@@ -6488,6 +12883,122 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getProductDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDraft"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    putProductDraft: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    content?: components["schemas"]["ProductDraftContent"];
+                    pricing?: components["schemas"]["ProductDraftPricing"];
+                };
+            };
+        };
+        responses: {
+            /** @description The draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProductDraft"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    discardProductDraft: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Discarded */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    publishProductDraft: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The product, and the version made live (null when only content changed) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        product: components["schemas"]["Product"];
+                        version: components["schemas"]["Version"] | null;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -6973,6 +13484,42 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    updatePaymentLink: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["parameters"]["ProductID"];
+                /** @description Payment link UUID. Revoke resolves the link by tenant + linkID only — the `productID` in the path is not used to scope it. */
+                linkID: components["parameters"]["LinkID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    appearance: components["schemas"]["LinkAppearance"];
+                };
+            };
+        };
+        responses: {
+            /** @description The link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     updateMeter: {
         parameters: {
             query?: never;
@@ -7090,6 +13637,162 @@ export interface operations {
             header?: never;
             path: {
                 productID: components["parameters"]["ProductID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listContacts: {
+        parameters: {
+            query?: {
+                limit?: components["parameters"]["Limit"];
+                offset?: components["parameters"]["Offset"];
+                source?: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
+                consent?: "unknown" | "given" | "withdrawn";
+                created_after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Contacts matching the filters */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        contacts: components["schemas"]["Contact"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    createContact: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateContactRequest"];
+            };
+        };
+        responses: {
+            /** @description Contact created or updated by tenant email */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Contact"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    deleteContactByEmail: {
+        parameters: {
+            query: {
+                email: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    importContacts: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "text/csv": string;
+            };
+        };
+        responses: {
+            /** @description Import totals */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactImportResponse"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    exportContacts: {
+        parameters: {
+            query?: {
+                source?: "api" | "import" | "checkout_abandoned" | "checkout" | "form";
+                consent?: "unknown" | "given" | "withdrawn";
+                created_after?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    deleteContact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                contactID: string;
             };
             cookie?: never;
         };
@@ -7402,7 +14105,6 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -7530,6 +14232,15 @@ export interface operations {
             };
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
+            /** @description `consumption_blocked`: the customer's balance is exhausted and the product's consumption floor blocks further usage. The event is not recorded; the customer has to top up. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
             422: components["responses"]["ValidationFailed"];
         };
     };
@@ -7612,6 +14323,36 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
         };
     };
+    getAccountUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The open cycle, item by item */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountUsage"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description No platform billing account at all (`platform_account_not_found` — this tenant never activated Infi's own plan), or the account exists and is active but has no OPEN billing period right now (`platform_no_open_period` — the cycle rollover job has not run yet). The two are distinct codes on purpose: the second must never read as "never activated". */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+        };
+    };
     listTenantSubscriptions: {
         parameters: {
             query?: {
@@ -7644,6 +14385,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
+                /** @description Only invoices in this status. Absent lists every status but `pending`, a checkout's unpaid Order. */
+                status?: "draft" | "pending" | "open" | "paid" | "void" | "uncollectible";
             };
             header?: never;
             path?: never;
@@ -7838,8 +14581,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                /** @description Tenant customer UUID (customers.id). */
-                customerID: components["parameters"]["CustomerID"];
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
             };
             cookie?: never;
         };
@@ -7900,6 +14646,13 @@ export interface operations {
                 "application/json": {
                     /** @enum {string} */
                     action: "pause" | "resume" | "cancel";
+                    /**
+                     * @description Only read on cancel. Emits `subscription.canceled` with it as `cancelReason`.
+                     * @enum {string}
+                     */
+                    reasonCode?: "requested_by_customer" | "nonpayment" | "fraudulent" | "other";
+                    /** @description Free text. Alone */
+                    reason?: string;
                 };
             };
         };
@@ -8089,11 +14842,16 @@ export interface operations {
             query?: {
                 limit?: components["parameters"]["Limit"];
                 offset?: components["parameters"]["Offset"];
+                /** @description Only invoices in this status. Absent lists every status but `pending`, a checkout's unpaid Order. */
+                status?: "draft" | "pending" | "open" | "paid" | "void" | "uncollectible";
             };
             header?: never;
             path: {
-                /** @description Tenant customer UUID (customers.id). */
-                customerID: components["parameters"]["CustomerID"];
+                /**
+                 * @description Product enrollment UUID (product_customers.id). Legacy SDK paths use this
+                 *     parameter name; subscriptions, invoices, and credit wallets reference enrollment IDs.
+                 */
+                customerID: components["parameters"]["LegacyEnrollmentID"];
             };
             cookie?: never;
         };
@@ -8135,6 +14893,111 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    updateInvoiceDraft: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    payerId?: components["schemas"]["CustomerId"];
+                    currency?: string;
+                    /** Format: date-time */
+                    dueDate?: string;
+                    successUrl?: string | null;
+                    cancelUrl?: string | null;
+                    lineItems?: {
+                        description: string;
+                        quantity?: string;
+                        unitPrice?: string;
+                        amount: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description The draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    finalizeInvoiceDraft: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    send?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description The invoice, now open */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    previewInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Draft preview PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     sendInvoice: {
@@ -8190,7 +15053,15 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
+            /** @description `invalid_transition`: allowed only from `draft`, `open` or `uncollectible`. A paid invoice is undone by refunding its payment, not by voiding it. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     markInvoiceUncollectible: {
@@ -8218,7 +15089,51 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            /** @description `invalid_transition`: allowed only from `open`. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    markInvoicePaidOutOfBand: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                invoiceID: components["parameters"]["InvoiceID"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description How you were paid, for your records (e.g. "pix direto"). */
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Invoice */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     getInvoicePdf: {
@@ -8370,7 +15285,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -8397,7 +15312,7 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -8406,6 +15321,12 @@ export interface operations {
                 "application/json": {
                     /** @description Decimal string. Empty or omitted means a full refund. */
                     amount?: string;
+                    /**
+                     * @description Carried on `payment.refunded` as `reasonCode`.
+                     * @enum {string}
+                     */
+                    reasonCode?: "requested_by_customer" | "duplicate" | "fraudulent" | "product_issue" | "other";
+                    /** @description Free text. Alone */
                     reason?: string;
                     /** @description Whether the buyer's digital-product download stops working. OMIT IT to get the derived behaviour, which is what you almost always want: a full refund revokes the download, a partial one leaves it alone (R$5 back on a R$100 guide is goodwill, not a cancellation). Send false to refund in full and still let the buyer keep the file; send true to cut access on a partial refund. Revoking makes the download URL answer 410. */
                     revokeAccess?: boolean;
@@ -8432,7 +15353,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -8461,7 +15382,7 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                paymentID: string;
+                paymentID: components["schemas"]["PaymentId"];
             };
             cookie?: never;
         };
@@ -8495,7 +15416,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                refundID: string;
+                refundID: components["schemas"]["RefundId"];
             };
             cookie?: never;
         };
@@ -8526,7 +15447,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                invoiceID: string;
+                invoiceID: components["schemas"]["InvoiceId"];
             };
             cookie?: never;
         };
@@ -8742,7 +15663,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                couponID: string;
+                couponID: components["schemas"]["CouponId"];
             };
             cookie?: never;
         };
@@ -8766,7 +15687,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                couponID: string;
+                couponID: components["schemas"]["CouponId"];
             };
             cookie?: never;
         };
@@ -8788,7 +15709,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                couponID: string;
+                couponID: components["schemas"]["CouponId"];
             };
             cookie?: never;
         };
@@ -8951,7 +15872,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Current mode and application */
+            /** @description Infi Pay state and application */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -8961,43 +15882,6 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
-        };
-    };
-    setCollectionMode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** @enum {string} */
-                    mode: "byop" | "managed";
-                };
-            };
-        };
-        responses: {
-            /** @description Updated view */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CollectionModeView"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            /** @description Managed requested without an approved application, or in sandbox; or `byop` requested by a tenant without the permission, in which case the fix is `POST /account/collection-mode/byop/request`. */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Error"];
-                };
-            };
         };
     };
     saveManagedApplication: {
@@ -9090,6 +15974,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createStripeAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The tenant's account mirror, new or the one that already exists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeAccountView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The tenant has no contact email to onboard with. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description No Stripe platform account serves the tenant's country yet. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Stripe Connect is not configured on this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createStripeSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A freshly minted session secret */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StripeSessionView"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description Onboarding was never started — call `POST .../stripe/account` first. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFoundError"];
+                };
+            };
+            /** @description The platform account the tenant's connected account belongs to no longer exists. Only reachable if that row is deleted out from under a live mirror, but the mint genuinely cannot proceed. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Stripe Connect is not configured on this deployment. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createSupportTicket: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    kind: "bug" | "question" | "feedback" | "billing";
+                    subject: string;
+                    message: string;
+                    /** @description The dashboard page the merchant was on. */
+                    pageUrl?: string;
+                    /**
+                     * Format: email
+                     * @description Where to reply, for API-key callers.
+                     */
+                    contactEmail?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The ticket, stored */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        kind: "bug" | "question" | "feedback" | "billing";
+                        subject: string;
+                        /** Format: date-time */
+                        createdAt: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description A field is missing or too long. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
         };
@@ -9277,6 +16314,240 @@ export interface operations {
             };
         };
     };
+    createManagedPagarmeKycLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pagar.me verification link */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedPagarmeKycLink"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            /** @description The recipient is not yet eligible for verification or has no open verification step. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Pagar.me did not return a valid hosted link. */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    ingestSignalEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Anonymous id the element keeps in the browser. */
+                    visitorId?: string;
+                    sessionId?: string;
+                    /** @description Your customer's id, once the visitor is signed in. */
+                    externalId?: string;
+                    events: {
+                        /** @enum {string} */
+                        kind: "page" | "section" | "scroll" | "click" | "error" | "network_error" | "custom" | "checkout";
+                        /** @description checkout uses started and completed. */
+                        name: string;
+                        /** Format: date-time */
+                        occurredAt?: string;
+                        path?: string;
+                        section?: string;
+                        /** @description Scroll depth (%), time on a section (ms), an HTTP status. */
+                        value?: number;
+                        properties?: {
+                            [key: string]: string | number | boolean;
+                        };
+                    }[];
+                };
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        accepted?: number;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submitFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    visitorId?: string;
+                    sessionId?: string;
+                    externalId?: string;
+                    rating?: number;
+                    /** @enum {string} */
+                    reaction?: "love" | "like" | "neutral" | "dislike";
+                    message?: string;
+                    path?: string;
+                    properties?: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description Recorded */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id?: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            422: components["responses"]["ValidationFailed"];
+            /** @description Rate limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getSignalsSummary: {
+        parameters: {
+            query?: {
+                /** @description Defaults to 30 days ago. */
+                from?: string;
+                /** @description Defaults to now. At most a year after from. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalsSummary"];
+                };
+            };
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listFeedback: {
+        parameters: {
+            query?: {
+                status?: "new" | "reviewed" | "resolved";
+                sentiment?: "positive" | "neutral" | "negative";
+                theme?: "price" | "usability" | "bug" | "performance" | "content" | "support" | "feature_request" | "other";
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of feedback */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        feedback?: components["schemas"]["Feedback"][];
+                        nextCursor?: string;
+                    };
+                };
+            };
+        };
+    };
+    triageFeedback: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                feedbackID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    status?: "new" | "reviewed" | "resolved";
+                    /** @enum {string} */
+                    theme?: "price" | "usability" | "bug" | "performance" | "content" | "support" | "feature_request" | "other";
+                    /** @enum {string} */
+                    sentiment?: "positive" | "neutral" | "negative";
+                };
+            };
+        };
+        responses: {
+            /** @description Triaged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feedback"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
     getTenant: {
         parameters: {
             query?: never;
@@ -9313,16 +16584,21 @@ export interface operations {
             content: {
                 "application/json": {
                     name?: string | null;
-                    /** @enum {string|null} */
-                    status?: "active" | "suspended" | "closed" | null;
                     /**
                      * Format: uri
                      * @description Absolute https:// URL of the merchant's terms of use, quoted in the payment mandate. An empty string clears it; null leaves it unchanged.
                      * @example https://acme.ai/termos
                      */
                     termsUrl?: string | null;
+                    /**
+                     * Format: email
+                     * @description Where this merchant is reached: Reply-To on every payer-facing email, and the destination for Infi's own notices to the merchant (payment received, payout held). An empty string clears it; null leaves it unchanged. When unset, Infi falls back to the owner's login email, which is only an address if the identity provider supplied one.
+                     * @example contato@acme.ai
+                     */
+                    supportEmail?: string | null;
                     /** @description The `objectKey` a `POST /account/tenant/logo/presign` returned, after the file was PUT there. Attaches that upload as the merchant logo; the bytes are checked to be the declared image before the row changes, and the previous logo is deleted. An empty string clears the logo; null leaves it unchanged. */
                     logoObjectKey?: string | null;
+                    appearance?: components["schemas"]["BusinessAppearance"];
                 };
             };
         };
@@ -9339,6 +16615,111 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getAppearance: {
+        parameters: {
+            query?: {
+                productId?: components["schemas"]["ProductId"];
+                linkId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Levels and resolution */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppearanceResolution"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getAccountClosure: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Where the account stands */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountClosure"];
+                };
+            };
+        };
+    };
+    requestAccountClosure: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    reasonCode?: "too_expensive" | "not_using" | "missing_feature" | "technical_issue" | "switched_platform" | "business_closed" | "other";
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Closing */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountClosure"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    withdrawAccountClosure: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Open again */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountClosure"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
         };
     };
     presignTenantLogo: {
@@ -9564,7 +16945,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                endpointID: string;
+                endpointID: components["schemas"]["WebhookEndpointId"];
             };
             cookie?: never;
         };
@@ -9591,7 +16972,7 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                endpointID: string;
+                endpointID: components["schemas"]["WebhookEndpointId"];
             };
             cookie?: never;
         };
@@ -9616,14 +16997,20 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                endpointID: string;
+                endpointID: components["schemas"]["WebhookEndpointId"];
             };
             cookie?: never;
         };
         requestBody: {
             content: {
                 "application/json": {
-                    active: boolean;
+                    isActive?: boolean;
+                    events?: components["schemas"]["WebhookEventType"][];
+                    /**
+                     * @deprecated
+                     * @description Older spelling of `isActive`, still accepted.
+                     */
+                    active?: boolean;
                 };
             };
         };
@@ -9640,6 +17027,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
         };
     };
     rotateWebhookSecret: {
@@ -9650,7 +17038,7 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                endpointID: string;
+                endpointID: components["schemas"]["WebhookEndpointId"];
             };
             cookie?: never;
         };
@@ -9747,7 +17135,7 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                subscriptionID: components["parameters"]["SubscriptionID"];
+                subscriptionID: string;
             };
             cookie?: never;
         };
@@ -9772,7 +17160,7 @@ export interface operations {
                 "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
             };
             path: {
-                subscriptionID: components["parameters"]["SubscriptionID"];
+                subscriptionID: string;
             };
             cookie?: never;
         };
@@ -9824,6 +17212,60 @@ export interface operations {
                 };
             };
             401: components["responses"]["Unauthorized"];
+        };
+    };
+    railVerify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RailVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description The verdict */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RailVerifyResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    railSettle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RailSettleRequest"];
+            };
+        };
+        responses: {
+            /** @description What happened to the payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RailSettleResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     getRailConfig: {
@@ -10013,6 +17455,1101 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listAccessKeys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Keys */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        keys?: components["schemas"]["AccessKey"][];
+                    };
+                };
+            };
+        };
+    };
+    createAccessKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example curso-x */
+                    key: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessKey"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    renameAccessKey: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessKey"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listAccessKeyHolders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Holders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        holders?: (components["schemas"]["KeyAccess"] & {
+                            customerId?: components["schemas"]["CustomerId"];
+                            externalId?: string;
+                        })[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    getProductAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productID: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["AccessRules"];
+        };
+    };
+    setProductAccess: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productID: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    rules: components["schemas"]["AccessRule"][];
+                };
+            };
+        };
+        responses: {
+            200: components["responses"]["AccessRules"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    grantAccess: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    externalId: string;
+                    key: string;
+                    /** @description Omit for lifetime. */
+                    days?: number;
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Granted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessGrant"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    revokeAccessGrant: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                grantID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    reason: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessGrant"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    getCustomerAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access?: components["schemas"]["KeyAccess"][];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    checkCustomerAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                externalID: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key as the customer holds it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyAccess"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalAccess: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Access */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        access?: components["schemas"]["KeyAccess"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalAccessKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KeyAccess"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        courses?: components["schemas"]["Course"][];
+                    };
+                };
+            };
+        };
+    };
+    createCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseWrite"];
+            };
+        };
+        responses: {
+            201: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCourse: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CourseWrite"];
+            };
+        };
+        responses: {
+            200: components["responses"]["CourseTree"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    createCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    reorderCourseModules: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Order"];
+        responses: {
+            200: components["responses"]["CourseTree"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    deleteCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    renameCourseModule: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    title: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Renamed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CourseModule"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    reorderCourseLessons: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                moduleID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: components["requestBodies"]["Order"];
+        responses: {
+            200: components["responses"]["CourseTree"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    createCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonWrite"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    deleteCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    updateCourseLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LessonWrite"];
+            };
+        };
+        responses: {
+            /** @description Edited */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lesson"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    getCourseStudent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                courseID: string;
+                externalID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCourses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Courses */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        courses?: components["schemas"]["StudentCourse"][];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalCourse: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalLesson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lesson */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentLesson"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCompleteLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalUncompleteLesson: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+                courseID: string;
+                lessonID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: components["responses"]["StudentCourse"];
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getTelegramBot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The bot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @example infi_bot */
+                        username?: string;
+                        /** @example https://t.me/infi_bot */
+                        url?: string;
+                        /**
+                         * @example [
+                         *       "can_invite_users",
+                         *       "can_restrict_members"
+                         *     ]
+                         */
+                        requiredRights?: string[];
+                    };
+                };
+            };
+            /** @description Telegram is not configured on this deployment */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    connectTelegramCommunity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @example -1001234567890 */
+                    chatId: string;
+                    accessKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Linked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityIntegration"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    listCommunityIntegrations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        integrations?: components["schemas"]["CommunityIntegration"][];
+                    };
+                };
+            };
+        };
+    };
+    disableCommunityIntegration: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                integrationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Disabled */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    listCommunityMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                integrationID: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Members */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        members?: {
+                            /** Format: uuid */
+                            id?: string;
+                            customerId?: components["schemas"]["CustomerId"];
+                            externalId?: string;
+                            /** @enum {string} */
+                            status?: "invite_pending" | "invited" | "approve_pending" | "assign_pending" | "joined" | "remove_pending" | "removed";
+                            /** Format: date-time */
+                            invitedAt?: string;
+                            /** Format: date-time */
+                            joinedAt?: string;
+                            /** Format: date-time */
+                            removedAt?: string;
+                            removalReason?: string;
+                            lastError?: string;
+                        }[];
+                    };
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
+    portalCommunity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        communities?: {
+                            /** @enum {string} */
+                            provider?: "telegram" | "discord";
+                            title?: string;
+                            accessKey?: string;
+                            status?: string;
+                            /** @description Telegram */
+                            inviteLink?: string;
+                            /** @description Discord */
+                            inviteUrl?: string;
+                            /** @description Discord */
+                            needsAccount?: boolean;
+                            /** Format: date-time */
+                            joinedAt?: string;
+                            /** Format: date-time */
+                            removedAt?: string;
+                        }[];
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    connectDiscordCommunity: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    guildId: string;
+                    roleId: string;
+                    /** @description The server's own invite */
+                    inviteUrl?: string;
+                    accessKey: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Linked */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityIntegration"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+        };
+    };
+    portalDiscordAuthorize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description Registered with Infi's Discord app. */
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Where the student approves Infi's app */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        url?: string;
+                    };
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+        };
+    };
+    portalDiscordConnect: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The store's (tenant's) slug. */
+                slug: components["parameters"]["PortalSlug"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    code: string;
+                    state: string;
+                    redirectUri: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The student's communities */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            409: components["responses"]["Conflict"];
         };
     };
 }
