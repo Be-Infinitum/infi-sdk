@@ -18,7 +18,7 @@ export type EmbedSource =
   /**
    * An invoice your server already created, plus your tenant slug. The slug is
    * required here and cannot be dropped the way it can for a link: an invoice
-   * id is a per-tenant uuid, so it does not identify the merchant by itself.
+   * id (inv_…) is per tenant, so it does not identify the merchant by itself.
    */
   | { readonly slug: string; readonly invoiceId: string; readonly linkToken?: never; readonly href?: never }
   /** The URL `links.create()` handed you, verbatim. Slug and token are read from it. */
@@ -140,7 +140,7 @@ export function buildEmbedUrl(source: EmbedSource, options: EmbedUrlOptions): st
   } else {
     linkToken = source.linkToken;
     invoiceId = source.invoiceId;
-    // An invoice id is a per-tenant uuid and names no merchant, so the slug is
+    // An invoice id (inv_…) names no merchant, so the slug is
     // still mandatory there. A link token names its own.
     slug = invoiceId !== undefined
       ? requireNonEmpty(source.slug, "slug")
