@@ -18,6 +18,9 @@ moves to `>=0.14.0 <0.15.0`.
 
 
 ### BREAKING
+- **Removed Infi Rail (x402).** The `@beinfi/sdk/rail` entry point (`requirePayment`,
+  `requireMcpPayment`, `paid`, the grace ledger and every type) and `infi.rail` are
+  gone. The backend `/rail/*` routes return 404. Major bump.
 - **`checkout()` now requires `customer.taxId`** in purchase mode, validated as a
   CPF (11 digits) or CNPJ (14). Pix and boleto on Asaas refuse to create a payer
   without one, the refusal arrives at charge time, and the public charge endpoint
