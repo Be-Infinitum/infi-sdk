@@ -18,8 +18,7 @@ export interface RequestOptions {
   idempotencyKey?: string;
   /**
    * Abort the request after this many ms. It rejects with an `AbortError`, not
-   * an `InfiError` — a timeout is "unreachable", not a verdict, and the rail's
-   * grace path (§6) depends on telling those two apart.
+   * an `InfiError` — a timeout is "unreachable", not a verdict.
    */
   timeoutMs?: number;
 }

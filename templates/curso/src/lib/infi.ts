@@ -41,13 +41,3 @@ export function apiUrl(): string {
   const fallback = getInfi().mode === "live" ? "https://api.beinfi.com" : "https://api-sandbox.beinfi.com";
   return (process.env.INFI_API_URL ?? fallback).replace(/\/$/, "");
 }
-
-/**
- * The publishable key, for the signals and the feedback button (what visitors
- * do and say, in your Infi dashboard → Comportamento). Public by design; it
- * only writes signals. Create one under Desenvolvedores → Chaves de API.
- */
-export function publishableKey(): string | undefined {
-  const key = process.env.INFI_PUBLISHABLE_KEY;
-  return key?.startsWith("pk_") ? key : undefined;
-}

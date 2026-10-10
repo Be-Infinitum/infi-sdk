@@ -58,27 +58,3 @@ const preview: ElementPreview = {
 The example buyer (`EXAMPLE_BUYER`, `exampleMemberView`, `exampleCourse`) is
 exported for the dashboard's own member-view screens. The pix code and QR
 encode nothing a bank app can pay.
-
-## Signals and feedback
-
-What visitors do and say on your site, in your Infi dashboard under **Comportamento**, next to the reasons your customers give when they cancel. Nothing here is billed.
-
-```tsx
-<InfiProvider slug="minha-loja" environment="production" publishableKey="pk_live_…">
-  {children}
-  <InfiSignals externalId={user?.id} consent={cookiesAccepted} />
-  <FeedbackElement />
-</InfiProvider>
-```
-
-- **`publishableKey`** is the `pk_`, created under Desenvolvedores → Chaves de API. It is safe in the page, because it only writes signals and opens checkouts. Never put the `sk_` here.
-- **`<InfiSignals>`** renders nothing. It sends:
-  - page views, single-page navigation included;
-  - the sections you mark with `data-infi-section="preços"`, with time on screen;
-  - scroll depth (25/50/75/100);
-  - clicks on what you mark with `data-infi-cta="assinar"`, and nothing else;
-  - the checkout funnel, sent by `CheckoutElement` on its own;
-  - JavaScript errors and your page's failed requests (5xx and network failures, path only).
-- **Privacy:** while `consent` is false, nothing is collected or sent. Paths go without their query string, form fields are never read, and Infi drops anything that looks personal on arrival.
-- **`useSignals().track("plan_compared", { plan: "pro" })`** sends your own events. Without `<InfiSignals>` it does nothing.
-- **`<FeedbackElement>`** is a floating button with a reaction and a line of text. Pass `inline` to place it inside your page, and `preview` to draw it without sending. Infi sorts each piece of feedback by theme and sentiment.

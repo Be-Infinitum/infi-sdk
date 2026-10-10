@@ -1,7 +1,5 @@
 export { useElementLocale } from "./locale.js";
 export { InfiProvider, useInfi, type InfiAppearance, type InfiContextValue } from "./provider.js";
-export { InfiSignals, useSignals, type InfiSignalsProps } from "./signals.js";
-export { FeedbackElement, type FeedbackElementProps } from "./feedback.js";
 export { CheckoutElement, type CheckoutElementProps } from "./checkout.js";
 export { InfiCheckoutEmbed, type InfiCheckoutEmbedProps } from "./InfiCheckoutEmbed.js";
 export { useCheckoutEmbedControls } from "./controls.js";
@@ -37,9 +35,6 @@ export {
   previewProductFromDraft,
   previewStorefront,
   resolveAppearance,
-  createSignals,
-  type SignalsClient,
-  type SignalsOptions,
 } from "@beinfi/elements";
 export { CourseElement, daysUntil, endedMessage, type CourseElementProps } from "./course.js";
 export { LessonPlayer, type LessonPlayerProps } from "./lesson/LessonPlayer.js";

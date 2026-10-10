@@ -71,18 +71,6 @@ export interface ElementMessages {
     total: string;
   };
   signInWithInfi: string;
-  /** FeedbackElement (BE-437). */
-  feedback: {
-    open: string;
-    title: string;
-    placeholder: string;
-    send: string;
-    sending: string;
-    thanks: string;
-    failed: string;
-    close: string;
-    reactions: Record<"love" | "like" | "neutral" | "dislike", string>;
-  };
 }
 
 export const MESSAGES: Record<InfiLocale, ElementMessages> = {
@@ -119,17 +107,6 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
       total: "Total",
     },
     signInWithInfi: "Entrar com Infi",
-    feedback: {
-      open: "Feedback",
-      title: "O que você está achando?",
-      placeholder: "Conte o que funcionou ou o que atrapalhou (opcional)",
-      send: "Enviar",
-      sending: "Enviando…",
-      thanks: "Obrigado! Recebemos sua mensagem.",
-      failed: "Não foi possível enviar. Tente de novo.",
-      close: "Fechar",
-      reactions: { love: "Amei", like: "Gostei", neutral: "Indiferente", dislike: "Não gostei" },
-    },
   },
   en: {
     buy: "Buy",
@@ -164,17 +141,6 @@ export const MESSAGES: Record<InfiLocale, ElementMessages> = {
       total: "Total",
     },
     signInWithInfi: "Sign in with Infi",
-    feedback: {
-      open: "Feedback",
-      title: "How is it going?",
-      placeholder: "Tell us what worked or what got in the way (optional)",
-      send: "Send",
-      sending: "Sending…",
-      thanks: "Thank you! We got your message.",
-      failed: "Could not send. Try again.",
-      close: "Close",
-      reactions: { love: "Love it", like: "Like it", neutral: "Indifferent", dislike: "Dislike it" },
-    },
   },
 };
 
