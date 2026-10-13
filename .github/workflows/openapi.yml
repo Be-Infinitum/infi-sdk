@@ -1,0 +1,40 @@
+name: OpenAPI contract
+
+# api/openapi.json arrives as a PR from the Infi monorepo whenever the backend
+# contract changes. This job is what makes that PR mean something: the types
+# must regenerate to exactly what is committed, and the SDK must still build
+# against them. WEBHOOK_EVENT_TYPES failing to compile here is the usual case —
+# the backend declared an event and the runtime list has to learn it.
+on:
+  pull_request:
+    paths:
+      - "api/openapi.json"
+      - "scripts/codegen.sh"
+      - "packages/sdk/**"
+  push:
+    branches: [develop, main]
+    paths:
+      - "api/openapi.json"
+      - "scripts/codegen.sh"
+      - "packages/sdk/**"
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Generated types match api/openapi.json
+        run: |
+          bun run codegen
+          git diff --exit-code -- packages/sdk/src/generated/ || {
+            echo "::error::packages/sdk/src/generated/openapi.ts is stale. Run 'bun run codegen' and commit."
+            exit 1
+          }
+      - run: bun run build
+      - run: bun run typecheck
+      - run: bun run --filter '@beinfi/sdk' test

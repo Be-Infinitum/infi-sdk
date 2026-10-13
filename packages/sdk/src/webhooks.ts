@@ -43,6 +43,10 @@ export const WEBHOOK_EVENT_TYPES = [
   "refund_request.declined",
   "payment.duplicate_detected",
   "payment.duplicate_refunded",
+  "fiscal_document.issued",
+  "fiscal_document.rejected",
+  "fiscal_document.failed",
+  "fiscal_document.canceled",
 ] as const satisfies readonly GeneratedEventType[];
 
 /**
