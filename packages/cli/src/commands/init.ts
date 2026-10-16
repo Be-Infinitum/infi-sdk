@@ -93,7 +93,7 @@ ${pc.dim("Usage:")}
   npm create infi-app [project-name] [options]
 
 ${pc.dim("Options:")}
-  --template <id>     Template: default, crm, ebook-sale, ai-chat, marketplace-billing
+  --template <id>     Template: default, ebook-sale, ai-chat, marketplace-billing
   --port <n>          Dev server port (default: 3000)
   --local             Use local Infi API (:8088) and frontend (:4003)
   --skip-provision    Do not provision a claimable tenant (write .env.example only)

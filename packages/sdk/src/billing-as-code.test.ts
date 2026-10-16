@@ -125,9 +125,11 @@ describe("syncBilling — a thin client over /config", () => {
     expect(r.held[0]!.option).toBe("overwriteDrift");
   });
 
-  it("refuses the removed force option before any request", async () => {
+  it("refuses the removed force option before any request, but tolerates force: false", async () => {
     await expect(infi.sync(config, { force: true } as never)).rejects.toMatchObject({ code: "sync_force_removed" });
     expect(srv.requests).toHaveLength(0);
+    srv.on("POST /config/plan", { status: 200, body: fakePlan() });
+    expect((await infi.sync(config, { force: false, plan: true } as never)).status).toBe("planned");
   });
 
   it("surfaces a 422 from plan with its field errors", async () => {
@@ -156,5 +158,10 @@ describe("config resource", () => {
     expect(res.approvalUrl).toContain("/config/revisions/");
     const promote = srv.requests.find((r) => r.path === "/config/promote")!;
     expect(promote.body).toEqual({ document: pkg.document, receipt, options: {} });
+    // A fresh receipt of the same revision is a new promotion, not a replay.
+    const again = await infi.config.promote({ ...pkg, receipt: { ...receipt, issuedAt: "2026-10-17T00:00:00Z", signature: "sig2" } });
+    expect(again.revision).toBeDefined();
+    const keys = srv.requests.filter((r) => r.path === "/config/promote").map((r) => r.headers["idempotency-key"]);
+    expect(new Set(keys).size).toBe(2);
   });
 });

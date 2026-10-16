@@ -55,9 +55,13 @@ export function printSecrets(secrets: NonNullable<SyncResult["secrets"]>): void 
   for (const s of secrets) console.log(`  ${s.url}\n    ${s.secret}`);
 }
 
-/** Exit code per status: 0 done or waiting on a person, 2 held, 3 stale. */
-export function exitCodeFor(status: SyncResult["status"]): number {
-  return status === "blocked" ? 2 : status === "stale" ? 3 : 0;
+/**
+ * Exit code: 0 done or waiting on a person, 2 held (also for `--plan`, so it
+ * gates CI as it did in 0.2.x), 3 stale.
+ */
+export function exitCodeFor(result: Pick<SyncResult, "status" | "plan">): number {
+  if (result.status === "blocked" || (result.status === "planned" && result.plan.blocked)) return 2;
+  return result.status === "stale" ? 3 : 0;
 }
 
 export { FLAG as OPTION_FLAGS };

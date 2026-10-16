@@ -270,7 +270,8 @@ export async function syncBilling(
   config: BillingConfig,
   opts: SyncOptions = {},
 ): Promise<SyncResult> {
-  if ((opts as { force?: unknown }).force !== undefined) {
+  // Truthy only: 0.12 callers passed `force: flags.force ?? false`.
+  if ((opts as { force?: unknown }).force) {
     throw new InfiError(
       "sync: `force` was removed. Pass adoptUnmanaged, archiveOrphaned or overwriteDrift — the option the plan names.",
       400,

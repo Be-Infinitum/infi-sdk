@@ -34,7 +34,7 @@ export async function syncCommand(flags: SyncFlags): Promise<void> {
     // Shown before the apply, so what is applied is what the user read.
     onPlan: flags.json ? undefined : (plan) => printPlan(plan),
   });
-  process.exitCode = exitCodeFor(result.status);
+  process.exitCode = exitCodeFor(result);
 
   if (flags.json) {
     const { document: _doc, ...rest } = result;
@@ -48,9 +48,16 @@ export async function syncCommand(flags: SyncFlags): Promise<void> {
       if (result.plan.blocked) printHeld(result.held);
       else if (result.plan.hasChanges) console.log(pc.dim(`\nApply with: infi sync${flags.file ? ` ${flags.file}` : ""}`));
       break;
-    case "unchanged":
-      ok("Nothing to apply: the tenant matches the file.");
+    case "unchanged": {
+      // "Matches" only when nothing sits outside the file either.
+      const p = result.plan;
+      const outside = (p.unmanaged?.length ?? 0) + (p.orphaned?.length ?? 0) + (p.drift?.length ?? 0);
+      if (outside) {
+        printPlan(p);
+        ok("\nNothing to apply for what the file names. The notes above are outside it.");
+      } else ok("Nothing to apply: the tenant matches the file.");
       break;
+    }
     case "blocked":
       printPlan(result.plan);
       printHeld(result.held);

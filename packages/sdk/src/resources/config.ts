@@ -1,4 +1,5 @@
 import type { Transport } from "../http.js";
+import { sha256Hex } from "../sha256.js";
 import type { CompanyDocument } from "../company-document.js";
 import type {
   CompanyConfigApplyResult,
@@ -120,8 +121,9 @@ export class ConfigResource {
     return this.t.request("POST", "/config/promote", {
       body: { document: pkg.document, receipt: pkg.receipt, options },
       requireSecret: true,
-      // One receipt is one promotion: a retry after a timeout replays it.
-      idempotencyKey: `promote_${pkg.receipt.sourceRevisionId}_${pkg.receipt.docHash.slice(0, 32)}`,
+      // One receipt is one promotion: a retry of the same receipt replays it,
+      // and a fresh receipt (new issuedAt and signature) is a new promotion.
+      idempotencyKey: `promote_${sha256Hex(JSON.stringify(pkg.receipt)).slice(0, 48)}`,
       ...(call.locale ? { headers: { "Accept-Language": call.locale } } : {}),
     });
   }

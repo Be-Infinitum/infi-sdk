@@ -230,9 +230,9 @@ const event = infi.verifyWebhook<PaymentConfirmedData>(
 );
 ```
 
-`WEBHOOK_EVENT_TYPES` is the runtime list of what the backend emits. `sync`
-validates declared events against it, so a typo fails before it registers an
-endpoint that can never fire.
+`WEBHOOK_EVENT_TYPES` is the runtime list of what the backend emits. A
+`defineCompany` webhook is typed against it, so a typo fails to compile before it
+registers an endpoint that can never fire.
 
 ### Deduplicate on the invoice, not on the event
 
@@ -269,6 +269,47 @@ platform do it — no endpoint, no signature check, no idempotency of your own:
 
 `on: "payment"` credits on `payment.confirmed`; `on: "cycle"` credits at each
 period open.
+
+## Company as code
+
+Declare products, meters, prices, grants and webhooks in `infi.company.ts`; the
+server plans and applies them (backend ADR 0025). `defineCompany` serializes to
+the company document — schema v1 at
+[`api.beinfi.com/config/schema/v1.json`](https://api.beinfi.com/config/schema/v1.json).
+
+```ts
+import { defineCompany } from "@beinfi/sdk";
+
+export default defineCompany({
+  products: [{
+    key: "ai-chat", type: "agent", pricingModel: "prepaid", billingCycle: "monthly", basePrice: "19.90",
+    meters: [{ key: "tokens", unit: "token", aggregation: "sum" }],
+    prices: [{ meter: "tokens", model: "per_unit", unitAmount: "0.01" }],   // meter is required
+    grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],          // one per meter
+  }],
+  webhooks: [{ url: "https://example.com/api/infi", events: ["payment.confirmed"] }], // https only
+});
+```
+
+`infi.sync(config, options)` plans (`POST /config/plan`), then applies with
+`Idempotency-Key = planHash`. Read `result.status`:
+
+| `status` | Meaning |
+|----------|---------|
+| `planned` | `{ plan: true }`: nothing applied |
+| `unchanged` | The tenant already matches |
+| `applied` | Done. `secrets` holds new webhook endpoints' signing secrets, **once** |
+| `proposed` | Live: nothing changed yet. A person approves at `approvalUrl` (dashboard, step-up). Never retry |
+| `stale` | The tenant moved since the plan. `plan` is the fresh one: show it and call again |
+| `blocked` | `held[]` names the option that resolves each change: `adoptUnmanaged`, `overwriteDrift`, `archiveOrphaned` — or says none can |
+
+`result.plan.changes[].sentence` is the plan in words (`locale: "pt-BR" | "en"`;
+defaults from `LANG`). `onPlan` sees the plan right before the apply.
+
+The raw surface is `infi.config`: `plan`, `apply`, `document()` (what `infi pull`
+writes), `revisions`, `promotionReceipt` + `promote` (sandbox → live, always a
+proposal). Deliverables and coupons are not in the document: use
+`infi.products.deliverable` and `infi.coupons`.
 
 ## React
 

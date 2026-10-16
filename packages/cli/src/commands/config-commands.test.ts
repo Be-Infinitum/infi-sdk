@@ -106,6 +106,33 @@ describe("infi sync", () => {
     expect(process.exitCode).toBe(2);
   });
 
+  it("--plan on a blocked plan still exits 2 (a CI gate in 0.2.x)", async () => {
+    srv.on("POST /config/plan", {
+      status: 200,
+      body: fakePlan({ changes: [{ action: "blocked", resource: "webhook", ref: "https://shop.test/hooks", key: "https://shop.test/hooks", reason: "drift", sentence: "Edited in the dashboard." }] }),
+    });
+
+    await syncCommand({ key: "sk_test_x", file: file(), plan: true });
+
+    expect(text()).toContain("--overwrite-drift");
+    expect(process.exitCode).toBe(2);
+  });
+
+  it("does not claim the tenant matches when resources sit outside the file", async () => {
+    srv.on("POST /config/plan", {
+      status: 200,
+      body: fakePlan({
+        changes: [{ action: "skip", resource: "product", ref: "ebook", key: "ebook", sentence: "ebook: no change." }],
+        unmanaged: [{ resource: "product", key: "old", ref: "Old", sentence: "Old exists in the tenant and no revision wrote it." }],
+      }),
+    });
+
+    await syncCommand({ key: "sk_test_x", file: file() });
+
+    expect(text()).toContain("Old exists in the tenant");
+    expect(text()).not.toContain("matches the file");
+  });
+
   it("passes the three options through to plan and apply", async () => {
     srv.on("POST /config/plan", { status: 200, body: fakePlan() });
     srv.on("POST /config/apply", { status: 200, body: fakeApply("applied") });
