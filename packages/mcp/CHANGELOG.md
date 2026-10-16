@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.7 — 2026-10-16
+
+Needs `@beinfi/sdk` 0.12.1 and `@beinfi/cli` 0.2.8.
+
+### Fixed
+- **An agent can no longer apply in live.** `infi_sync_apply` refuses any key that
+  is not a sandbox key (`sk_test_`), before any network call, with a message that
+  sends the agent back to the human: in live the agent only proposes
+  (`infi_sync_plan`, still allowed), the human applies with `infi sync` — or,
+  once it exists, approves in the dashboard. `force` never reaches a live apply.
+  `infi_bootstrap`, `infi_onboard` and `infi_claim_create` refuse too when the
+  server is configured with a live key: provisioning a sandbox would rewrite a
+  live project's `.env.local`.
+- **`infi_sync_apply` uses the project's lock.** It reads and writes
+  `infi.company.<mode>.lock.json` in `cwd` (the argument, else the project from
+  onboard/bootstrap, else the server's cwd). Without it, the new drift guard would
+  block every apply on an existing tenant. A blocked apply is returned as an
+  error, not as a partial success.
+
 ## 0.1.5
 
 - Conversational onboarding collects missing email, account name and intent; returns a human claim link.

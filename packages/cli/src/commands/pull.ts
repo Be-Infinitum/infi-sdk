@@ -16,7 +16,7 @@ function cycleGrantFor(version: Parameters<typeof versionCycleGrant>[0]) {
 }
 import { infiClient } from "../lib/client.js";
 import { die, ok } from "../lib/output.js";
-import { lockPathFor, writeLock } from "../lib/company-file.js";
+import { lockPathFor, migrateLegacyLocks, writeLock } from "../lib/company-file.js";
 
 const CONFIG_FILE = "infi.company.ts";
 
@@ -110,7 +110,8 @@ export async function pullCommand(
   if (!config.products.length) die("No products found for this tenant.");
 
   fs.writeFileSync(file, renderConfig(config));
-  const lockPath = lockPathFor(file);
+  migrateLegacyLocks(path.dirname(file));
+  const lockPath = lockPathFor(file, infi.mode);
   writeLock(lockPath, await buildLock(infi, config));
 
   ok(`Pulled ${config.products.length} product(s) (company as code)`);

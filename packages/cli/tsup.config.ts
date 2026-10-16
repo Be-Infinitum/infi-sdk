@@ -6,6 +6,8 @@ export default defineConfig({
     "src/parse.ts",
     "src/lib/provision.ts",
     "src/lib/claim.ts",
+    "src/lib/company-file.ts",
+    "src/lib/agent-guard.ts",
     "src/commands/init.ts",
     "src/commands/doctor.ts",
     "src/commands/go-live.ts",

@@ -5,7 +5,7 @@ import { infiClient } from "../lib/client.js";
 import {
   loadCompanyConfig,
   lockPathFor,
-  readLock,
+  readLockFor,
   resolveCompanyFile,
   writeLock,
 } from "../lib/company-file.js";
@@ -15,13 +15,15 @@ export async function syncCommand(
   flags: GlobalFlags & { file?: string; plan?: boolean; force?: boolean },
 ): Promise<void> {
   const file = resolveCompanyFile(flags.file);
-  const lockPath = lockPathFor(file);
   const config = await loadCompanyConfig(file);
   const infi = infiClient(flags);
+  // The client's mode, not a second reading of the key: the lock has to match
+  // the host the writes actually go to.
+  const lockPath = lockPathFor(file, infi.mode);
   const result = await infi.sync(config, {
     plan: flags.plan ?? false,
     force: flags.force ?? false,
-    lock: readLock(lockPath),
+    lock: readLockFor(path.dirname(lockPath), infi.mode),
   });
 
   if (flags.json) {
@@ -41,9 +43,10 @@ export async function syncCommand(
 
   if (result.drift.length && !flags.force) {
     console.log("");
-    console.log(pc.yellow(`⚠ ${result.drift.length} item(s) changed in the dashboard since the last sync:`));
+    console.log(pc.yellow(`⚠ ${result.drift.length} item(s) diverge from the file and the lock does not vouch for overwriting them:`));
     for (const d of result.drift) console.log(`  ${d.product}: ${d.detail}`);
-    console.log(pc.dim("Re-run with --force to overwrite, or `infi pull` to adopt the dashboard changes."));
+    console.log(pc.dim("Changed in the dashboard, or already in the tenant with no lock entry."));
+    console.log(pc.dim("Re-run with --force to overwrite, or `infi pull` to adopt the tenant's state."));
     if (!flags.plan) writeLock(lockPath, result.lock);
     process.exitCode = 2;
     return;

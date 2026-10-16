@@ -11,6 +11,8 @@ import { runDoctor } from "@beinfi/cli/doctor";
 import { getGoLiveStatus } from "@beinfi/cli/go-live";
 import { runBootstrap, runAgentOnboarding } from "@beinfi/cli/bootstrap";
 import { listSkills } from "@beinfi/cli/skills";
+import { lockPathIn, readLockFor, writeLock } from "@beinfi/cli/company-file";
+import { agentWriteRefusal } from "@beinfi/cli/agent-guard";
 import { readFileSync } from "node:fs";
 
 const API_BASE = (process.env.INFI_API_URL ?? "https://api-sandbox.beinfi.com").replace(/\/$/, "");
@@ -31,6 +33,26 @@ function client(): Infi {
   });
 }
 
+/** The key a tool would write with. */
+function currentKey(): string | undefined {
+  return activeKey ?? process.env.INFI_SECRET_KEY;
+}
+
+/**
+ * Refuse a write before it reaches the network. `key` is the one the tool would
+ * act with; provisioning tools pass the configured key, since a live project is
+ * no place to provision a sandbox (bootstrap rewrites `.env.local`).
+ */
+function refuse(tool: string, key: string | undefined) {
+  const message = agentWriteRefusal(tool, key);
+  return message ? { isError: true, content: [{ type: "text" as const, text: message }] } : undefined;
+}
+
+/** Where the per-mode lock lives: the project the agent set up, else the server's cwd. */
+function lockDir(cwd?: string): string {
+  return cwd ?? activeCwd ?? process.cwd();
+}
+
 const server = new McpServer({ name: "infi", version: "0.2.0" }, {
   instructions: "Start with infi_onboard for a new integration. It returns missing questions; ask the human and call again with the answers and the same project cwd. Existing integrations should use doctor/sync. Sandbox provisioning needs no login. Only the human claims the account and completes production setup. Never ask for passwords or verification codes.",
 });
@@ -48,6 +70,8 @@ server.tool(
     cwd: z.string().optional(),
   },
   async ({ email, accountName, intent, ref, cwd }) => {
+    const refusal = refuse("infi_onboard", process.env.INFI_SECRET_KEY);
+    if (refusal) return refusal;
     const result = await runAgentOnboarding({ email, accountName, intent, ref: ref ?? "mcp", cwd, json: true });
     if (result.status !== "requires_input") {
       activeKey = result.env.INFI_SECRET_KEY;
@@ -67,6 +91,8 @@ server.tool(
     accountName: z.string().trim().min(1).max(120).optional(),
   },
   async ({ ref, email, accountName }) => {
+    const refusal = refuse("infi_claim_create", process.env.INFI_SECRET_KEY);
+    if (refusal) return refusal;
     const claimable = await createClaimable(API_BASE, {
       ref: (ref ?? "mcp") as ClaimRef,
       email, accountName,
@@ -88,6 +114,8 @@ server.tool(
     accountName: z.string().trim().min(1).max(120).optional(),
   },
   async ({ intent, ref, cwd, email, accountName }) => {
+    const refusal = refuse("infi_bootstrap", process.env.INFI_SECRET_KEY);
+    if (refusal) return refusal;
     const result = await runBootstrap({
       intent, email, accountName,
       ref: (ref ?? "mcp") as ClaimRef,
@@ -135,26 +163,52 @@ server.tool(
 
 server.tool(
   "infi_sync_plan",
-  "Dry-run company-as-code sync. Pass CompanyConfig JSON (defineCompany shape).",
-  { config: z.record(z.unknown()) },
-  async ({ config }) => {
+  "Dry-run company-as-code sync. Pass CompanyConfig JSON (defineCompany shape). Works in live too: in live this is all an agent does — show the plan to the human, who applies it with `infi sync`.",
+  { config: z.record(z.unknown()), cwd: z.string().optional() },
+  async ({ config, cwd }) => {
     const cfg = config as unknown as BillingConfig;
-    const result = await client().sync(cfg, { plan: true });
+    const infi = client();
+    const result = await infi.sync(cfg, { plan: true, lock: readLockFor(lockDir(cwd), infi.mode) });
     return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
   },
 );
 
 server.tool(
   "infi_sync_apply",
-  "Apply company-as-code config.",
+  "Apply company-as-code config. Sandbox keys only: with a live key it refuses (an agent only proposes in live). Reads and writes the project's per-mode lock (infi.company.<mode>.lock.json in cwd). Resources that diverge from the config with no lock entry are blocked unless force is set.",
   {
     config: z.record(z.unknown()),
     force: z.boolean().optional(),
+    cwd: z.string().optional(),
   },
-  async ({ config, force }) => {
+  async ({ config, force, cwd }) => {
+    const refusal = refuse("infi_sync_apply", currentKey());
+    if (refusal) return refusal;
     const cfg = config as unknown as BillingConfig;
-    const result = await client().sync(cfg, { force: force ?? false });
-    return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+    const infi = client();
+    // Belt and braces: the guard above already stopped any non-sandbox key, but
+    // force must never reach a live apply from here, whatever the guard becomes.
+    const effectiveForce = infi.mode === "live" ? false : (force ?? false);
+    const dir = lockDir(cwd);
+    const result = await infi.sync(cfg, { force: effectiveForce, lock: readLockFor(dir, infi.mode) });
+    writeLock(lockPathIn(dir, infi.mode), result.lock);
+    const text = JSON.stringify(result, null, 2);
+    if (result.drift.length > 0) {
+      // Blocked is a refusal, not a partial success: say so where the agent looks.
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text:
+              `Blocked: ${result.drift.length} resource(s) diverge from the config and the lock does not vouch for overwriting them. ` +
+              "Ask the human whether to keep the tenant's state (`infi pull`) or overwrite it (re-run with force: true).\n" +
+              text,
+          },
+        ],
+      };
+    }
+    return { content: [{ type: "text", text }] };
   },
 );
 

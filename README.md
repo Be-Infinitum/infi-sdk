@@ -41,6 +41,13 @@ export default defineCompany.fromIntent("crm", {
 
 Hosts (API / auth / pay) are inferred from `INFI_SECRET_KEY`. Go-live (claim → KYC) via `infi go-live`.
 
+`infi sync` applies it and records what it applied in `infi.company.sandbox.lock.json`
+or `infi.company.live.lock.json` (one per mode, commit both). Anything in the tenant
+that diverges from the file without a lock entry to vouch for it is blocked, not
+overwritten (`infi pull` adopts, `--force` overwrites), and every write carries a
+deterministic `Idempotency-Key`. In live, agents only propose: the MCP's write tools
+refuse `sk_live_` keys and the human applies with `infi sync`.
+
 ## Examples
 
 | Example | Use case |

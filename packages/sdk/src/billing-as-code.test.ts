@@ -404,6 +404,8 @@ describe("syncBilling", () => {
           },
         ],
       }),
+      // No lock: the product exists unvouched-for, so the bump needs force.
+      { force: true },
     );
 
     const version = r.actions.find((a) => a.resource === "version");
@@ -603,7 +605,7 @@ describe("syncBilling", () => {
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.001", currency: "BRL" }] },
     };
     const { infi, calls } = fakeInfi(state);
-    const res = await syncBilling(infi, CONFIG);
+    const res = await syncBilling(infi, CONFIG, { force: true });
 
     const bump = res.actions.find((a) => a.resource === "version");
     expect(bump?.action).toBe("bump");
@@ -621,7 +623,7 @@ describe("syncBilling", () => {
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.002", currency: "BRL" }] },
     };
     const { infi, calls } = fakeInfi(state);
-    const res = await syncBilling(infi, CONFIG);
+    const res = await syncBilling(infi, CONFIG, { force: true });
 
     const update = res.actions.find((a) => a.resource === "product");
     expect(update?.action).toBe("update");
@@ -645,7 +647,7 @@ describe("syncBilling", () => {
           prices: [{ meter: "tokens", model: "per_unit", unitAmount: "0.002" }],
         },
       ],
-    });
+    }, { force: true });
 
     const meter = res.actions.find((a) => a.resource === "meter");
     expect(meter?.action).toBe("update");
@@ -667,7 +669,7 @@ describe("syncBilling", () => {
   function matchedState(): FakeState {
     return {
       products: [{ id: "prod_1", key: "ai-chat", name: "AI Chat", type: "agent", pricingModel: "prepaid", currency: "BRL" }],
-      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens" }] },
+      meters: { prod_1: [{ id: "m_1", name: "tokens", displayName: "tokens", unit: "token", aggregation: "sum" }] },
       versions: { prod_1: [{ id: "v_1", version: 1, status: "published", billingCycle: "monthly", basePrice: null, creditsPerCycle: null }] },
       prices: { v_1: [{ id: "pr_1", meterId: "m_1", model: "per_unit", unitAmount: "0.002", currency: "BRL" }] },
     };
