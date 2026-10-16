@@ -11,27 +11,42 @@ export {
 export { extractTokens, resolveUsageValue, type MeterOptions, type MeterMode } from "./meter.js";
 export { MeteringSession } from "./meter-session.js";
 export {
-  buildLock,
   defineBilling,
   syncBilling,
-  cycleGrantAmount,
-  versionCycleGrant,
-  versionGrants,
-  assertValidConfig,
+  explainHeld,
+  orphanNotes,
+  defaultLocale,
   type BillingConfig,
   type BillingGrant,
   type BillingMeter,
   type BillingPrice,
   type BillingProduct,
   type BillingWebhook,
-  type DriftEntry,
-  type EntityLock,
-  type ProductLock,
+  type HeldChange,
   type SyncAction,
-  type SyncLock,
+  type SyncOption,
   type SyncOptions,
   type SyncResult,
+  type SyncStatus,
 } from "./billing-as-code.js";
+export {
+  toCompanyDocument,
+  fromCompanyDocument,
+  assertValidConfig,
+  type CompanyDocument,
+  type DocumentProduct,
+  type DocumentMeter,
+  type DocumentPrice,
+  type DocumentGrant,
+  type DocumentWebhook,
+} from "./company-document.js";
+export {
+  ConfigResource,
+  COMPANY_SCHEMA_URL,
+  type ApplyOutcome,
+  type PlanCallOptions,
+  type PromotionPackage,
+} from "./resources/config.js";
 /**
  * Company as code: author your catalog and webhooks as a typed config file and
  * apply it with `infi.sync()`. Also what the CLI and MCP server use.
@@ -75,17 +90,6 @@ export {
   type CreateLinkWithProductOptions,
   type PaymentLinkWithUrl,
 } from "./resources/links.js";
-export {
-  StorefrontsResource,
-  type Storefront,
-  type StorefrontWithUrl,
-  type StorefrontInput,
-  type StorefrontTheme,
-  type FulfillmentMode,
-  type ShelfItem,
-  type ShelfRow,
-  type PresignedImage,
-} from "./resources/storefronts.js";
 export type { UsageQuery } from "./resources/usage.js";
 export type { FromUsageInput, DeliverableGrant } from "./resources/invoices.js";
 export type { PresignedUpload } from "./resources/products.js";
@@ -157,6 +161,15 @@ export type {
   VersionInput,
   WebhookDelivery,
   WebhookEndpoint,
+  CompanyConfigPlan,
+  CompanyConfigChange,
+  CompanyConfigListed,
+  CompanyConfigOptions,
+  CompanyConfigRevision,
+  CompanyConfigRevisionDetail,
+  CompanyConfigApplyResult,
+  CompanyConfigReceipt,
+  MorAdmissionView,
 } from "./types.js";
 export {
   SANDBOX_API_BASE,

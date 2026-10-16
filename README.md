@@ -20,7 +20,7 @@ checkout, metering, and prepaid AI credits.
 bun install && bun run build
 
 # One-shot company setup (claim + infi.company.ts + sync + doctor)
-infi bootstrap --intent crm --ref cursor --json
+infi bootstrap --intent usage-saas --ref cursor --json
 
 # Or scaffold an example app
 npm create infi-app my-app --template ai-chat
@@ -34,19 +34,19 @@ Declare the company (products, webhooks) in TypeScript — app can be any langua
 ```ts
 import { defineCompany } from "@beinfi/sdk";
 
-export default defineCompany.fromIntent("crm", {
-  appUrl: process.env.APP_URL,
-});
+export default defineCompany.fromIntent("usage-saas");
 ```
 
-Hosts (API / auth / pay) are inferred from `INFI_SECRET_KEY`. Go-live (claim → KYC) via `infi go-live`.
+Hosts (API / app) are inferred from `INFI_SECRET_KEY`. Go-live (claim → merchant-of-record
+admission → `sk_live_`) via `infi go-live`.
 
-`infi sync` applies it and records what it applied in `infi.company.sandbox.lock.json`
-or `infi.company.live.lock.json` (one per mode, commit both). Anything in the tenant
-that diverges from the file without a lock entry to vouch for it is blocked, not
-overwritten (`infi pull` adopts, `--force` overwrites), and every write carries a
-deterministic `Idempotency-Key`. In live, agents only propose: the MCP's write tools
-refuse `sk_live_` keys and the human applies with `infi sync`.
+The server plans and applies the file (ADR 0025). `infi sync` sends it as a document
+(schema: [`/config/schema/v1.json`](https://api.beinfi.com/config/schema/v1.json)),
+prints the plan in sentences, and applies it with `Idempotency-Key = planHash`. On live
+an apply is a **proposal**: it prints a link where a person approves it. Held changes
+name the flag that resolves them (`--adopt-unmanaged`, `--overwrite-drift`,
+`--archive-orphaned`). There is no lock file; `infi pull` writes the server's own
+document. `infi promote <crev>` takes an applied sandbox revision to live as a proposal.
 
 ## Examples
 

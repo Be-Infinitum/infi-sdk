@@ -2,13 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ClaimableTenantCreateResponse } from "./claim.js";
 
-export type TemplateId = "default" | "crm" | "ebook-sale" | "ai-chat" | "marketplace-billing";
+export type TemplateId = "default" | "ebook-sale" | "ai-chat" | "marketplace-billing";
 
 export type TemplateMeta = { label: string; hint: string };
 
 export const TEMPLATE_META: Record<TemplateId, TemplateMeta> = {
   default: { label: "Default", hint: "Next.js fullstack — auth + checkout + dashboard" },
-  crm: { label: "CRM", hint: "contacts, pipeline, usage metering" },
   "ebook-sale": { label: "Ebook sale", hint: "one-time checkout, no login" },
   "ai-chat": { label: "AI chat", hint: "Vite + Hono, prepaid credits" },
   "marketplace-billing": { label: "Marketplace billing", hint: "per-org usage billing" },

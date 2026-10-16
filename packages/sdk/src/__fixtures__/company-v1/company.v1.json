@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://api.beinfi.com/config/schema/v1.json",
+  "title": "Infi company document",
+  "description": "Company as code (ADR 0025): the catalog and webhooks a tenant declares. POST /config/plan diffs it against the tenant; POST /config/apply applies the plan. Keys are identity: a product by key, a meter by key within its product, a webhook by URL. Money, identity, payout setup and secrets never go here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "products"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/product"
+      }
+    },
+    "webhooks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/webhook"
+      }
+    }
+  },
+  "$defs": {
+    "decimal": {
+      "type": "string",
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+      "description": "A decimal number as a string; money is never a float."
+    },
+    "currency": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{3}$",
+      "description": "ISO 4217 code."
+    },
+    "product": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "type",
+        "pricingModel"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^\\S(.*\\S)?$",
+          "description": "Stable natural key, unique per tenant. Also the name when no name is given."
+        },
+        "renamedFrom": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The key this product had before. A rename is explicit, never a delete and a create."
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "Shown on the product page and the checkout."
+        },
+        "guaranteeDays": {
+          "type": "integer",
+          "minimum": 7,
+          "maximum": 30,
+          "description": "Refund window: a buyer's refund asked inside it is automatic. Default 7."
+        },
+        "type": {
+          "enum": [
+            "agent",
+            "item"
+          ]
+        },
+        "pricingModel": {
+          "enum": [
+            "subscription",
+            "one_time",
+            "usage",
+            "prepaid"
+          ]
+        },
+        "currency": {
+          "$ref": "#/$defs/currency"
+        },
+        "billingCycle": {
+          "enum": [
+            "weekly",
+            "monthly",
+            "annual"
+          ],
+          "description": "Required for subscription and prepaid, refused otherwise."
+        },
+        "basePrice": {
+          "$ref": "#/$defs/decimal",
+          "description": "The recurring or flat fee. Zero, or at least the minimum charge."
+        },
+        "meters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/meter"
+          }
+        },
+        "prices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/price"
+          }
+        },
+        "grants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/grant"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "pricingModel": {
+                "enum": [
+                  "subscription",
+                  "prepaid"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "billingCycle"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "billingCycle"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "meter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "unit",
+        "aggregation"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The slug track() sends. Immutable: renaming it would stop ingestion."
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "token",
+            "request",
+            "unit"
+          ]
+        },
+        "aggregation": {
+          "enum": [
+            "sum",
+            "count"
+          ]
+        },
+        "valueProperty": {
+          "type": "string"
+        }
+      }
+    },
+    "price": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meter",
+        "model"
+      ],
+      "properties": {
+        "meter": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Key of one of this product's meters. A flat amount is the product's basePrice, not a price."
+        },
+        "model": {
+          "enum": [
+            "flat",
+            "per_unit",
+            "tiered",
+            "volume",
+            "package"
+          ]
+        },
+        "unitAmount": {
+          "$ref": "#/$defs/decimal"
+        },
+        "currency": {
+          "$ref": "#/$defs/currency"
+        },
+        "tiers": {
+          "type": "array"
+        }
+      }
+    },
+    "grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meter",
+        "amount",
+        "on"
+      ],
+      "properties": {
+        "meter": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "amount": {
+          "$ref": "#/$defs/decimal"
+        },
+        "on": {
+          "enum": [
+            "cycle",
+            "payment"
+          ]
+        }
+      }
+    },
+    "webhook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "events"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "pattern": "^https://[^/\\s]+",
+          "description": "Identity of the endpoint. Its signing secret is minted by the server and shown once."
+        },
+        "events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Event types. Not limited to a list: delivery matches by name."
+        },
+        "isActive": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

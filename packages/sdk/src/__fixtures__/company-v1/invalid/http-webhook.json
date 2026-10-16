@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "products": [], "webhooks": [{ "url": "http://example.com/hook", "events": ["payment.confirmed"] }] }

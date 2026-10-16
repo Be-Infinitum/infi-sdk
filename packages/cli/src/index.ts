@@ -152,15 +152,39 @@ export async function run(argv: string[]): Promise<void> {
     }
 
     case "sync":
+      if (parsed.flags.force === true) {
+        usage(
+          "infi sync --force was removed in 0.3.0: the server decides what is held. Pass the option the plan names: " +
+            "--adopt-unmanaged, --overwrite-drift or --archive-orphaned (see `infi sync --plan`).",
+        );
+      }
       await (
         await import("./commands/sync.js")
       ).syncCommand({
         ...gf,
         file: parsed.sub,
         plan: parsed.flags.plan === true,
-        force: parsed.flags.force === true,
+        adoptUnmanaged: parsed.flags["adopt-unmanaged"] === true,
+        archiveOrphaned: parsed.flags["archive-orphaned"] === true,
+        overwriteDrift: parsed.flags["overwrite-drift"] === true,
       });
       break;
+
+    case "promote": {
+      const rev = parsed.sub ?? usage("Usage: infi promote <crev_…> [--from-key sk_test_…] [--to-key sk_live_…]");
+      await (
+        await import("./commands/promote.js")
+      ).promoteCommand({
+        ...gf,
+        revision: rev,
+        fromKey: typeof parsed.flags["from-key"] === "string" ? parsed.flags["from-key"] : undefined,
+        toKey: typeof parsed.flags["to-key"] === "string" ? parsed.flags["to-key"] : undefined,
+        adoptUnmanaged: parsed.flags["adopt-unmanaged"] === true,
+        archiveOrphaned: parsed.flags["archive-orphaned"] === true,
+        overwriteDrift: parsed.flags["overwrite-drift"] === true,
+      });
+      break;
+    }
 
     case "pull":
       await (

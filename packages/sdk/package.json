@@ -1,6 +1,6 @@
 {
   "name": "@beinfi/sdk",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "Infi SDK — email-code auth and revenue infrastructure for technical founders",
   "license": "MIT",
   "type": "module",
@@ -59,6 +59,7 @@
     "@types/node": "^22",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "ajv": "8.17.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tsup": "^8.5.0",

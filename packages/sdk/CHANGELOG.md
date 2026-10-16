@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.13.0 — 2026-10-16
+
+**The server plans and applies company as code (backend ADR 0025).** `sync` is
+now a thin client: it serializes `defineCompany(...)` to the canonical document
+(schema v1, `https://api.beinfi.com/config/schema/v1.json`), calls
+`POST /config/plan`, then `POST /config/apply` with `Idempotency-Key = planHash`.
+Nothing is diffed or locked on the client anymore. Needs a backend with
+`/config` (#175, #176, #178).
+
+### Migrating from 0.12
+
+1. **First sync of an existing tenant: pass `adoptUnmanaged: true`** (CLI:
+   `infi sync --adopt-unmanaged`). Everything the old client-side sync created
+   has no server revision yet, so the plan holds it as `unmanaged` until you
+   adopt it. Once.
+2. **`force` is gone.** It throws `sync_force_removed`. Pass the option the
+   plan names for each held change: `adoptUnmanaged`, `overwriteDrift`
+   (an edit made outside the file since the last apply) or `archiveOrphaned`
+   (archive what the file no longer names).
+3. **Locks are gone.** `lock` is ignored, `SyncLock`, `buildLock`,
+   `ProductLock`, `EntityLock`, `DriftEntry`, `syncIdempotencyKey` are removed.
+   Delete `infi.company.*.lock.json`: the server keeps the applied baseline.
+4. **`SyncResult` changed shape.** Read `status`:
+   `planned | unchanged | applied | proposed | stale | blocked`. `actions` is the
+   plan's `changes[]` (each with a `sentence`); `held` explains what blocks and
+   which option resolves it; `secrets` (on `applied`) carries the signing secret
+   of each new webhook endpoint, once; `approvalUrl` (on `proposed`) is where a
+   person approves a live change. `drift` and `lock` are gone.
+5. **Live is a proposal.** With an `sk_live_` key, `sync` returns
+   `status: "proposed"` and an `approvalUrl`; nothing changes until a person
+   approves it in the dashboard. Never retry it.
+6. **`plan_stale`** (the tenant moved between plan and apply) returns
+   `status: "stale"` with the fresh plan; it is never applied unseen. Show it and
+   run again.
+
+### Changed — `defineCompany` matches schema v1
+- `price.meter` is required and must be one of the product's meters.
+- `meter.aggregation` is `"sum" | "count"`.
+- Webhook URLs are `https://` only (typed as a template literal and checked).
+- One grant per meter per version: a `cycle` and a `payment` grant on the same
+  meter are refused, as the catalog refuses them.
+- `creditsPerCycle` (deprecated) becomes a `cycle` grant on the product's only
+  meter. With zero or several meters it is refused; it no longer lands on an
+  undeclared `credits` meter.
+- New fields from v1: `renamedFrom` (explicit rename), `description`,
+  `guaranteeDays`.
+- Nulls are dropped; nothing is defaulted that the server would not write, so a
+  pulled document plans to no change.
+
+### Removed — BREAKING
+- **`deliverable`** on a product: not in schema v1. Attach it after the sync
+  with `infi.products.deliverable.save(...)`. Coupons are not in the document
+  either (`infi.coupons`). Both are refused with that hint, not dropped.
+- **The `crm` intent** (ADR 0024). `usage-saas` is the closest.
+  `CompanyIntentOptions.deliverableUrl` is gone with deliverables.
+- **`infi.storefronts` / `StorefrontsResource`** and its types (ADR 0024).
+- `cycleGrantAmount`, `versionCycleGrant`, `versionGrants` (client-side diff
+  helpers).
+- Webhook events the API no longer declares: `contact.*`, `fiscal_document.*`.
+
+### Added
+- `infi.config`: `plan`, `apply`, `document` (pull), `revisions`, `revision`,
+  `promotionReceipt`, `promote`, `schema`.
+- `toCompanyDocument(config)` / `fromCompanyDocument(doc)`, `CompanyDocument`
+  and its part types, `COMPANY_SCHEMA_URL`.
+- `explainHeld(plan)`, `orphanNotes(plan)`, `defaultLocale()`;
+  `SyncOptions.onPlan` (see the plan before it is applied) and `locale`
+  (`Accept-Language` for the sentences; defaults from `LANG`).
+- `infi.account.mor()`: the merchant-of-record admission.
+- `InfiError.metadata` (`plan_stale` carries `metadata.planHash`).
+- Types regenerated from the backend's OpenAPI (tag "Company config").
+
 ## 0.12.1 — 2026-10-16
 
 Hotfix: `sync` could overwrite a live tenant without a word.

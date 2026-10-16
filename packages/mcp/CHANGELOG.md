@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.2.0 — 2026-10-16
+
+Needs `@beinfi/sdk` 0.13 and `@beinfi/cli` 0.3, and a backend that serves
+`/config` (ADR 0025).
+
+### Changed
+- **`infi_sync_apply` proposes on live instead of refusing.** It plans and
+  applies through the server; with an `sk_live_` key the server answers 202 and
+  the tool returns the `approvalUrl` for the human, with an instruction never to
+  retry. It never applies on live by itself — approving is a dashboard action
+  behind step-up, which no key can obtain. The smoke runs this against a fake
+  server and checks one plan, one apply with `Idempotency-Key = planHash`, and
+  the link in the answer.
+- Sync tools take `adoptUnmanaged`, `archiveOrphaned`, `overwriteDrift` in place
+  of `force`, and no `cwd`: there is no lock. A blocked or stale result is an
+  error whose text says what to ask the human.
+- New webhook secrets come back once in `secrets`, with an instruction to store
+  them in server secrets.
+- `infi_pull` returns the server's document (`GET /config/document`).
+- `infi_go_live_status` / `infi_doctor` point at the merchant-of-record
+  admission (`/go-live`), not at connecting a PSP.
+- Intents: `crm` removed.
+- `infi_bootstrap`, `infi_onboard`, `infi_claim_create` still refuse a live key.
+
 ## 0.1.7 — 2026-10-16
 
 Needs `@beinfi/sdk` 0.12.1 and `@beinfi/cli` 0.2.8.

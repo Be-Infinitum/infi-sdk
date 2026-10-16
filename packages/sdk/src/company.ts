@@ -12,7 +12,8 @@ export type { BillingConfig };
 export type CompanyConfig = BillingConfig;
 
 /**
- * Author a typed company config — company as code, applied with `infi.sync()`.
+ * Author a typed company config — company as code, applied with `infi.sync()`
+ * (the server plans and applies it; see `toCompanyDocument` for the wire shape).
  *
  * Alias of `defineBilling`; prefer this name in new code.
  *
@@ -26,7 +27,7 @@ export type CompanyConfig = BillingConfig;
  *
  * @example Intent
  * ```ts
- * export default defineCompany.fromIntent("crm");
+ * export default defineCompany.fromIntent("usage-saas");
  * ```
  */
 function defineCompanyFn(config: CompanyConfig): CompanyConfig {

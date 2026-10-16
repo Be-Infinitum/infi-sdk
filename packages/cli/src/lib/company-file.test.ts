@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { loadCompanyConfig, lockPathFor, migrateLegacyLocks, readLockFor } from "./company-file.js";
+import { loadCompanyConfig, obsoleteLockNotice, obsoleteLocks } from "./company-file.js";
 
 const dirs: string[] = [];
 
@@ -39,52 +39,14 @@ describe("loadCompanyConfig", () => {
   });
 });
 
-describe("per-mode locks", () => {
-  function dir(): string {
+describe("obsolete locks", () => {
+  it("names the lock files the old sync left, so the user can delete them", () => {
     const d = fs.mkdtempSync(path.join(os.tmpdir(), "infi-lock-"));
     dirs.push(d);
-    return d;
-  }
-  const LOCK = { version: 1, products: { item: { state: "{}", syncedAt: "t" } } };
-
-  it("names one lock per mode next to the config", () => {
-    expect(path.basename(lockPathFor("/p/infi.company.ts", "sandbox"))).toBe("infi.company.sandbox.lock.json");
-    expect(path.basename(lockPathFor("/p/infi.billing.ts", "live"))).toBe("infi.company.live.lock.json");
-  });
-
-  // Pre-0.2.8 locks never recorded their mode and their ids carry none.
-  it("migrates a legacy lock with no mode to sandbox, once, with one warning", () => {
-    const d = dir();
-    fs.writeFileSync(path.join(d, "infi.billing.lock.json"), JSON.stringify(LOCK));
-    const warnings: string[] = [];
-
-    expect(readLockFor(d, "sandbox", (m) => warnings.push(m))).toEqual(LOCK);
-    expect(readLockFor(d, "sandbox", (m) => warnings.push(m))).toEqual(LOCK);
-
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toMatch(/infi\.billing\.lock\.json → infi\.company\.sandbox\.lock\.json/);
-    expect(fs.readdirSync(d).sort()).toEqual(["infi.company.sandbox.lock.json"]);
-  });
-
-  it("migrates to live when the lock recorded live, and a live read never sees sandbox provenance", () => {
-    const d = dir();
-    fs.writeFileSync(path.join(d, "infi.company.lock.json"), JSON.stringify({ ...LOCK, mode: "live" }));
-
-    expect(readLockFor(d, "sandbox", () => {})).toBeUndefined();
-    expect(readLockFor(d, "live", () => {})?.mode).toBe("live");
-  });
-
-  it("never overwrites an existing per-mode lock: the legacy one is kept as .bak", () => {
-    const d = dir();
-    fs.writeFileSync(path.join(d, "infi.company.sandbox.lock.json"), JSON.stringify({ ...LOCK, mode: "sandbox" }));
-    fs.writeFileSync(path.join(d, "infi.company.lock.json"), JSON.stringify(LOCK));
-    const warnings: string[] = [];
-
-    const done = migrateLegacyLocks(d, (m) => warnings.push(m));
-
-    expect(done[0]?.keptAsBackup).toBe(true);
-    expect(warnings).toHaveLength(1);
-    expect(JSON.parse(fs.readFileSync(path.join(d, "infi.company.sandbox.lock.json"), "utf8")).mode).toBe("sandbox");
-    expect(fs.existsSync(path.join(d, "infi.company.lock.json.bak"))).toBe(true);
+    expect(obsoleteLockNotice(d)).toBeUndefined();
+    fs.writeFileSync(path.join(d, "infi.company.sandbox.lock.json"), "{}");
+    fs.writeFileSync(path.join(d, "infi.billing.lock.json"), "{}");
+    expect(obsoleteLocks(d)).toEqual(["infi.company.sandbox.lock.json", "infi.billing.lock.json"]);
+    expect(obsoleteLockNotice(d)).toMatch(/no longer used .* safe to delete/);
   });
 });

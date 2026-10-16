@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "key": "ai-chat",
+      "name": "AI Chat",
+      "type": "agent",
+      "pricingModel": "prepaid",
+      "currency": "BRL",
+      "billingCycle": "monthly",
+      "meters": [
+        {
+          "key": "tokens",
+          "unit": "token",
+          "aggregation": "sum"
+        },
+        {
+          "key": "credits",
+          "unit": "unit",
+          "aggregation": "sum"
+        }
+      ],
+      "prices": [
+        {
+          "meter": "tokens",
+          "model": "per_unit",
+          "unitAmount": "0.002"
+        }
+      ],
+      "grants": [
+        {
+          "meter": "tokens",
+          "amount": "50000",
+          "on": "cycle"
+        },
+        {
+          "meter": "credits",
+          "amount": "500",
+          "on": "payment"
+        }
+      ]
+    },
+    {
+      "key": "ebook",
+      "type": "item",
+      "pricingModel": "one_time",
+      "currency": "USD",
+      "basePrice": "19.90",
+      "description": "A practical guide.",
+      "guaranteeDays": 14
+    },
+    {
+      "key": "pro",
+      "renamedFrom": "pro-plan",
+      "type": "agent",
+      "pricingModel": "usage",
+      "meters": [
+        {
+          "key": "calls",
+          "unit": "request",
+          "aggregation": "count",
+          "displayName": "API calls"
+        }
+      ],
+      "prices": [
+        {
+          "meter": "calls",
+          "model": "tiered",
+          "tiers": [
+            {
+              "upTo": "1000",
+              "unitAmount": "0"
+            },
+            {
+              "upTo": null,
+              "unitAmount": "0.01"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "webhooks": [
+    {
+      "url": "https://example.com/hooks/infi",
+      "events": [
+        "payment.confirmed",
+        "usage.threshold_reached"
+      ]
+    }
+  ]
+}

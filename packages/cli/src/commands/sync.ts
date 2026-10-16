@@ -2,58 +2,79 @@ import path from "node:path";
 import pc from "picocolors";
 import type { GlobalFlags } from "../lib/client.js";
 import { infiClient } from "../lib/client.js";
-import {
-  loadCompanyConfig,
-  lockPathFor,
-  readLockFor,
-  resolveCompanyFile,
-  writeLock,
-} from "../lib/company-file.js";
+import { loadCompanyConfig, obsoleteLockNotice, resolveCompanyFile } from "../lib/company-file.js";
 import { ok, printJson } from "../lib/output.js";
+import { exitCodeFor, printHeld, printPlan, printSecrets } from "../lib/plan-output.js";
 
-export async function syncCommand(
-  flags: GlobalFlags & { file?: string; plan?: boolean; force?: boolean },
-): Promise<void> {
+export type SyncFlags = GlobalFlags & {
+  file?: string;
+  plan?: boolean;
+  adoptUnmanaged?: boolean;
+  archiveOrphaned?: boolean;
+  overwriteDrift?: boolean;
+};
+
+/**
+ * `infi sync`: the file goes to the server, which plans and applies it
+ * (ADR 0025). The plan's sentences are printed before the apply; on live the
+ * apply is a proposal and the command prints where a person approves it.
+ */
+export async function syncCommand(flags: SyncFlags): Promise<void> {
   const file = resolveCompanyFile(flags.file);
   const config = await loadCompanyConfig(file);
+  const notice = obsoleteLockNotice(path.dirname(path.resolve(file)));
+  if (notice) process.stderr.write(`${pc.dim(notice)}\n`);
+
   const infi = infiClient(flags);
-  // The client's mode, not a second reading of the key: the lock has to match
-  // the host the writes actually go to.
-  const lockPath = lockPathFor(file, infi.mode);
   const result = await infi.sync(config, {
     plan: flags.plan ?? false,
-    force: flags.force ?? false,
-    lock: readLockFor(path.dirname(lockPath), infi.mode),
+    adoptUnmanaged: flags.adoptUnmanaged,
+    archiveOrphaned: flags.archiveOrphaned,
+    overwriteDrift: flags.overwriteDrift,
+    // Shown before the apply, so what is applied is what the user read.
+    onPlan: flags.json ? undefined : (plan) => printPlan(plan),
   });
+  process.exitCode = exitCodeFor(result);
 
   if (flags.json) {
-    printJson(result);
-    if (result.drift.length && !flags.force) process.exitCode = 2;
+    const { document: _doc, ...rest } = result;
+    printJson(rest);
     return;
   }
 
-  const label = flags.plan ? "Plan" : "Synced";
-  ok(`${label} (${result.actions.length} actions):`);
-  for (const a of result.actions) {
-    if (!flags.plan && a.action === "skip") continue;
-    const detail = a.detail ? `  ${pc.dim(`(${a.detail})`)}` : "";
-    const tag = a.action === "blocked" ? pc.yellow(a.action) : a.action;
-    console.log(`  ${tag}\t${a.resource}\t${a.ref}${detail}`);
-  }
-
-  if (result.drift.length && !flags.force) {
-    console.log("");
-    console.log(pc.yellow(`⚠ ${result.drift.length} item(s) diverge from the file and the lock does not vouch for overwriting them:`));
-    for (const d of result.drift) console.log(`  ${d.product}: ${d.detail}`);
-    console.log(pc.dim("Changed in the dashboard, or already in the tenant with no lock entry."));
-    console.log(pc.dim("Re-run with --force to overwrite, or `infi pull` to adopt the tenant's state."));
-    if (!flags.plan) writeLock(lockPath, result.lock);
-    process.exitCode = 2;
-    return;
-  }
-
-  if (!flags.plan) {
-    writeLock(lockPath, result.lock);
-    console.log(pc.dim(`Lock written: ${path.relative(process.cwd(), lockPath)}`));
+  switch (result.status) {
+    case "planned":
+      printPlan(result.plan);
+      if (result.plan.blocked) printHeld(result.held);
+      else if (result.plan.hasChanges) console.log(pc.dim(`\nApply with: infi sync${flags.file ? ` ${flags.file}` : ""}`));
+      break;
+    case "unchanged": {
+      // "Matches" only when nothing sits outside the file either.
+      const p = result.plan;
+      const outside = (p.unmanaged?.length ?? 0) + (p.orphaned?.length ?? 0) + (p.drift?.length ?? 0);
+      if (outside) {
+        printPlan(p);
+        ok("\nNothing to apply for what the file names. The notes above are outside it.");
+      } else ok("Nothing to apply: the tenant matches the file.");
+      break;
+    }
+    case "blocked":
+      printPlan(result.plan);
+      printHeld(result.held);
+      break;
+    case "stale":
+      console.log(pc.yellow("The tenant changed since that plan, so nothing was applied. This is the plan now:\n"));
+      printPlan(result.plan);
+      console.log(pc.dim("\nReview it and run `infi sync` again to apply it."));
+      break;
+    case "proposed":
+      ok(`\nProposed as revision #${result.revision?.number} (live changes are approved by a person).`);
+      console.log(`  Approve it here: ${pc.bold(result.approvalUrl ?? "")}`);
+      console.log(pc.dim("  Nothing changes on live until it is approved. Do not run sync again to retry it."));
+      break;
+    case "applied":
+      ok(`\nApplied revision #${result.revision?.number}.`);
+      printSecrets(result.secrets ?? []);
+      break;
   }
 }

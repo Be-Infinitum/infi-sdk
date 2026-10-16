@@ -71,10 +71,7 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
       message: "No secret key. Set INFI_SECRET_KEY, pass --key, or run `infi login`.",
       fix: fixForCode("missing_secret_key"),
     });
-    // A connected provider is the gate to real money (backend ADR 0012): without it
-  // a charge has no account to land in. A live key with no provider is the failure
-  // worth shouting about, so it fails there and only warns in sandbox.
-  checkEnvVars(checks);
+    checkEnvVars(checks);
     return { ok: false, checks };
   }
 
@@ -113,7 +110,7 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
         status: "fail",
         message: "Zero products on tenant — hosted login resolves without a customer (infinite login loop).",
         fix: {
-          command: "infi bootstrap --intent crm --json",
+          command: "infi bootstrap --intent usage-saas --json",
           hint: "Declare at least one product in infi.company.ts and sync (or re-run bootstrap).",
           docs: "AGENTS.md#mandatory-setup-order",
         },
@@ -133,47 +130,40 @@ export async function runDoctor(flags: GlobalFlags): Promise<DoctorResult> {
     });
   }
 
+  // Selling live waits on the merchant-of-record admission (ADR 0018): the UK
+  // Ltd sells, the merchant supplies. Merchants no longer connect their own PSP
+  // (BYOP is an enterprise arrangement), so this is the gate worth checking.
+  const admissionUrl = `${appBase(flags)}/go-live`;
   try {
-    const { connections, supported } = await infi.providers.list();
-    const usable = connections.find((c) => c.status === "connected");
+    const { admission } = await infi.account.mor();
     const live = mode === "live";
-    if (!usable) {
-      push(checks, {
-        id: "provider",
-        status: live ? "fail" : "warn",
-        message:
-          connections.length === 0
-            ? `No payment provider connected (supported: ${supported.join(", ") || "none"}) — charges have nowhere to land.`
-            : `Provider ${connections[0]!.provider} is ${connections[0]!.status}, not connected.`,
-        fix: {
-          hint: "Connect it in the dashboard — it needs fresh MFA, so an API key cannot do it.",
-          docs: `${appBase(flags)}/go-live`,
-        },
-      });
-    } else if (!usable.webhookRegistered) {
-      push(checks, {
-        id: "provider",
-        status: "warn",
-        message: `${usable.provider} connected, but its webhook is not registered — you will not learn when a payment succeeds.`,
-        fix: { docs: `${appBase(flags)}/go-live` },
-      });
+    if (admission.status === "approved") {
+      push(checks, { id: "mor_admission", status: "pass", message: "Merchant-of-record admission approved: live sales are open." });
     } else {
+      const why =
+        admission.status === "submitted"
+          ? "Merchant-of-record application submitted, waiting for review."
+          : admission.status === "rejected"
+            ? `Merchant-of-record application rejected${admission.decisionReason ? `: ${admission.decisionReason}` : ""}. Fix it and resubmit.`
+            : "Merchant-of-record application not submitted yet.";
       push(checks, {
-        id: "provider",
-        status: "pass",
-        message: `${usable.provider} connected, webhook registered.`,
+        id: "mor_admission",
+        // In sandbox nothing is lost: test charges need no admission.
+        status: live && admission.status !== "submitted" ? "fail" : "warn",
+        message: live ? why : `${why} Sandbox works without it; live sales need it.`,
+        fix: { hint: "The application is filled in the dashboard by the account owner.", docs: admissionUrl },
       });
     }
   } catch (err) {
-    // /account/providers is live-only today; a sandbox 404 is expected, not a defect.
     const status = (err as { status?: number }).status;
     push(checks, {
-      id: "provider",
+      id: "mor_admission",
       status: "warn",
       message:
         status === 404 && mode === "sandbox"
-          ? "Provider connections are live-only — sandbox charges through the built-in sandbox provider."
-          : `Could not read provider connections: ${err instanceof Error ? err.message : String(err)}`,
+          ? "Merchant-of-record admission is not served here — sandbox charges need none."
+          : `Could not read the merchant-of-record admission: ${err instanceof Error ? err.message : String(err)}`,
+      fix: { docs: admissionUrl },
     });
   }
 

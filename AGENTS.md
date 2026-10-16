@@ -8,10 +8,10 @@ handle your end-user login (bring your own auth).
 
 ```bash
 # One shot: claim + infi.company.ts + sync + doctor
-infi bootstrap --intent crm --ref lovable --json
+infi bootstrap --intent usage-saas --ref lovable --json
 ```
 
-Intents: `crm` | `prepaid-ai-chat` | `one-time` | `usage-saas`
+Intents: `prepaid-ai-chat` | `one-time` | `usage-saas`
 
 Inject `env.INFI_SECRET_KEY` into the app. **Do not set auth/pay URLs** — the SDK infers
 API + `app.beinfi.com` from the key (`sk_test_` / `sk_live_`).
@@ -24,7 +24,7 @@ Declarative tenant config (git-versioned, Terraform-style):
 // infi.company.ts
 import { defineCompany } from "@beinfi/sdk";
 
-export default defineCompany.fromIntent("crm");
+export default defineCompany.fromIntent("usage-saas");
 
 // or hand-authored:
 export default defineCompany({
@@ -33,35 +33,55 @@ export default defineCompany({
 });
 ```
 
+The server plans and applies it (backend ADR 0025). The file is serialized to the
+company document — validate against the JSON Schema at
+`https://api.beinfi.com/config/schema/v1.json` before planning. Schema v1 rules:
+`price.meter` required (a flat amount is `basePrice`), `aggregation` is `sum`|`count`,
+webhooks are `https://` only, one grant per meter per version. Deliverables and
+coupons are **not** in the document (use `infi.products.deliverable.save` /
+`infi.coupons` after the sync).
+
 | Command | Purpose |
 |---------|---------|
 | `infi bootstrap --intent …` | Claim + write company file + sync |
-| `infi sync` | Apply the desired state (human only in live) |
-| `infi sync --plan` | Dry-run |
-| `infi pull` | Backend → `infi.company.ts` |
-| `infi doctor --json` | Setup health (products + provider + env) |
-| `infi providers [list]` | BYOP connection status |
-| `infi providers verify <p>` | Re-check a stored credential |
-| `infi go-live --json` | Claim → connect provider → webhook |
+| `infi sync --plan` | The plan, in sentences. Writes nothing |
+| `infi sync` | Plan + apply. Sandbox: applied. **Live: a proposal** (prints the approval link) |
+| `infi pull` | The tenant's document (`GET /config/document`) → `infi.company.ts` |
+| `infi promote <crev_…>` | Applied sandbox revision → live, as a proposal |
+| `infi doctor --json` | Setup health (products + merchant-of-record admission + env) |
+| `infi go-live --json` | Claim → merchant-of-record admission → `sk_live_` |
 
 `defineBilling` / `infi.billing.ts` still work as aliases.
 
-**Live is propose-only for agents.** With a `sk_live_` key, agents run
-`infi sync --plan` / `infi_sync_plan` and show the plan; the human applies it with
-`infi sync`. The MCP's write tools refuse any key that is not `sk_test_`.
+**Live is always a proposal.** With an `sk_live_` key, `infi sync` and `infi_sync_apply`
+return an `approvalUrl`: give it to the human. Nothing changes on live until a person
+approves it in the dashboard (step-up, which no key can obtain). Never retry the apply.
 
-Sync records what it applied in `infi.company.sandbox.lock.json` /
-`infi.company.live.lock.json` (commit both). A resource that diverges from the file
-with no lock entry to vouch for it is **blocked**, not overwritten: ask the human
-whether to `infi pull` (keep the tenant's state) or `--force` (overwrite).
-Writes carry a deterministic `Idempotency-Key`, so retrying after a timeout is safe.
+**Held changes.** A plan can hold a change; nothing is applied and each held change
+names the option that resolves it. Ask the human which; never pick one yourself:
+
+| Reason | Option | Means |
+|--------|--------|-------|
+| `unmanaged` | `adoptUnmanaged` / `--adopt-unmanaged` | Exists in the tenant, no revision wrote it (first sync after upgrading from CLI ≤ 0.2.8) |
+| `drift` | `overwriteDrift` / `--overwrite-drift` | Edited in the dashboard since the last apply. `infi pull` keeps the edit instead |
+| orphaned | `archiveOrphaned` / `--archive-orphaned` | The file no longer names it. Archived, never deleted |
+| `active_subscriptions`, `selling_links`, `immutable_field`, `rename_conflict` | none | Fix the cause; the sentence says what |
+
+**Stale plan** (exit 3, `status: "stale"`): the tenant moved between plan and apply. Show
+the new plan and ask again; it is never applied unseen.
+
+**Webhook secrets** of endpoints an apply creates come back once (`secrets`). Store them
+in the app's server secrets right away; they are never shown again and never written to
+disk.
+
+There are no lock files any more; delete `infi.company.*.lock.json`.
 
 ## Credentials
 
 | Var | Required | Notes |
 |-----|----------|-------|
 | `INFI_TENANT_SLUG` | for checkout | Merchant slug in the hosted `/pay/{slug}` URL |
-| `INFI_SECRET_KEY` | yes | `sk_test_` sandbox / `sk_live_` once a provider is connected |
+| `INFI_SECRET_KEY` | yes | `sk_test_` sandbox / `sk_live_` once the merchant-of-record admission is approved |
 | `INFI_API_URL` | local only | Override; omit in Lovable/prod |
 | `INFI_AUTH_BASE_URL` / `INFI_PAY_BASE_URL` | **no** | Legacy — remove |
 
@@ -88,34 +108,24 @@ await infi.customers.create(productId, { externalId: myUserId });
 
 The returned enrollment id is what every billing call references.
 
-## Payment providers (BYOP)
-
-The merchant connects **their own** Stripe or Asaas account. Money lands there; Beinfi never
-holds it. Read state from the CLI:
-
-```bash
-infi providers list --json      # status, webhook registered, publishable key
-infi providers verify stripe    # re-check after a key rotation
-```
-
-**Connecting is dashboard-only.** It decides where a merchant's money goes, so the backend
-gates it behind fresh MFA, and a step-up token is only ever minted for a dashboard session —
-an API key can neither obtain nor replay one. Agents must send the human to
-`app.beinfi.com/go-live`; never try to connect with a key.
-
 ## Go-live (real money)
 
 Sandbox is instant. Live is a **human** funnel — agents instruct, never skip a step:
 
 1. Claim tenant (`claimUrl` from bootstrap)
 2. Create Beinfi account
-3. **Connect a payment provider** (dashboard, needs MFA) and register its webhook
+3. **Merchant-of-record admission**: Infi's UK Ltd is the seller of record and the
+   merchant supplies through it. The account owner applies in the dashboard at
+   `app.beinfi.com/go-live`; never fill or submit it for them.
 4. Create `sk_live_`, replace secrets, `infi doctor`
 
 ```bash
 infi go-live --json
 # MCP: infi_go_live_status
 ```
+
+Connecting the merchant's own Stripe/Asaas (BYOP) is an enterprise arrangement, not
+part of this path; `infi providers list` only reports it where it exists.
 
 ## MCP
 
@@ -134,8 +144,9 @@ infi go-live --json
 Tools: `infi_bootstrap`, `infi_claim_create`, `infi_doctor`, `infi_go_live_status`,
 `infi_sync_plan`, `infi_sync_apply`, `infi_pull`.
 
-`infi_sync_apply`, `infi_bootstrap`, `infi_onboard` and `infi_claim_create` refuse
-a live key. `infi_sync_plan` works in live.
+`infi_sync_apply` with a live key **proposes**: it returns the approval link for the
+human and never applies or retries. `infi_bootstrap`, `infi_onboard` and
+`infi_claim_create` provision a sandbox and refuse a live key.
 
 ## Embedded checkout
 

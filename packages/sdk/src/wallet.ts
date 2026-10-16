@@ -47,7 +47,7 @@ export interface BoundWallet {
 }
 
 export interface WalletForCustomerOptions {
-  /** Product natural key (e.g. "crm", "ai-chat"). */
+  /** Product natural key (e.g. "ai-chat"). */
   productKey: string;
   /** Optional email carried onto the customer record. */
   email?: string;

@@ -6,7 +6,7 @@ const repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const examplesDir = path.join(repoRoot, "examples");
 const templatesDir = path.join(repoRoot, "templates");
 
-const EXAMPLE_TEMPLATES = ["crm", "ebook-sale", "ai-chat", "marketplace-billing"];
+const EXAMPLE_TEMPLATES = ["ebook-sale", "ai-chat", "marketplace-billing"];
 
 function shouldSkip(name) {
   return (

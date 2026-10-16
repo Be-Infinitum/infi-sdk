@@ -6,18 +6,21 @@ ${pc.bold("infi")} — Infi operator CLI (company as code)
 
 ${pc.dim("Usage:")}
   infi onboard [--email <email>] [--account-name <name>] [--intent <intent>] [--cwd <project>] --json
-  infi bootstrap --intent <crm|prepaid-ai-chat|one-time|usage-saas> [--ref <channel>] [--json]
+  infi bootstrap --intent <prepaid-ai-chat|one-time|usage-saas> [--ref <channel>] [--json]
   infi login [--token <session>] [--tenant <slug>] [--profile name]
   infi keys list|create|revoke [--key sk_...] [--json]
-  infi providers [list] [--json]                # BYOP connection status
+  infi providers [list] [--json]                # BYOP (enterprise) connection status
   infi providers verify <stripe|asaas> [--json] # re-check a stored credential
   infi claim create|get <id> [--ref cli] [--local] [--json]
-  infi sync [file] [--plan] [--force] [--key sk_...] [--local] [--json]
-  infi pull [file] [--force]   # generate infi.company.ts + lock from the backend
+  infi sync [file] [--plan] [--adopt-unmanaged] [--archive-orphaned] [--overwrite-drift] [--json]
+                               # the server plans + applies; on live it proposes (approval link)
+  infi pull [file] [--force]   # write infi.company.ts from the tenant (GET /config/document)
+  infi promote <crev_…> [--from-key sk_test_…] [--to-key sk_live_…] [--json]
+                               # propose an applied sandbox revision on live
   infi skills [list] [--json]                   # agent skills bundled with the CLI
   infi skills install [name...] [--force]       # copy them into ./.claude/skills/
   infi doctor [--key sk_...] [--local] [--json]
-  infi go-live [--claim-id <id>] [--json]       # claim → connect provider → webhook
+  infi go-live [--claim-id <id>] [--json]       # claim → merchant-of-record admission → live key
   infi deploy [--url <app-url>] [--vercel] [--prod] [--json]
   infi deploy vercel [--prod]   # deploy + sync env + register webhook
 
@@ -29,21 +32,24 @@ ${pc.dim("Global flags:")}
   -h, --help           Show help
 
 ${pc.dim("Examples:")}
-  infi bootstrap --intent crm --ref lovable --json
+  infi bootstrap --intent usage-saas --ref lovable --json
   infi claim create --ref cursor --json
   infi sync infi.company.ts --plan
   infi doctor --json
   infi skills install
-  infi providers list
   infi go-live --json
 
 ${pc.dim("Note:")}
   API and app hosts are inferred from the key: sk_test_ → api-sandbox/app-sandbox.beinfi.com,
   sk_live_ → api/app.beinfi.com. With no key at all, provisioning uses sandbox.
   Beinfi does not do end-user login — bring your own auth and pass your own user id.
-  Connecting a provider needs fresh MFA, so it is a dashboard action, not a CLI one.
+  Live catalog changes are proposals: a person approves them in the dashboard (step-up).
+  Selling live needs the merchant-of-record admission at app.beinfi.com/go-live.
 `);
 }
+
+/** Flags that never take a value, so `--adopt-unmanaged infi.company.ts` keeps the file positional. */
+const BOOLEAN_FLAGS = new Set(["adopt-unmanaged", "archive-orphaned", "overwrite-drift", "skip-sync", "prod", "vercel", "skip-webhook", "skip-env"]);
 
 export type ParsedArgs = {
   help?: boolean;
@@ -64,6 +70,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     else if (arg === "--local") flags.local = true;
     else if (arg === "--plan") flags.plan = true;
     else if (arg === "--force") flags.force = true;
+    else if (arg.startsWith("--") && BOOLEAN_FLAGS.has(arg.slice(2))) flags[arg.slice(2)] = true;
     else if (arg.startsWith("--")) {
       const key = arg.slice(2);
       const next = argv[i + 1];

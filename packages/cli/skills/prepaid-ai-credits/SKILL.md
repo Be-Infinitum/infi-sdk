@@ -30,7 +30,8 @@ export default defineCompany({
     currency: "BRL",
     basePrice: "19.90",
     meters: [{ key: "tokens", unit: "token", aggregation: "sum" }],
-    prices: [{ meter: "tokens", model: "prepaid_credits", unitAmount: "0.01" }],
+    prices: [{ meter: "tokens", model: "per_unit", unitAmount: "0.01" }],
+    grants: [{ meter: "tokens", amount: "50000", on: "cycle" }],
   }],
 });
 ```
@@ -38,6 +39,13 @@ export default defineCompany({
 ```bash
 npx -y @beinfi/cli sync infi.company.ts && npx -y @beinfi/cli doctor
 ```
+
+`sync` sends the file to the server, prints the plan in sentences and applies it
+(sandbox) or returns an approval link for a person (live). The document's schema is
+`https://api.beinfi.com/config/schema/v1.json`: one grant per meter, `price.meter`
+required, `https://` webhooks only. If the plan holds a change, it names the flag
+that resolves it (`--adopt-unmanaged` on the first sync of a tenant built before CLI
+0.3.0); ask the human before passing it.
 
 The file is `infi.company.ts` and the function is `defineCompany` — `bootstrap`,
 `sync`, `pull` and `doctor` all assume that name. (`defineBilling` is the old
