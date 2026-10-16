@@ -239,6 +239,22 @@ describe("Idempotency-Key on sync writes", () => {
   });
 });
 
+describe("re-creating what the dashboard deleted", () => {
+  // Keyed on the payload alone, the second create would replay the first
+  // response: sync reports "create", the lock records it, and no endpoint exists.
+  it("a webhook deleted in the dashboard is created again, every time", async () => {
+    const { infi, state, counts } = idempotentBackend();
+    let lock = (await syncBilling(infi, TWO_PRICES, { now: "t0" })).lock;
+
+    for (const [i, now] of ["t1", "t2", "t3"].entries()) {
+      state.webhooks.length = 0;
+      lock = (await syncBilling(infi, TWO_PRICES, { lock, now })).lock;
+      expect(counts["webhook.create"]).toBe(i + 2);
+      expect(state.webhooks.map((w) => w.url)).toEqual(["https://acme.test/hooks"]);
+    }
+  });
+});
+
 describe("retry after a timeout", () => {
   function single(state: ReturnType<typeof idempotentBackend>["state"]) {
     const productId = state.products[0].id;

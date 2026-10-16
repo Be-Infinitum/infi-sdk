@@ -511,7 +511,11 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
       let created: WebhookEndpoint | undefined;
       if (!ctx.plan) {
         const input = { url: w.url, events: w.events };
-        created = await infi.webhooks.create(input, syncIdempotencyKey(ctx.tenant, "webhook.create", input));
+        // The last sync's timestamp sets apart a re-create after a dashboard
+        // delete: on the payload alone it would replay the first create and
+        // record an endpoint that no longer exists.
+        const since = ctx.prevLock?.webhooks?.[w.url]?.syncedAt ?? "none";
+        created = await infi.webhooks.create(input, syncIdempotencyKey(ctx.tenant, "webhook.create", input, since));
       }
       ctx.lock.webhooks[w.url] = {
         state: webhookFingerprint(created ?? { events: w.events, isActive: w.isActive }),
@@ -600,6 +604,11 @@ export async function syncBilling(
     const name = p.name ?? p.key;
     // Prefer the natural key (unique per tenant); fall back to name for older tenants.
     const existing = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name));
+    const prev = prevLock?.products[p.key];
+    // Creates and saves have no prior backend state to key on, so they key on the
+    // last sync of this product instead. A retry never wrote the lock, so it
+    // sends the same key; a later run, after a dashboard delete, sends a new one.
+    const since = prev?.syncedAt ?? "none";
     let productId = existing?.id;
     // Metadata we know for this product (updated as we go), for the post-sync snapshot.
     let meta: Pick<Product, "name" | "type" | "pricingModel" | "currency"> = existing ?? {
@@ -622,7 +631,7 @@ export async function syncBilling(
           // (the backend rejects prepaid without one).
           billingCycle: p.billingCycle ?? undefined,
         };
-        const created = await infi.products.create(input, key("product.create", input));
+        const created = await infi.products.create(input, key("product.create", input, since));
         productId = created.id;
         meta = created;
       }
@@ -645,7 +654,6 @@ export async function syncBilling(
     const versions = await infi.products.versions.list(productId);
     const current = currentVersion(versions);
     const currentPrices = current ? await infi.products.prices.list(productId, current.id!) : [];
-    const prev = prevLock?.products[p.key];
     const preState = existing ? productFingerprint(existing, current, currentPrices, idToKey) : "";
     // An existing product with no lock entry counts as drifted: without the lock
     // nothing says the divergence is ours to overwrite (an agent with a live key
@@ -705,7 +713,7 @@ export async function syncBilling(
           // the API 422s without one. `track({ value })` writes `value`.
           ...(m.aggregation === "count" ? {} : { valueProperty: m.valueProperty ?? "value" }),
         };
-        const created = await infi.products.meters.create(productId, input, key("meter.create", productId, input));
+        const created = await infi.products.meters.create(productId, input, key("meter.create", productId, input, since));
         meterIdByKey.set(m.key, created.id);
       }
     }
@@ -772,7 +780,7 @@ export async function syncBilling(
       actions.push({ action: "create", resource: "deliverable", ref: name });
       if (!plan) {
         const input = { kind: "link" as const, url: p.deliverable.url };
-        await infi.products.deliverable.save(productId, input, key("deliverable.save", productId, input));
+        await infi.products.deliverable.save(productId, input, key("deliverable.save", productId, input, since));
       }
     }
 

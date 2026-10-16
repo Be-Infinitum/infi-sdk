@@ -91,3 +91,31 @@ try {
   await client.close();
   fs.rmSync(cwd, { recursive: true, force: true });
 }
+
+// With a live key, an agent only proposes. Every write tool must refuse before
+// touching the network (the API URL below is unreachable on purpose) or the disk.
+{
+  const liveCwd = fs.mkdtempSync(path.join(os.tmpdir(), "infi-mcp-live-"));
+  const live = new Client({ name: "live-guard-smoke", version: "1" });
+  const env = { PATH: process.env.PATH ?? "", INFI_SECRET_KEY: "sk_live_smoke", INFI_API_URL: "http://127.0.0.1:9" };
+  try {
+    await live.connect(new StdioClientTransport({ command: "node", args: [dist], env, cwd: liveCwd }));
+    const calls = [
+      ["infi_sync_apply", { config: { products: [] }, force: true, cwd: liveCwd }],
+      ["infi_bootstrap", { intent: "crm", cwd: liveCwd }],
+      ["infi_onboard", { cwd: liveCwd, email: "a@b.test", accountName: "Acme", intent: "crm" }],
+      ["infi_claim_create", {}],
+    ];
+    for (const [name, args] of calls) {
+      const r = await live.callTool({ name, arguments: args });
+      if (!r.isError || !/refused: .*live key/.test(r.content[0].text)) {
+        throw new Error(`${name} did not refuse a live key: ${JSON.stringify(r)}`);
+      }
+    }
+    if (fs.readdirSync(liveCwd).length) throw new Error("a refused live write left files behind");
+    console.log("smoke: with a live key every write tool refuses, before network or disk");
+  } finally {
+    await live.close();
+    fs.rmSync(liveCwd, { recursive: true, force: true });
+  }
+}
