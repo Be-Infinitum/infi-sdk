@@ -1,6 +1,36 @@
 # Changelog
 
-## Unreleased
+## 0.12.1 — 2026-10-16
+
+Hotfix: `sync` could overwrite a live tenant without a word.
+
+### Fixed
+- **Drift without a lock no longer passes in silence.** The drift guard compared
+  the backend against the previous lock, and with no lock entry there was nothing
+  to compare — so an apply without a lock (which is every `infi_sync_apply` from
+  the MCP) rewrote whatever the dashboard had set, live keys included. An existing
+  product, meter or webhook that diverges from the config and has no lock entry is
+  now `blocked`, with detail `exists in the tenant but not in the lock`, unless
+  `force: true`. One that already matches is adopted into the lock silently.
+  Meter updates are guarded too; they used to skip the guard altogether.
+- **Every sync write carries a deterministic `Idempotency-Key`**
+  (`syncIdempotencyKey`): a hash of the tenant (`account.get()`, once per apply),
+  the operation, the desired payload and the state it supersedes — a version
+  create is keyed on the published version it replaces, so a revert (A → B → A)
+  makes a new version instead of replaying the first. Re-running an apply that
+  timed out replays the same draft and the same prices; nothing is created twice.
+
+### Added
+- `SyncLock.mode` (`"sandbox"` | `"live"`), stamped from the client. Lets the CLI
+  keep one lock per mode and migrate old locks to the right one.
+- `SyncOptions.tenant` overrides the scope of the idempotency keys.
+
+### Changed
+- Types regenerated from the API contract (public ids `cus_`, `inv_`, `pay_`…,
+  14 more webhook events). `BillingMeter.aggregation` is `"sum" | "count"` only:
+  the backend has refused the other values with 422 for a while.
+
+## 0.12.0 — 2026-09-16
 
 ### BREAKING
 - **`checkout()` now requires `customer.taxId`** in purchase mode, validated as a

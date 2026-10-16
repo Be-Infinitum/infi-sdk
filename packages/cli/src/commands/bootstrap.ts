@@ -5,7 +5,14 @@ import { COMPANY_INTENTS, companyFromIntent, type CompanyIntent } from "@beinfi/
 import type { GlobalFlags } from "../lib/client.js";
 import { apiBase, infiClient, provisioningApiBase } from "../lib/client.js";
 import { createClaimable, getClaimable, type ClaimableTenantCreateResponse, type ClaimRef } from "../lib/claim.js";
-import { DEFAULT_COMPANY_FILES, loadCompanyConfig, lockPathFor, writeCompanyFile, writeLock } from "../lib/company-file.js";
+import {
+  DEFAULT_COMPANY_FILES,
+  loadCompanyConfig,
+  lockPathFor,
+  readLockFor,
+  writeCompanyFile,
+  writeLock,
+} from "../lib/company-file.js";
 import { readProjectEnv } from "../lib/dotenv.js";
 import { runDoctor } from "./doctor.js";
 import { fail, ok, printJson } from "../lib/output.js";
@@ -134,8 +141,12 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
     // Build the config in memory instead of importing the .ts we just wrote:
     // in a plain `npm init` project Node reads .ts as CJS and the ESM file it
     // generates throws "Cannot use import statement outside a module".
-    const sync = await infi.sync(existingCompany ? await loadCompanyConfig(companyFile) : companyFromIntent(intent));
-    writeLock(lockPathFor(companyFile), sync.lock);
+    // Pass the lock too: a resumed bootstrap re-syncs a tenant it already
+    // seeded, and without the lock the drift guard would block its own products.
+    const sync = await infi.sync(existingCompany ? await loadCompanyConfig(companyFile) : companyFromIntent(intent), {
+      lock: readLockFor(cwd, infi.mode),
+    });
+    writeLock(lockPathFor(companyFile, infi.mode), sync.lock);
     syncResult = { actions: sync.actions.length, drift: sync.drift.length };
   }
 

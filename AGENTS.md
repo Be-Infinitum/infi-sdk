@@ -36,7 +36,7 @@ export default defineCompany({
 | Command | Purpose |
 |---------|---------|
 | `infi bootstrap --intent …` | Claim + write company file + sync |
-| `infi sync` | Apply the desired state |
+| `infi sync` | Apply the desired state (human only in live) |
 | `infi sync --plan` | Dry-run |
 | `infi pull` | Backend → `infi.company.ts` |
 | `infi doctor --json` | Setup health (products + provider + env) |
@@ -45,6 +45,16 @@ export default defineCompany({
 | `infi go-live --json` | Claim → connect provider → webhook |
 
 `defineBilling` / `infi.billing.ts` still work as aliases.
+
+**Live is propose-only for agents.** With a `sk_live_` key, agents run
+`infi sync --plan` / `infi_sync_plan` and show the plan; the human applies it with
+`infi sync`. The MCP's write tools refuse any key that is not `sk_test_`.
+
+Sync records what it applied in `infi.company.sandbox.lock.json` /
+`infi.company.live.lock.json` (commit both). A resource that diverges from the file
+with no lock entry to vouch for it is **blocked**, not overwritten: ask the human
+whether to `infi pull` (keep the tenant's state) or `--force` (overwrite).
+Writes carry a deterministic `Idempotency-Key`, so retrying after a timeout is safe.
 
 ## Credentials
 
@@ -123,6 +133,9 @@ infi go-live --json
 
 Tools: `infi_bootstrap`, `infi_claim_create`, `infi_doctor`, `infi_go_live_status`,
 `infi_sync_plan`, `infi_sync_apply`, `infi_pull`.
+
+`infi_sync_apply`, `infi_bootstrap`, `infi_onboard` and `infi_claim_create` refuse
+a live key. `infi_sync_plan` works in live.
 
 ## Embedded checkout
 

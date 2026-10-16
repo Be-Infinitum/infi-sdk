@@ -8,6 +8,7 @@ import type {
   WebhookEndpoint,
 } from "./types.js";
 import type { WebhookEventType } from "./webhooks.js";
+import { sha256Hex } from "./sha256.js";
 
 // ── Declarative company config ("company as code" — ADR 0004)
 // Legacy name: billing as code. Prefer defineCompany() in new code. ───────────
@@ -186,9 +187,14 @@ export interface ProductLock extends EntityLock {
   versionId?: string;
 }
 
-/** `infi.billing.lock.json` — what the last sync applied, keyed by natural key. */
+/**
+ * `infi.company.<mode>.lock.json` — what the last sync applied, keyed by natural
+ * key. One lock per mode: sandbox and live are different tenants' worth of ids.
+ */
 export interface SyncLock {
   version: 1;
+  /** The mode of the key that wrote this lock. Absent on locks older than 0.12.1. */
+  mode?: "sandbox" | "live";
   products: Record<string, ProductLock>;
   /** Per-app provenance, keyed by slug. */
   /** Per-webhook provenance, keyed by url. */
@@ -215,8 +221,17 @@ export interface SyncOptions {
   plan?: boolean;
   /** Previous lockfile (drift is measured against this). */
   lock?: SyncLock;
-  /** Apply even when the backend drifted from the lock (overwrites dashboard edits). */
+  /**
+   * Apply even when a managed resource diverges from the config without the lock
+   * to vouch for it — changed in the dashboard since the last sync, or already
+   * in the tenant with no lock entry at all. Overwrites those edits.
+   */
   force?: boolean;
+  /**
+   * Scope for the Idempotency-Keys sync derives. Defaults to the tenant id from
+   * `account.get()`, read once per apply.
+   */
+  tenant?: string;
   /** Timestamp stamped into the returned lock (defaults to now). */
   now?: string;
 }
@@ -378,33 +393,52 @@ async function snapshotProduct(
   return { state: productFingerprint(meta, cur, prices, idToKey), versionId: cur?.id, syncedAt: now };
 }
 
-/** Create + publish a new version with the config's prices. Shared by seed and bump. */
+/**
+ * Create + publish a new version with the config's prices. Shared by seed and bump.
+ *
+ * `base` is the published version this one supersedes ("none" on a seed). It is
+ * part of the create's Idempotency-Key: a retry after a timeout replays the same
+ * draft, and the prices keyed on that draft's id replay with it, so nothing is
+ * added twice.
+ */
 async function publishVersion(
   infi: Infi,
   productId: string,
   p: BillingProduct,
   meterIdByKey: Map<string, string | undefined>,
+  key: (op: string, ...parts: unknown[]) => string,
+  base: string,
 ): Promise<void> {
   // The backend dropped product_versions.credits_per_cycle (migration 000098) and
   // now answers 422 "unrecognized field" for it, so the allowance goes over as a
   // meter grant. Sending the old field failed every sync, and with it bootstrap.
   const grants = versionGrants(p);
-  const version = await infi.products.versions.create(productId, {
+  const versionInput = {
     billingCycle: p.billingCycle ?? null,
     basePrice: p.basePrice ?? null,
     ...(grants.length > 0 ? { grants } : {}),
-  });
-  for (const pr of p.prices ?? []) {
-    const meterId = pr.meter ? meterIdByKey.get(pr.meter) : undefined;
-    await infi.products.prices.add(productId, version.id!, {
-      model: pr.model,
-      unitAmount: pr.unitAmount,
-      currency: pr.currency ?? p.currency ?? "BRL",
-      meterId,
-      tiers: pr.tiers,
-    } as PriceInput);
+  };
+  const priceInputs = (p.prices ?? []).map(
+    (pr) =>
+      ({
+        model: pr.model,
+        unitAmount: pr.unitAmount,
+        currency: pr.currency ?? p.currency ?? "BRL",
+        meterId: pr.meter ? meterIdByKey.get(pr.meter) : undefined,
+        tiers: pr.tiers,
+      }) as PriceInput,
+  );
+  // The version's key covers its prices too: same header, different prices is a
+  // different version.
+  const version = await infi.products.versions.create(
+    productId,
+    versionInput,
+    key("version.create", productId, base, versionInput, priceInputs),
+  );
+  for (const input of priceInputs) {
+    await infi.products.prices.add(productId, version.id!, input, key("price.add", version.id, input));
   }
-  await infi.products.versions.publish(productId, version.id!);
+  await infi.products.versions.publish(productId, version.id!, key("version.publish", version.id));
 }
 
 /** Order-insensitive string-array equality (origins / redirect URIs / events). */
@@ -419,10 +453,46 @@ function webhookFingerprint(w: Pick<WebhookEndpoint, "events" | "isActive">): st
   return canon({ events: [...(w.events ?? [])].sort(), isActive: w.isActive ?? null });
 }
 
+/**
+ * Idempotency-Key for one sync write: a hash of the tenant, the operation, and
+ * everything that decides the write — the desired payload and the state it
+ * supersedes. The same apply retried after a timeout sends the same key, so the
+ * backend replays the first response instead of creating a second price or
+ * version.
+ *
+ * The superseded state is not optional. Keyed on the payload alone, a revert
+ * (A → B → A) inside the backend's key window would replay the first A and sync
+ * would report a version it never created.
+ */
+export function syncIdempotencyKey(tenant: string, op: string, ...parts: unknown[]): string {
+  return `sync_${sha256Hex(canon([tenant, op, ...parts])).slice(0, 48)}`;
+}
+
+/**
+ * The tenant the key belongs to. A failed read falls back to a constant: the
+ * backend already scopes keys per tenant, so this only namespaces them, and a
+ * flapping read costs one retry its dedup, never a cross-tenant replay.
+ */
+async function resolveTenant(infi: Infi, explicit?: string): Promise<string> {
+  if (explicit) return explicit;
+  try {
+    const t = await infi.account.get();
+    return t.id ?? t.slug ?? "tenant";
+  } catch {
+    return "tenant";
+  }
+}
+
+/** Why a guarded write was blocked: dashboard edit vs. no provenance at all. */
+function blockedReason(prev: EntityLock | undefined): string {
+  return prev ? "changed in dashboard since last sync" : "exists in the tenant but not in the lock";
+}
+
 /** Shared context threaded into the tenant-level reconcilers. */
 interface ReconcileCtx {
   plan: boolean;
   force: boolean;
+  tenant: string;
   now: string;
   prevLock?: SyncLock;
   lock: SyncLock;
@@ -439,7 +509,14 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
     if (!match) {
       ctx.actions.push({ action: "create", resource: "webhook", ref: w.url });
       let created: WebhookEndpoint | undefined;
-      if (!ctx.plan) created = await infi.webhooks.create({ url: w.url, events: w.events });
+      if (!ctx.plan) {
+        const input = { url: w.url, events: w.events };
+        // The last sync's timestamp sets apart a re-create after a dashboard
+        // delete: on the payload alone it would replay the first create and
+        // record an endpoint that no longer exists.
+        const since = ctx.prevLock?.webhooks?.[w.url]?.syncedAt ?? "none";
+        created = await infi.webhooks.create(input, syncIdempotencyKey(ctx.tenant, "webhook.create", input, since));
+      }
       ctx.lock.webhooks[w.url] = {
         state: webhookFingerprint(created ?? { events: w.events, isActive: w.isActive }),
         syncedAt: ctx.now,
@@ -449,7 +526,9 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
 
     const prev = ctx.prevLock?.webhooks?.[w.url];
     const preState = webhookFingerprint(match);
-    const drifted = Boolean(prev && prev.state !== preState);
+    // No lock entry is not "no drift": nothing vouches that the dashboard didn't
+    // set what the file is about to overwrite.
+    const drifted = !prev || prev.state !== preState;
     const patch: { events?: WebhookEventType[]; isActive?: boolean } = {};
     if (!arrEq(match.events, w.events)) patch.events = w.events;
     if (w.isActive !== undefined && match.isActive !== w.isActive) patch.isActive = w.isActive;
@@ -459,12 +538,19 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
       ctx.actions.push({ action: "skip", resource: "webhook", ref: w.url });
       ctx.lock.webhooks[w.url] = { state: preState, syncedAt: ctx.now };
     } else if (drifted && !ctx.force) {
-      ctx.actions.push({ action: "blocked", resource: "webhook", ref: w.url, detail: "changed in dashboard since last sync" });
+      ctx.actions.push({ action: "blocked", resource: "webhook", ref: w.url, detail: blockedReason(prev) });
       ctx.drift.push({ product: w.url, detail: `webhook ${changed.join(", ")} would overwrite a dashboard edit` });
       if (prev) ctx.lock.webhooks[w.url] = prev;
     } else {
       ctx.actions.push({ action: "update", resource: "webhook", ref: w.url, detail: changed.join(", ") });
-      const updated = !ctx.plan && match.id ? await infi.webhooks.patch(match.id, patch) : { ...match, ...patch };
+      const updated =
+        !ctx.plan && match.id
+          ? await infi.webhooks.patch(
+              match.id,
+              patch,
+              syncIdempotencyKey(ctx.tenant, "webhook.patch", w.url, patch, preState),
+            )
+          : { ...match, ...patch };
       ctx.lock.webhooks[w.url] = { state: webhookFingerprint(updated), syncedAt: ctx.now };
     }
   }
@@ -484,11 +570,15 @@ async function reconcileWebhooks(infi: Infi, webhooks: BillingWebhook[], ctx: Re
  * Never deletes; never mutates a published version. Meters are created when
  * missing (metadata updates need a backend endpoint that does not exist yet).
  *
- * Drift guard: pass the previous `lock` (from `infi.billing.lock.json`). If a
- * product's backend state changed since that lock (edited in the dashboard), an
+ * Drift guard: pass the previous `lock` (`infi.company.<mode>.lock.json`). If a
+ * product's backend state changed since that lock (edited in the dashboard), or
+ * the product already exists with no lock entry to vouch for it, an
  * `update`/`bump` is **blocked** rather than silently overwriting it — pass
  * `{ force: true }` to override, or reconcile with `infi pull`. The returned
  * `lock` is the fresh provenance to persist (unchanged in plan mode).
+ *
+ * Every write carries a deterministic Idempotency-Key ({@link syncIdempotencyKey}),
+ * so re-running an apply that timed out never duplicates a price or a version.
  */
 export async function syncBilling(
   infi: Infi,
@@ -503,13 +593,22 @@ export async function syncBilling(
   const prevLock = opts.lock;
   const actions: SyncAction[] = [];
   const drift: DriftEntry[] = [];
-  const lock: SyncLock = { version: 1, products: {} };
+  const mode = (infi as { mode?: SyncLock["mode"] }).mode;
+  const lock: SyncLock = { version: 1, ...(mode ? { mode } : {}), products: {} };
+  // Plan mode writes nothing, so it needs no key scope (and no extra read).
+  const tenant = plan ? "" : await resolveTenant(infi, opts.tenant);
+  const key = (op: string, ...parts: unknown[]) => syncIdempotencyKey(tenant, op, ...parts);
   const existingProducts = await infi.products.list();
 
   for (const p of config.products) {
     const name = p.name ?? p.key;
     // Prefer the natural key (unique per tenant); fall back to name for older tenants.
     const existing = existingProducts.find((x) => (x.key ? x.key === p.key : x.name === name));
+    const prev = prevLock?.products[p.key];
+    // Creates and saves have no prior backend state to key on, so they key on the
+    // last sync of this product instead. A retry never wrote the lock, so it
+    // sends the same key; a later run, after a dashboard delete, sends a new one.
+    const since = prev?.syncedAt ?? "none";
     let productId = existing?.id;
     // Metadata we know for this product (updated as we go), for the post-sync snapshot.
     let meta: Pick<Product, "name" | "type" | "pricingModel" | "currency"> = existing ?? {
@@ -522,7 +621,7 @@ export async function syncBilling(
     if (!existing) {
       actions.push({ action: "create", resource: "product", ref: name });
       if (!plan) {
-        const created = await infi.products.create({
+        const input: CreateProductRequest = {
           key: p.key,
           name,
           type: p.type,
@@ -531,7 +630,8 @@ export async function syncBilling(
           // Prepaid products require a billing cycle at creation; pass it through
           // (the backend rejects prepaid without one).
           billingCycle: p.billingCycle ?? undefined,
-        });
+        };
+        const created = await infi.products.create(input, key("product.create", input, since));
         productId = created.id;
         meta = created;
       }
@@ -554,9 +654,11 @@ export async function syncBilling(
     const versions = await infi.products.versions.list(productId);
     const current = currentVersion(versions);
     const currentPrices = current ? await infi.products.prices.list(productId, current.id!) : [];
-    const prev = prevLock?.products[p.key];
     const preState = existing ? productFingerprint(existing, current, currentPrices, idToKey) : "";
-    const drifted = Boolean(existing && prev && prev.state !== preState);
+    // An existing product with no lock entry counts as drifted: without the lock
+    // nothing says the divergence is ours to overwrite (an agent with a live key
+    // and no lock used to rewrite the dashboard without a word).
+    const drifted = Boolean(existing && (!prev || prev.state !== preState));
 
     // Product metadata — update when it drifted from config (guarded against dashboard drift).
     if (existing) {
@@ -564,11 +666,11 @@ export async function syncBilling(
       const changed = Object.keys(patch);
       if (changed.length > 0) {
         if (drifted && !force) {
-          actions.push({ action: "blocked", resource: "product", ref: name, detail: "changed in dashboard since last sync" });
+          actions.push({ action: "blocked", resource: "product", ref: name, detail: blockedReason(prev) });
           drift.push({ product: p.key, detail: `product ${changed.join(", ")} would overwrite a dashboard edit` });
         } else {
           actions.push({ action: "update", resource: "product", ref: name, detail: changed.join(", ") });
-          if (!plan) meta = await infi.products.update(productId, patch);
+          if (!plan) meta = await infi.products.update(productId, patch, key("product.update", p.key, patch, preState));
         }
       } else {
         actions.push({ action: "skip", resource: "product", ref: name });
@@ -585,9 +687,16 @@ export async function syncBilling(
         if (cur.unit !== m.unit) patch.unit = m.unit;
         if (cur.aggregation !== m.aggregation) patch.aggregation = m.aggregation;
         const changed = Object.keys(patch);
-        if (changed.length > 0 && cur.id) {
+        if (changed.length > 0 && cur.id && drifted && !force) {
+          // Meters are managed too: same guard as the product they belong to.
+          actions.push({ action: "blocked", resource: "meter", ref: `${name}/${m.key}`, detail: blockedReason(prev) });
+          drift.push({ product: p.key, detail: `meter ${m.key} ${changed.join(", ")} would overwrite a dashboard edit` });
+        } else if (changed.length > 0 && cur.id) {
           actions.push({ action: "update", resource: "meter", ref: `${name}/${m.key}`, detail: changed.join(", ") });
-          if (!plan) await infi.products.meters.update(productId, cur.id, patch);
+          if (!plan) {
+            const meterState = canon({ displayName: cur.displayName ?? null, unit: cur.unit ?? null, aggregation: cur.aggregation ?? null });
+            await infi.products.meters.update(productId, cur.id, patch, key("meter.update", productId, m.key, patch, meterState));
+          }
         } else {
           actions.push({ action: "skip", resource: "meter", ref: `${name}/${m.key}` });
         }
@@ -595,7 +704,7 @@ export async function syncBilling(
       }
       actions.push({ action: "create", resource: "meter", ref: `${name}/${m.key}` });
       if (!plan) {
-        const created = await infi.products.meters.create(productId, {
+        const input = {
           name: m.key,
           displayName: m.displayName ?? m.key,
           unit: m.unit,
@@ -603,7 +712,8 @@ export async function syncBilling(
           // Any aggregation but `count` needs a field to read the number from, and
           // the API 422s without one. `track({ value })` writes `value`.
           ...(m.aggregation === "count" ? {} : { valueProperty: m.valueProperty ?? "value" }),
-        });
+        };
+        const created = await infi.products.meters.create(productId, input, key("meter.create", productId, input, since));
         meterIdByKey.set(m.key, created.id);
       }
     }
@@ -621,8 +731,8 @@ export async function syncBilling(
         ...(reusable ? { detail: `publicando o draft v${draft?.version}` } : {}),
       });
       if (!plan) {
-        if (reusable && draft?.id) await infi.products.versions.publish(productId, draft.id);
-        else await publishVersion(infi, productId, p, meterIdByKey);
+        if (reusable && draft?.id) await infi.products.versions.publish(productId, draft.id, key("version.publish", draft.id));
+        else await publishVersion(infi, productId, p, meterIdByKey, key, "none");
         applied = true;
       }
     } else {
@@ -641,12 +751,12 @@ export async function syncBilling(
 
       if (reasons.length > 0) {
         if (drifted && !force) {
-          actions.push({ action: "blocked", resource: "version", ref: name, detail: "changed in dashboard since last sync" });
+          actions.push({ action: "blocked", resource: "version", ref: name, detail: blockedReason(prev) });
           drift.push({ product: p.key, detail: `version ${reasons.join(", ")} would supersede a dashboard edit` });
         } else {
           actions.push({ action: "bump", resource: "version", ref: name, detail: reasons.join(", ") });
           if (!plan) {
-            await publishVersion(infi, productId, p, meterIdByKey);
+            await publishVersion(infi, productId, p, meterIdByKey, key, current.id ?? "none");
             applied = true;
           }
         }
@@ -669,7 +779,8 @@ export async function syncBilling(
     if (p.deliverable?.kind === "link") {
       actions.push({ action: "create", resource: "deliverable", ref: name });
       if (!plan) {
-        await infi.products.deliverable.save(productId, { kind: "link", url: p.deliverable.url });
+        const input = { kind: "link" as const, url: p.deliverable.url };
+        await infi.products.deliverable.save(productId, input, key("deliverable.save", productId, input, since));
       }
     }
 
@@ -689,7 +800,7 @@ export async function syncBilling(
 
   // Platform config — webhooks (create + update, never delete). Tenant-level,
   // drift-guarded against the lock like products.
-  const ctx: ReconcileCtx = { plan, force, now, prevLock, lock, actions, drift };
+  const ctx: ReconcileCtx = { plan, force, tenant, now, prevLock, lock, actions, drift };
   if (config.webhooks?.length) await reconcileWebhooks(infi, config.webhooks, ctx);
 
   return { planned: plan, actions, drift, lock: plan ? (prevLock ?? lock) : lock };
@@ -707,7 +818,8 @@ export async function buildLock(
 ): Promise<SyncLock> {
   const t = now ?? new Date().toISOString();
   const products = await infi.products.list();
-  const lock: SyncLock = { version: 1, products: {} };
+  const mode = (infi as { mode?: SyncLock["mode"] }).mode;
+  const lock: SyncLock = { version: 1, ...(mode ? { mode } : {}), products: {} };
   for (const p of config.products) {
     const name = p.name ?? p.key;
     const existing = products.find((x) => (x.key ? x.key === p.key : x.name === name));

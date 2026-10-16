@@ -18,7 +18,7 @@ bunx @beinfi/cli sandbox create
 | `infi keys revoke <id>` | Revoke a key |
 | `infi sandbox create` | Provision claimable sandbox (`ref=cli`) |
 | `infi sandbox get <id>` | Poll public sandbox status |
-| `infi sync [file]` | Apply `infi.company.ts` (`--plan` for dry-run) |
+| `infi sync [file]` | Apply `infi.company.ts` (`--plan` for dry-run, `--force` to overwrite blocked drift) |
 | `infi pull [file]` | Backend → `infi.company.ts` + lock |
 | `infi providers [list]` | BYOP connection status (provider, webhook, publishable key) |
 | `infi providers verify <p>` | Re-check a stored credential after a key rotation |
@@ -26,6 +26,19 @@ bunx @beinfi/cli sandbox create
 | `infi go-live` | Claim → connect provider → webhook → live key |
 | `infi deploy --url <url>` | Register webhook + write `INFI_WEBHOOK_SECRET` |
 | `infi deploy vercel [--prod]` | Vercel deploy + env sync + webhook |
+
+## Company as code: locks and drift
+
+`infi sync` records what it applied in a lock next to the config, one per mode:
+`infi.company.sandbox.lock.json` and `infi.company.live.lock.json`. Commit both.
+
+- A resource that changed in the dashboard since the last sync, or exists in the
+  tenant with no lock entry, is **blocked** (exit 2) instead of overwritten.
+  `infi pull` adopts the tenant's state; `--force` overwrites it.
+- Every write carries a deterministic `Idempotency-Key`: re-running a sync that
+  timed out never duplicates a price or a version.
+- An old `infi.company.lock.json` / `infi.billing.lock.json` is renamed once, to
+  the mode it recorded, or to sandbox when it recorded none (with a warning).
 
 ## Global flags
 

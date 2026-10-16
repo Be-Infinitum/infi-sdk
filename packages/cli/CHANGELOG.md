@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.8 — 2026-10-16
+
+Needs `@beinfi/sdk` 0.12.1 (the range now starts there).
+
+### Fixed
+- **`infi sync` blocks what it cannot vouch for.** With no lock entry for an
+  existing resource that diverges from the file, the apply is blocked (exit 2)
+  instead of overwriting it. `--force` overwrites, `infi pull` adopts. Every write
+  now carries a deterministic Idempotency-Key, so re-running after a timeout never
+  duplicates a price or a version.
+
+### Changed
+- **One lock per mode:** `infi.company.sandbox.lock.json` and
+  `infi.company.live.lock.json`, picked from the key. A single lock meant a live
+  sync measured drift against sandbox ids. An old `infi.company.lock.json` or
+  `infi.billing.lock.json` is renamed on the next `sync`/`pull`/`bootstrap`, to the
+  mode it recorded — old locks recorded none, so they go to sandbox and a live
+  apply blocks until `infi pull` or `--force`. One warning on stderr, once. If the
+  per-mode lock already exists it is kept and the old one is set aside as `.bak`.
+- `bootstrap` passes the lock to its sync, so a resumed bootstrap does not block
+  on the products it seeded itself.
+
+### Added
+- `@beinfi/cli/company-file` and `@beinfi/cli/agent-guard` subpath exports (used
+  by `@beinfi/mcp`).
+
 ## 0.2.6
 
 - Conversational onboarding collects missing email, account name and intent; returns a human claim link.

@@ -12,14 +12,74 @@ export const DEFAULT_COMPANY_FILES = [
   "billing.config.ts",
 ];
 
-export function lockFileNameFor(configFile: string): string {
-  const base = path.basename(configFile);
-  if (base.startsWith("infi.company")) return "infi.company.lock.json";
-  return "infi.billing.lock.json";
+export type LockMode = "sandbox" | "live";
+
+/**
+ * One lock per mode. Sandbox and live are separate sets of ids, so a single
+ * lock meant a live sync measured drift against sandbox provenance (or the
+ * other way round) and every switch of key looked like a dashboard edit.
+ */
+export function lockFileNameFor(mode: LockMode): string {
+  return `infi.company.${mode}.lock.json`;
 }
 
-export function lockPathFor(configFile: string): string {
-  return path.join(path.dirname(path.resolve(configFile)), lockFileNameFor(configFile));
+/** The lock next to `configFile` for this mode. */
+export function lockPathFor(configFile: string, mode: LockMode): string {
+  return lockPathIn(path.dirname(path.resolve(configFile)), mode);
+}
+
+export function lockPathIn(dir: string, mode: LockMode): string {
+  return path.join(path.resolve(dir), lockFileNameFor(mode));
+}
+
+/** Single-lock names from before 0.2.8, oldest last. */
+export const LEGACY_LOCK_FILES = ["infi.company.lock.json", "infi.billing.lock.json"];
+
+export interface LockMigration {
+  from: string;
+  to: string;
+  mode: LockMode;
+  /** The per-mode lock already existed: the legacy file was kept aside as `.bak`. */
+  keptAsBackup: boolean;
+}
+
+/**
+ * Move a pre-0.2.8 single lock to its per-mode name, once.
+ *
+ * The mode is the one recorded in the lock. Locks that old never recorded it,
+ * and their ids say nothing about the mode either, so they go to sandbox: a live
+ * apply then finds no live lock and the drift guard blocks until a human runs
+ * `infi pull` or `--force` — the safe side to be wrong on.
+ *
+ * Renamed, not copied, so the warning fires on exactly one run.
+ */
+export function migrateLegacyLocks(
+  dir: string,
+  warn: (message: string) => void = (m) => process.stderr.write(`${m}\n`),
+): LockMigration[] {
+  const done: LockMigration[] = [];
+  for (const name of LEGACY_LOCK_FILES) {
+    const from = path.join(path.resolve(dir), name);
+    if (!fs.existsSync(from)) continue;
+    const mode: LockMode = readLock(from)?.mode === "live" ? "live" : "sandbox";
+    const to = lockPathIn(dir, mode);
+    const keptAsBackup = fs.existsSync(to);
+    if (keptAsBackup) fs.renameSync(from, `${from}.bak`);
+    else fs.renameSync(from, to);
+    done.push({ from, to, mode, keptAsBackup });
+    warn(
+      keptAsBackup
+        ? `infi: ${name} is from before per-mode locks and ${path.basename(to)} already exists; kept the old one as ${name}.bak.`
+        : `infi: migrated ${name} → ${path.basename(to)} (locks are per mode now; ${mode === "live" ? "it recorded live" : "assumed sandbox: the old lock did not record its mode"}). Commit the rename.`,
+    );
+  }
+  return done;
+}
+
+/** Migrate any legacy lock in `dir`, then read this mode's lock. */
+export function readLockFor(dir: string, mode: LockMode, warn?: (message: string) => void): SyncLock | undefined {
+  migrateLegacyLocks(dir, warn);
+  return readLock(lockPathIn(dir, mode));
 }
 
 type CompanyModule = {
