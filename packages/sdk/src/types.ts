@@ -133,3 +133,14 @@ export function resolveAppBase(mode: InfiMode, override?: string): string {
   if (override) return override.replace(/\/$/, "");
   return mode === "live" ? LIVE_APP_BASE : SANDBOX_APP_BASE;
 }
+
+// ── Company config (ADR 0025: the server plans and applies) ─────────────────
+export type CompanyConfigPlan = components["schemas"]["CompanyConfigPlan"];
+export type CompanyConfigChange = components["schemas"]["CompanyConfigChange"];
+export type CompanyConfigListed = components["schemas"]["CompanyConfigListed"];
+export type CompanyConfigOptions = components["schemas"]["CompanyConfigOptions"];
+export type CompanyConfigRevision = components["schemas"]["CompanyConfigRevision"];
+export type CompanyConfigRevisionDetail = components["schemas"]["CompanyConfigRevisionDetail"];
+export type CompanyConfigApplyResult = components["schemas"]["CompanyConfigApplyResult"];
+export type CompanyConfigReceipt = components["schemas"]["CompanyConfigReceipt"];
+export type MorAdmissionView = components["schemas"]["MorAdmissionView"];

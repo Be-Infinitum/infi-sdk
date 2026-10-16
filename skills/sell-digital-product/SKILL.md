@@ -41,6 +41,9 @@ export default defineCompany({
 npx -y @beinfi/cli sync infi.company.ts
 ```
 
+The file (deliverable) is not part of `infi.company.ts`: the company document has no
+place for it. Attach it after the sync, as below.
+
 **Do not use the `productId` that provisioning returns.** That seed product has no
 key, no meter, and a draft version — it cannot be sold. Create your own.
 

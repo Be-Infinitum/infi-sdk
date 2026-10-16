@@ -60,14 +60,30 @@ const FIXES: Record<string, InfiErrorFix> = {
     docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   no_products_for_login: {
-    command: "infi bootstrap --intent crm --json",
+    command: "infi bootstrap --intent usage-saas --json",
     hint: "Hosted login requires at least one product. Bootstrap or sync infi.company.ts first.",
     docs: "https://beinfi.com/pt-br/docs/inicio-rapido",
   },
   sync_drift_blocked: {
     command: "infi sync infi.company.ts --plan",
-    hint: "Dashboard changed since last sync. Run --plan to inspect, --force to overwrite, or infi pull to adopt.",
+    hint: "A change is held. Run --plan to see why; pass the option it names (--adopt-unmanaged, --overwrite-drift, --archive-orphaned) or `infi pull` to keep the tenant's state.",
     docs: "https://beinfi.com/pt-br/docs/company-as-code",
+  },
+  plan_stale: {
+    command: "infi sync --plan",
+    hint: "The tenant changed since the plan was shown. Review the new plan, then apply that one.",
+    docs: "https://beinfi.com/pt-br/docs/company-as-code",
+  },
+  plan_blocked: {
+    command: "infi sync --plan",
+    hint: "A change waits on a decision. The plan names the option for each one: --adopt-unmanaged, --overwrite-drift or --archive-orphaned.",
+    docs: "https://beinfi.com/pt-br/docs/company-as-code",
+  },
+  promotion_not_configured: {
+    hint: "Promotion is not set up on this deployment yet (no signing key). Apply the file on live with `infi sync` instead; it becomes a proposal to approve.",
+  },
+  promotion_wrong_deployment: {
+    hint: "Receipts are issued on sandbox (sk_test_) and redeemed on live (sk_live_). Check which key goes where.",
   },
   missing_slug: {
     hint: "Pass your tenant slug (INFI_TENANT_SLUG) — it is part of the public /pay/{slug} URL and cannot be inferred from a secret key.",

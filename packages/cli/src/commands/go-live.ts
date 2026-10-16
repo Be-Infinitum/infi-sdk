@@ -14,8 +14,12 @@ import pc from "picocolors";
 export type GoLiveStage =
   | "sandbox_unclaimed"
   | "sandbox_claimed"
-  | "provider_needed"
-  | "webhook_pending"
+  /** The merchant-of-record application is missing or was rejected. */
+  | "admission_needed"
+  /** Submitted, waiting for Infi's review. */
+  | "admission_pending"
+  /** Admitted, still on a sandbox key: create sk_live_. */
+  | "live_key_needed"
   | "live_ready"
   | "unknown";
 
@@ -27,8 +31,8 @@ export type GoLiveStatus = {
     claim?: string;
     dashboard: string;
     account?: string;
-    /** Where the merchant connects their own Stripe / Asaas account. */
-    connect?: string;
+    /** Where the account owner applies for merchant-of-record admission (UK Ltd). */
+    admission?: string;
   };
   blockers: Array<{ code: string; message: string; url?: string }>;
   claimable?: {
@@ -60,21 +64,15 @@ async function tryBackendGoLive(api: string, secretKey: string): Promise<unknown
 }
 
 /**
- * Connection summary for the tenant's first usable provider, or null when it
- * cannot be read (no key / API refused).
+ * The merchant-of-record admission status (ADR 0018), or null when it cannot
+ * be read (no key, a sandbox that does not serve it, the API refused).
  */
-async function providerState(
+async function admissionState(
   flags: GlobalFlags & { claimId?: string },
-): Promise<{ connected: boolean; webhookRegistered: boolean; name: string } | null> {
+): Promise<{ status: "draft" | "submitted" | "approved" | "rejected"; reason: string | null } | null> {
   try {
-    const { connections } = await infiClient(flags).providers.list();
-    const usable = connections.find((c) => c.status === "connected") ?? connections[0];
-    if (!usable) return { connected: false, webhookRegistered: false, name: "" };
-    return {
-      connected: usable.status === "connected" || usable.status === "pending_webhook",
-      webhookRegistered: usable.webhookRegistered,
-      name: usable.provider,
-    };
+    const { admission } = await infiClient(flags).account.mor();
+    return { status: admission.status, reason: admission.decisionReason };
   } catch {
     return null;
   }
@@ -102,7 +100,7 @@ export async function getGoLiveStatus(
   // Sandbox and live are separate dashboards — a sandbox tenant does not exist
   // on app.beinfi.com, so a hardcoded live link sends the user to a 404.
   const dashboard = appBase(flags);
-  const connectUrl = `${dashboard}/go-live`;
+  const admissionUrl = `${dashboard}/go-live`;
 
   const claimId = flags.claimId ?? process.env.INFI_CLAIM_ID;
   const claimUrlEnv = process.env.INFI_CLAIM_URL;
@@ -149,9 +147,10 @@ export async function getGoLiveStatus(
     };
   }
 
-  // The real gate to live money is a connected provider (backend ADR 0012 replaced
-  // KYC with bring-your-own-provider), so ask the backend rather than guess.
-  const provider = secretKey ? await providerState(flags) : null;
+  // The gate to live money is the merchant-of-record admission (ADR 0018):
+  // the UK Ltd is the legal seller, the merchant applies to supply through it.
+  // Merchants no longer bring their own PSP (BYOP is enterprise-only).
+  const admission = secretKey ? await admissionState(flags) : null;
 
   let stage: GoLiveStage;
   const blockers: GoLiveStatus["blockers"] = [];
@@ -161,37 +160,34 @@ export async function getGoLiveStatus(
     stage = "sandbox_unclaimed";
     next = "Open the claim URL and create your Beinfi account — an unclaimed sandbox expires.";
     blockers.push({ code: "claim_required", message: "Tenant is still unclaimed.", url: claimUrl });
-  } else if (provider === null) {
-    stage = mode === "live" ? "live_ready" : stageFromClaim(claimStatus);
-    // The provider surface is live-only, so a sandbox null is expected, not a fault.
+  } else if (admission === null) {
+    stage = mode === "live" ? "unknown" : stageFromClaim(claimStatus);
     next =
       mode === "sandbox"
-        ? "Sandbox charges through the built-in sandbox provider — connect your own Stripe/Asaas only when you switch to an sk_live_ key."
-        : "Could not read provider connections (no key, or the API refused). Run infi providers list.";
-  } else if (!provider.connected) {
-    stage = "provider_needed";
-    next = `Connect your own Stripe or Asaas account — that is where the money lands. ${connectUrl}`;
+        ? `Sandbox charges need no admission. To sell live, the account owner applies for merchant-of-record admission at ${admissionUrl}.`
+        : `Could not read the merchant-of-record admission (no key, or the API refused). Check it at ${admissionUrl}.`;
+  } else if (admission.status === "draft" || admission.status === "rejected") {
+    stage = "admission_needed";
+    next =
+      admission.status === "rejected"
+        ? `The merchant-of-record application was rejected${admission.reason ? ` (${admission.reason})` : ""}. Fix it and resubmit at ${admissionUrl}.`
+        : `Apply for merchant-of-record admission (Infi's UK Ltd sells, you supply) at ${admissionUrl}. The account owner fills it in the dashboard.`;
     blockers.push({
-      code: "provider_required",
-      message:
-        "No payment provider connected. Connecting needs fresh MFA, so it is a dashboard action.",
-      url: connectUrl,
+      code: "mor_admission_required",
+      message: "Live sales need an approved merchant-of-record admission.",
+      url: admissionUrl,
     });
-  } else if (!provider.webhookRegistered) {
-    stage = "webhook_pending";
-    next = `${provider.name} is connected but its webhook is not registered — you would never learn a payment succeeded. Finish it at ${connectUrl}`;
-    blockers.push({
-      code: "webhook_required",
-      message: `${provider.name} webhook not registered.`,
-      url: connectUrl,
-    });
+  } else if (admission.status === "submitted") {
+    stage = "admission_pending";
+    next = "The merchant-of-record application is under review. Keep building in sandbox; nothing to do until it is decided.";
+    blockers.push({ code: "mor_admission_pending", message: "Admission submitted, waiting for review.", url: admissionUrl });
   } else if (mode === "live") {
     stage = "live_ready";
-    next = "Live key + connected provider + registered webhook. Run infi doctor to confirm.";
+    next = "Admitted and on a live key. Run infi doctor to confirm, then `infi sync` proposes the catalog on live.";
   } else {
-    stage = "sandbox_claimed";
+    stage = "live_key_needed";
     next =
-      "Sandbox is ready end to end. Create an sk_live_ key in the dashboard and replace INFI_SECRET_KEY to take real money.";
+      "Admitted. Create an sk_live_ key in the dashboard, replace INFI_SECRET_KEY in your server secrets, and run infi doctor.";
   }
 
   return {
@@ -202,7 +198,7 @@ export async function getGoLiveStatus(
       claim: claimUrl,
       dashboard,
       account: `${dashboard}/signup`,
-      connect: connectUrl,
+      admission: admissionUrl,
     },
     blockers,
     claimable,
@@ -224,13 +220,13 @@ export async function goLiveCommand(
   console.log(`  ${status.next}`);
   if (status.urls.claim) console.log(`  claim:     ${status.urls.claim}`);
   console.log(`  dashboard: ${status.urls.dashboard}`);
-  if (status.urls.connect) console.log(`  connect:   ${status.urls.connect}`);
+  if (status.urls.admission) console.log(`  admission: ${status.urls.admission}`);
   for (const b of status.blockers) {
     console.log(pc.yellow(`  ! ${b.message}${b.url ? ` → ${b.url}` : ""}`));
   }
   console.log(
     pc.dim(
-      "\nAgents: guide the human through claim → connect provider → webhook. Connecting a provider needs fresh MFA, so it can only happen in the dashboard — never try it with an API key.",
+      "\nAgents: guide the human through claim → merchant-of-record admission (dashboard /go-live) → sk_live_. The application is the account owner's to fill; never fill or submit it with an API key.",
     ),
   );
 }

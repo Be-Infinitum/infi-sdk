@@ -15,7 +15,7 @@ import { InvoicesResource } from "./resources/invoices.js";
 import { PaymentsResource } from "./resources/payments.js";
 import { CouponsResource } from "./resources/coupons.js";
 import { LinksResource } from "./resources/links.js";
-import { StorefrontsResource } from "./resources/storefronts.js";
+import { ConfigResource } from "./resources/config.js";
 import { SubscriptionsResource } from "./resources/subscriptions.js";
 import { WebhooksResource } from "./resources/webhooks-resource.js";
 import { ApiKeysResource } from "./resources/api-keys.js";
@@ -128,9 +128,11 @@ export class Infi {
   readonly coupons: CouponsResource;
   /** Payment links: share a URL, get paid. */
   readonly links: LinksResource;
-  /** Storefronts: a public shop page for products you already have. Where a
-   * link sells one product, a shop is a place a buyer picks several from. */
-  readonly storefronts: StorefrontsResource;
+  /**
+   * Company as code on the server (ADR 0025): plan, apply, pull, revisions and
+   * promotion. `sync()` is the usual entry point; this is the raw surface.
+   */
+  readonly config: ConfigResource;
   /** Subscriptions: create (with anchor), get, list per enrollment. */
   readonly subscriptions: SubscriptionsResource;
   /**
@@ -185,7 +187,7 @@ export class Infi {
     this.payments = new PaymentsResource(transport);
     this.coupons = new CouponsResource(transport);
     this.links = new LinksResource(transport, this.#appBase);
-    this.storefronts = new StorefrontsResource(transport, this.#appBase);
+    this.config = new ConfigResource(transport);
     this.subscriptions = new SubscriptionsResource(transport);
     this.apiKeys = new ApiKeysResource(transport);
     this.webhooks = new WebhooksResource(transport);
@@ -402,13 +404,15 @@ export class Infi {
   // ── Company as code: apply a declarative config idempotently ──────────────
 
   /**
-   * Apply a declarative catalog config — `defineCompany(...)` /
-   * `defineBilling(...)` — as desired state, idempotently. Products, versions,
-   * prices, meters and webhooks are created or updated to match it; nothing is
-   * ever deleted and a published version is never mutated. Safe to re-run.
+   * Apply a declarative config — `defineCompany(...)` — through the server:
+   * `POST /config/plan`, then `POST /config/apply` with the plan's hash. The
+   * server diffs, applies in one transaction and keeps the revision; on live
+   * the apply is a proposal a person approves (`status: "proposed"`,
+   * `approvalUrl`). See {@link syncBilling} for every status.
    *
-   * Pass `{ plan: true }` to dry-run and inspect the actions first. This is also
-   * what the CLI runs for `infi sync` / `pull` / `bootstrap` / `doctor`.
+   * Pass `{ plan: true }` to see the plan without applying it. This is also
+   * what the CLI runs for `infi sync` and `bootstrap`, and the MCP for its
+   * sync tools.
    */
   sync(config: BillingConfig, opts?: SyncOptions): Promise<SyncResult> {
     return syncBilling(this, config, opts);

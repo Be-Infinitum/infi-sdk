@@ -1,102 +1,23 @@
 import fs from "node:fs";
 import path from "node:path";
 import pc from "picocolors";
-import { buildLock, versionCycleGrant, type BillingConfig } from "@beinfi/sdk";
+import { fromCompanyDocument, type BillingConfig, type CompanyDocument } from "@beinfi/sdk";
 import type { GlobalFlags } from "../lib/client.js";
-
-/**
- * The version's cycle grant, in the `grants[]` shape defineCompany writes.
- * Reads grants[] rather than the dropped product_versions.credits_per_cycle
- * column (backend migration 000098) — pulling the old field wrote `undefined`
- * into every generated config and silently lost the allowance.
- */
-function cycleGrantFor(version: Parameters<typeof versionCycleGrant>[0]) {
-  const amount = versionCycleGrant(version);
-  return amount ? [{ meter: "credits", amount, on: "cycle" as const }] : undefined;
-}
 import { infiClient } from "../lib/client.js";
-import { die, ok } from "../lib/output.js";
-import { lockPathFor, migrateLegacyLocks, writeLock } from "../lib/company-file.js";
+import { die, ok, printJson } from "../lib/output.js";
+import { obsoleteLockNotice } from "../lib/company-file.js";
 
 const CONFIG_FILE = "infi.company.ts";
 
-function slug(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "") || "product"
-  );
-}
-
-/** Drop null/undefined keys so the generated config stays clean. */
-function compact<T extends Record<string, unknown>>(obj: T): Partial<T> {
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(obj)) if (v !== undefined && v !== null) out[k] = v;
-  return out as Partial<T>;
-}
-
-/** Read the whole catalog and shape it into a defineCompany() config. */
-async function pullConfig(infi: ReturnType<typeof infiClient>): Promise<BillingConfig> {
-  const products = await infi.products.list();
-  const out: BillingConfig["products"] = [];
-
-  for (const prod of products) {
-    if (!prod.id) continue;
-    const [meters, versions] = await Promise.all([
-      infi.products.meters.list(prod.id),
-      infi.products.versions.list(prod.id),
-    ]);
-    const published = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
-    const current = published.find((v) => v.status === "published") ?? published[0];
-    const prices = current?.id ? await infi.products.prices.list(prod.id, current.id) : [];
-    const idToKey = new Map(meters.filter((m) => m.id && m.name).map((m) => [m.id!, m.name!] as const));
-
-    out.push(
-      compact({
-        key: prod.key ?? slug(prod.name ?? "product"),
-        name: prod.name,
-        type: prod.type,
-        pricingModel: prod.pricingModel,
-        currency: prod.currency,
-        billingCycle: current?.billingCycle,
-        basePrice: current?.basePrice,
-        grants: cycleGrantFor(current),
-        meters: meters.length
-          ? meters.map((m) =>
-              compact({ key: m.name, displayName: m.displayName, unit: m.unit, aggregation: m.aggregation }),
-            )
-          : undefined,
-        prices: prices.length
-          ? prices.map((pr) =>
-              compact({
-                meter: pr.meterId ? idToKey.get(pr.meterId) : undefined,
-                model: pr.model,
-                unitAmount: pr.unitAmount,
-                currency: pr.currency,
-                tiers: pr.tiers,
-              }),
-            )
-          : undefined,
-      }) as BillingConfig["products"][number],
-    );
-  }
-
-  const webhooks = await infi.webhooks.list();
-  const webhookCfg = webhooks.map((w) =>
-    compact({ url: w.url, events: w.events, isActive: w.isActive }),
-  ) as NonNullable<BillingConfig["webhooks"]>;
-
-  return compact({
-    products: out,
-    webhooks: webhookCfg.length ? webhookCfg : undefined,
-  }) as BillingConfig;
-}
-
-function renderConfig(config: BillingConfig): string {
+export function renderConfig(config: BillingConfig): string {
   return `import { defineCompany } from "@beinfi/sdk";\n\nexport default defineCompany(${JSON.stringify(config, null, 2)});\n`;
 }
 
+/**
+ * `infi pull`: the server's own document for this tenant (GET /config/document),
+ * written as `infi.company.ts`. Nothing is rebuilt here, so planning the pulled
+ * file against the same tenant changes nothing.
+ */
 export async function pullCommand(
   flags: GlobalFlags & { file?: string; force?: boolean },
 ): Promise<void> {
@@ -105,17 +26,18 @@ export async function pullCommand(
     die(`${path.relative(process.cwd(), file)} already exists. Re-run with --force to overwrite.`);
   }
 
-  const infi = infiClient(flags);
-  const config = await pullConfig(infi);
-  if (!config.products.length) die("No products found for this tenant.");
+  const document: CompanyDocument = await infiClient(flags).config.document();
+  if (!document.products?.length) die("No products found for this tenant.");
 
-  fs.writeFileSync(file, renderConfig(config));
-  migrateLegacyLocks(path.dirname(file));
-  const lockPath = lockPathFor(file, infi.mode);
-  writeLock(lockPath, await buildLock(infi, config));
+  fs.writeFileSync(file, renderConfig(fromCompanyDocument(document)));
+  const notice = obsoleteLockNotice(path.dirname(file));
 
-  ok(`Pulled ${config.products.length} product(s) (company as code)`);
+  if (flags.json) {
+    printJson({ file: path.relative(process.cwd(), file), products: document.products.length, webhooks: document.webhooks?.length ?? 0 });
+    return;
+  }
+  ok(`Pulled ${document.products.length} product(s) (company as code)`);
   console.log(`  config: ${path.relative(process.cwd(), file)}`);
-  console.log(`  lock:   ${path.relative(process.cwd(), lockPath)}`);
-  console.log(pc.dim("Commit both — the next `infi sync` starts from this baseline."));
+  console.log(pc.dim("Commit it. `infi sync --plan` against the same tenant shows no changes."));
+  if (notice) console.log(pc.dim(notice));
 }

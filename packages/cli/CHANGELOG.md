@@ -1,5 +1,65 @@
 # Changelog
 
+## 0.3.0 — 2026-10-16
+
+Needs `@beinfi/sdk` 0.13 and a backend that serves `/config` (ADR 0025).
+
+**`infi sync` asks the server.** It sends the file as a document to
+`POST /config/plan`, prints the plan in the server's sentences, then applies it
+with `Idempotency-Key = planHash`.
+
+- **Sandbox:** applied. New webhook endpoints' signing secrets are printed
+  **once** and never written to disk.
+- **Live:** a proposal. The command prints the approval link and exits 0;
+  nothing changes until a person approves it in the dashboard. Do not re-run
+  to retry it.
+- **Tenant moved since the plan** (`plan_stale`): prints the new plan, applies
+  nothing, exits 3. Review it and run again.
+- **Held changes:** each is listed with the flag that resolves it, or why none
+  can. Nothing is applied. Exit 2.
+
+### Migrating from 0.2.x
+1. **First sync after upgrading: `infi sync --adopt-unmanaged`.** What the old
+   sync created has no server revision, so the plan holds it as unmanaged
+   until you adopt it. Once per tenant (sandbox and live each).
+2. **`--force` is removed** (usage error). Use the flag the plan names:
+   `--adopt-unmanaged`, `--overwrite-drift` or `--archive-orphaned`.
+3. **Delete the lock files** (`infi.company.sandbox.lock.json`,
+   `infi.company.live.lock.json`, and older `infi.company.lock.json` /
+   `infi.billing.lock.json`). Nothing reads them; `sync` and `pull` say so once
+   per run while they exist.
+4. A file with `deliverable` or `fromIntent("crm")` fails before any request,
+   with what to use instead.
+
+### Changed
+- **`infi pull`** writes the server's own document (`GET /config/document`):
+  payment grants and the cycle grant's real meter survive, and the pulled file
+  plans to no change. No lock is written. (`pull --force` still means
+  "overwrite the file".)
+- **`infi doctor` / `infi go-live`** no longer guide connecting your own Stripe
+  or Asaas. The live gate is the merchant-of-record admission
+  (`GET /account/mor`), applied for in the dashboard at `/go-live`. New stages:
+  `admission_needed`, `admission_pending`, `live_key_needed`; the doctor check
+  is `mor_admission` (fails on a live key without admission, warns in sandbox).
+  `urls.connect` is now `urls.admission`.
+- `bootstrap` defaults to `usage-saas` (the `crm` preset is gone) and passes
+  `adoptUnmanaged` on its sandbox sync: the tenant is the one it provisioned.
+- Agent guard: only provisioning (`bootstrap`, `onboard`, `claim`) refuses a
+  live key now; catalog writes are proposals on live.
+
+### Added
+- **`infi promote <crev_…>`**: the sandbox signs an applied revision
+  (`POST /config/revisions/{crev}/promotion-receipt`, `--from-key` /
+  `INFI_SANDBOX_SECRET_KEY`), live plans that exact document as a proposal
+  (`POST /config/promote`, `--to-key` / `INFI_LIVE_SECRET_KEY`) and prints the
+  approval link. Answers 503 `promotion_not_configured` until the deployments
+  have promotion keys.
+
+### Removed
+- `readLock`, `writeLock`, `readLockFor`, `lockPathFor`, `lockPathIn`,
+  `migrateLegacyLocks` from `@beinfi/cli/company-file` (now
+  `obsoleteLocks` / `obsoleteLockNotice`).
+
 ## 0.2.8 — 2026-10-16
 
 Needs `@beinfi/sdk` 0.12.1 (the range now starts there).

@@ -31,6 +31,11 @@ export class InfiError extends Error {
    * without it a user reporting a 500 has nothing to hand over.
    */
   readonly tracerId?: string;
+  /**
+   * The API's `metadata` map, when the error carries one. `plan_stale` puts the
+   * plan's current hash here (`metadata.planHash`).
+   */
+  readonly metadata: Record<string, string>;
 
   constructor(
     message: string,
@@ -39,6 +44,7 @@ export class InfiError extends Error {
     fix?: InfiErrorFix,
     errors?: InfiFieldIssue[],
     tracerId?: string,
+    metadata?: Record<string, string>,
   ) {
     super(message);
     this.name = "InfiError";
@@ -47,6 +53,7 @@ export class InfiError extends Error {
     this.fix = fix ?? fixForCode(code);
     this.errors = errors ?? [];
     this.tracerId = tracerId;
+    this.metadata = metadata ?? {};
   }
 
   /** JSON shape for `--json` CLI output and MCP tools. */
@@ -59,6 +66,7 @@ export class InfiError extends Error {
       fix: this.fix,
       errors: this.errors,
       tracerId: this.tracerId,
+      ...(Object.keys(this.metadata).length ? { metadata: this.metadata } : {}),
     };
   }
 }
@@ -117,6 +125,7 @@ export async function parseErrorResponse(res: Response): Promise<InfiError> {
   let code: string | undefined;
   let errors: InfiFieldIssue[] = [];
   let tracerId: string | undefined;
+  let metadata: Record<string, string> | undefined;
   try {
     const body = (await res.json()) as {
       message?: string;
@@ -125,6 +134,7 @@ export async function parseErrorResponse(res: Response): Promise<InfiError> {
       error_code?: string;
       errors?: unknown;
       tracer_id?: string;
+      metadata?: Record<string, string> | null;
       error?: { message?: string; code?: string; details?: unknown; request_id?: string };
     };
     message = body.message ?? body.error?.message ?? message;
@@ -133,11 +143,12 @@ export async function parseErrorResponse(res: Response): Promise<InfiError> {
     // Both envelopes carry it: flat handler responses use `tracer_id`, the
     // middleware ones nest it as `error.request_id`.
     tracerId = body.tracer_id ?? body.error?.request_id;
+    if (body.metadata && typeof body.metadata === "object") metadata = body.metadata;
   } catch {
     // ignore JSON parse errors
   }
   return new InfiError(
-    withFieldDetail(message, errors), res.status, code, undefined, errors, tracerId);
+    withFieldDetail(message, errors), res.status, code, undefined, errors, tracerId, metadata);
 }
 
 /**

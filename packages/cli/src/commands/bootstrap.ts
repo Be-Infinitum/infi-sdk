@@ -8,10 +8,7 @@ import { createClaimable, getClaimable, type ClaimableTenantCreateResponse, type
 import {
   DEFAULT_COMPANY_FILES,
   loadCompanyConfig,
-  lockPathFor,
-  readLockFor,
   writeCompanyFile,
-  writeLock,
 } from "../lib/company-file.js";
 import { readProjectEnv } from "../lib/dotenv.js";
 import { runDoctor } from "./doctor.js";
@@ -47,7 +44,17 @@ export type BootstrapResult = {
   files: { env: string; company: string };
   /** Host the run actually talked to — inferred from the key, not hardcoded. */
   apiBase: string;
-  sync: { actions: number; drift: number } | null;
+  /**
+   * The server's answer to the first sync. `secrets` are the signing secrets
+   * of webhook endpoints it created — shown once, never written to disk.
+   */
+  sync: {
+    status: string;
+    actions: number;
+    revision?: number;
+    held: Array<{ sentence: string; resolution: string }>;
+    secrets?: Array<{ url: string; secret: string }>;
+  } | null;
   doctor: Awaited<ReturnType<typeof runDoctor>>;
   next: string[];
 };
@@ -87,7 +94,7 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
   const stateFile = path.join(stateDir, "bootstrap.json");
   type State = { intent: CompanyIntent; ref: ClaimRef; apiBase: string; claimable?: ClaimableTenantCreateResponse };
   const state: State | undefined = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, "utf8")) : undefined;
-  const intentRaw = flags.intent ?? state?.intent ?? "crm";
+  const intentRaw = flags.intent ?? state?.intent ?? "usage-saas";
   if (!isIntent(intentRaw)) throw new Error(`Unknown intent "${intentRaw}". Use one of: ${COMPANY_INTENTS.join(", ")}`);
   if (state && state.intent !== intentRaw) throw new Error("This project already has an intent. Edit infi.company.ts and run infi sync.");
   const intent = intentRaw;
@@ -141,19 +148,28 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
     // Build the config in memory instead of importing the .ts we just wrote:
     // in a plain `npm init` project Node reads .ts as CJS and the ESM file it
     // generates throws "Cannot use import statement outside a module".
-    // Pass the lock too: a resumed bootstrap re-syncs a tenant it already
-    // seeded, and without the lock the drift guard would block its own products.
+    //
+    // adoptUnmanaged: this sandbox was provisioned by this same bootstrap, so
+    // anything already in it is ours. It only matters on a resumed bootstrap
+    // whose first sync ran on a CLI older than 0.3.0 (no revision wrote it).
+    // The provisioning key is always sk_test_, so this never reaches live.
     const sync = await infi.sync(existingCompany ? await loadCompanyConfig(companyFile) : companyFromIntent(intent), {
-      lock: readLockFor(cwd, infi.mode),
+      adoptUnmanaged: infi.mode === "sandbox",
     });
-    writeLock(lockPathFor(companyFile, infi.mode), sync.lock);
-    syncResult = { actions: sync.actions.length, drift: sync.drift.length };
+    syncResult = {
+      status: sync.status,
+      actions: sync.actions.filter((a) => a.action !== "skip").length,
+      ...(sync.revision ? { revision: sync.revision.number } : {}),
+      held: sync.held.map((h) => ({ sentence: h.sentence, resolution: h.resolution })),
+      ...(sync.secrets?.length ? { secrets: sync.secrets } : {}),
+    };
   }
 
   const doctor = await runDoctor({ ...flags, key: claimable.apiKeySecret, json: true });
+  const synced = !syncResult || ["applied", "unchanged"].includes(syncResult.status);
 
   return {
-    ok: doctor.ok,
+    ok: doctor.ok && synced,
     intent,
     ref,
     claimable: {
@@ -184,7 +200,7 @@ export async function runBootstrap(flags: BootstrapFlags): Promise<BootstrapResu
       // the docs spend a callout on, and this line used to point straight at it.
       "Identify the payer from your own auth: infi.products.enroll(productId, { externalId }) — use the returned .id",
       "Use infi.wallet.forCustomer(externalId, { productKey }) for credits/meter",
-      "When ready for real money: infi go-live --json (claim → connect provider → webhook)",
+      "When ready for real money: infi go-live --json (claim → merchant-of-record admission → sk_live_)",
     ],
   };
 }
@@ -245,7 +261,14 @@ export async function bootstrapCommand(flags: BootstrapFlags): Promise<void> {
   console.log(`  company: ${result.files.company}`);
   console.log(`  env:     ${result.files.env}`);
   console.log(`  claim:   ${result.claimable.claimUrl}`);
-  if (result.sync) console.log(`  sync:    ${result.sync.actions} actions`);
+  if (result.sync) {
+    const rev = result.sync.revision ? ` (revision #${result.sync.revision})` : "";
+    console.log(`  sync:    ${result.sync.status}, ${result.sync.actions} change(s)${rev}`);
+    for (const h of result.sync.held) console.log(pc.yellow(`    held: ${h.sentence} → ${h.resolution}`));
+    for (const s of result.sync.secrets ?? []) {
+      console.log(pc.yellow(`    webhook secret (shown once) ${s.url}: ${s.secret}`));
+    }
+  }
   console.log(pc.dim("\nHosts (API / app) are inferred from the key — no INFI_*_URL needed."));
   for (const step of result.next) console.log(pc.dim(`  → ${step}`));
 

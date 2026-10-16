@@ -38,7 +38,7 @@ describe("getGoLiveStatus", () => {
       claimId: "abc",
     });
     expect(status.stage).toBe("sandbox_unclaimed");
-    expect(status.urls.connect).toContain("go-live");
+    expect(status.urls.admission).toContain("go-live");
     expect(status.next.toLowerCase()).toContain("claim");
   });
 });

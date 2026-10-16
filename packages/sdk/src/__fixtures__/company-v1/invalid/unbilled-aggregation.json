@@ -1,0 +1,1 @@
+{ "schemaVersion": 1, "products": [{ "key": "a", "type": "agent", "pricingModel": "usage", "meters": [{ "key": "t", "unit": "token", "aggregation": "max" }] }] }

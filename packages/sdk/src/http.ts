@@ -20,6 +20,8 @@ export interface RequestOptions {
    * grace path (§6) depends on telling those two apart.
    */
   timeoutMs?: number;
+  /** Extra request headers (e.g. `Accept-Language` for /config plan sentences). */
+  headers?: Record<string, string>;
 }
 
 /** `AbortSignal.timeout` where it exists, a timer elsewhere (Node 18 has both). */
@@ -51,7 +53,7 @@ export class Transport {
       }
     }
 
-    const headers: Record<string, string> = { Accept: "application/json" };
+    const headers: Record<string, string> = { Accept: "application/json", ...opts.headers };
     if (this.secretKey) headers.Authorization = `Bearer ${this.secretKey}`;
     // Mutations need an Idempotency-Key; auto-generate one per call when the caller
     // didn't supply a stable key, so every write is safe without extra boilerplate.

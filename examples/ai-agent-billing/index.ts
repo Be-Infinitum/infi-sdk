@@ -181,10 +181,10 @@ async function main() {
   header("1. Sync company (infi.company.ts)");
 
   const sync = await infi.sync(company);
-  console.log(
-    `Synced (${sync.actions.length} actions):`,
-    sync.actions.map((a) => `${a.action}:${a.resource}`).join(", ") || "none",
-  );
+  console.log(`Sync: ${sync.status}`);
+  for (const a of sync.actions) if (a.action !== "skip") console.log(`  ${a.action}\t${a.sentence}`);
+  for (const h of sync.held) console.log(`  held: ${h.sentence} → ${h.resolution}`);
+  if (sync.approvalUrl) console.log(`  approve on live: ${sync.approvalUrl}`);
 
   header("1b. Doctor");
   const doctor = await runDoctor({

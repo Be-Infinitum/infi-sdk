@@ -1,5 +1,5 @@
 import type { Transport } from "../http.js";
-import type { Tenant } from "../types.js";
+import type { MorAdmissionView, Tenant } from "../types.js";
 
 /**
  * What a buyer is told they are paying. `name` is the merchant name on the hosted
@@ -35,5 +35,14 @@ export class AccountResource {
       requireSecret: true,
       idempotencyKey,
     });
+  }
+
+  /**
+   * Merchant-of-record admission (ADR 0018): the UK Ltd is the legal seller of
+   * every live sale, and selling live waits on `admission.status === "approved"`.
+   * The application itself is filled in the dashboard at `/go-live`.
+   */
+  mor(): Promise<MorAdmissionView> {
+    return this.t.request("GET", "/account/mor", { requireSecret: true });
   }
 }
