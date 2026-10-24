@@ -1,0 +1,32 @@
+{
+  "name": "@beinfi/sdk",
+  "version": "1.0.0",
+  "description": "Infi TypeScript SDK, generated from the public API contract (ADR 0055).",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "codegen": "bunx openapi-typescript@7 api/openapi.sdk.json -o src/generated/openapi.ts && bun scripts/gen-facade.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "build": "tsc -p tsconfig.build.json",
+    "sync:contract": "cp ${INFI_BACKEND:-../backend}/api/openapi.sdk.json ${INFI_BACKEND:-../backend}/api/openapi.sdk.yaml api/ && bun run codegen",
+    "examples": "bun examples/run-all.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^26.6.5",
+    "openapi-typescript": "^7",
+    "typescript": "^5"
+  }
+}
