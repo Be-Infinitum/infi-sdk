@@ -5481,3 +5481,595 @@ components:
         title: {type: string}
         status: {type: string, enum: [active, disabled]}
         createdAt: {type: string, format: date-time}
+    TeamRole:
+      type: string
+      enum:
+        - owner
+        - admin
+        - readonly
+      description: Fixed merchant role. Only owners manage the team and credentials. Admins perform ordinary business writes; readonly sessions cannot perform business writes. Existing stronger owner and MFA guards remain in effect.
+    TeamMember:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - createdAt
+      properties:
+        id: &a1
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role: &a2
+          $ref: "#/components/schemas/TeamRole"
+        createdAt: &a3
+          type: string
+          format: date-time
+    TeamInvitation:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - status
+        - createdAt
+        - expiresAt
+      properties:
+        id: *a1
+        email:
+          type: string
+          format: email
+        role: *a2
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - revoked
+            - expired
+        createdAt: *a3
+        expiresAt: *a3
+        emailSentAt:
+          type: string
+          format: date-time
+          nullable: true
+    TeamView:
+      type: object
+      required:
+        - members
+        - invitations
+        - currentUserId
+        - canManage
+        - mode
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamInvitation"
+        currentUserId: *a1
+        canManage:
+          type: boolean
+        mode: &a5
+          type: string
+          enum:
+            - sandbox
+            - live
+    TeamTenant:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id: &a4
+          type: string
+        slug: *a4
+        name: *a4
+    TeamInvitationPreview:
+      type: object
+      required:
+        - invitation
+        - tenant
+        - mode
+      properties:
+        invitation:
+          type: object
+          required:
+            - id
+            - email
+            - role
+            - status
+            - expiresAt
+          properties:
+            id: *a1
+            email:
+              type: string
+              format: email
+            role: *a2
+            status:
+              type: string
+              enum:
+                - pending
+                - accepted
+                - revoked
+                - expired
+            expiresAt: *a3
+        tenant:
+          $ref: "#/components/schemas/TeamTenant"
+        mode: *a5
+        termsVersion:
+          type: string
+    TeamInvitationAcceptance:
+      type: object
+      required:
+        - tenant
+        - user
+        - mode
+      properties:
+        tenant:
+          $ref: "#/components/schemas/TeamTenant"
+        user:
+          type: object
+          required:
+            - id
+            - email
+            - role
+          properties:
+            id: *a1
+            email:
+              type: string
+              format: email
+            role: *a2
+        mode: *a5
+    AIAssistantTenant:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - slug
+        - name
+    AIAssistantResource:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - business
+            - product
+            - offer
+            - checkout
+            - customer
+            - receiving
+            - kyc
+            - catalog_revision
+        id:
+          type: string
+        url:
+          type: string
+        path:
+          type: string
+        tenant:
+          $ref: "#/components/schemas/AIAssistantTenant"
+      required:
+        - kind
+        - id
+    AIAssistantPart:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - text
+            - resource
+            - operation
+            - interaction
+            - plan
+        text:
+          type: string
+        lines:
+          type: array
+          items:
+            type: string
+          description: For a plan part, the changes that are not products (meters, webhooks), as the plan's own sentences.
+        blocked:
+          type: boolean
+          description: For a plan part, whether the plan has a change that cannot be applied.
+        items:
+          type: array
+          description: For a plan part, each product the plan touches, for the confirmation card.
+          items:
+            type: object
+            required: [key, name, status, currency, staying]
+            properties:
+              key:
+                type: string
+              name:
+                type: string
+              status:
+                type: string
+                enum: [new, price, update, archive]
+              price:
+                type: string
+                description: Base price of the version to be published, decimal in major units.
+              currency:
+                type: string
+              cycle:
+                type: string
+                enum: [weekly, monthly, annual]
+              staying:
+                type: integer
+                format: int64
+                description: Subscribers who keep paying the version they agreed to.
+        resource:
+          $ref: "#/components/schemas/AIAssistantResource"
+        summary:
+          type: string
+        operationId:
+          type: string
+        interactionId:
+          type: string
+        state:
+          type: string
+          description: Actual command operation state, independent of assistant run completion.
+      required:
+        - kind
+    AIAssistantEntry:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.
+        sequence:
+          type: integer
+          format: int64
+        author:
+          type: string
+          enum:
+            - user
+            - assistant
+            - system
+        parts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIAssistantPart"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - sequence
+        - author
+        - parts
+        - createdAt
+    AIAssistantError:
+      type: object
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+        retryable:
+          type: boolean
+      required:
+        - code
+        - retryable
+    AIAssistantRun:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.
+        state:
+          type: string
+          enum:
+            - queued
+            - running
+            - waiting_user
+            - completed
+            - failed
+            - cancelled
+        error:
+          allOf:
+            - $ref: "#/components/schemas/AIAssistantError"
+          nullable: true
+        operations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIAssistantPart"
+          description: Persisted command outcomes, including results admitted before run cancellation.
+      required:
+        - id
+        - state
+        - error
+    AIAssistantNextAction:
+      type: object
+      additionalProperties: false
+      properties:
+        kind:
+          type: string
+          enum:
+            - web
+        path:
+          type: string
+      required:
+        - kind
+        - path
+    AIAssistantInteraction:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        purpose:
+          type: string
+        state:
+          type: string
+          enum:
+            - pending
+            - completed
+            - expired
+            - cancelled
+        summary:
+          type: string
+        contentHash:
+          type: string
+        basisRevision:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        nextAction:
+          $ref: "#/components/schemas/AIAssistantNextAction"
+      required:
+        - id
+        - purpose
+        - state
+        - summary
+        - contentHash
+        - basisRevision
+        - expiresAt
+        - nextAction
+    AIAssistantConversationSummary:
+      type: object
+      required: [id, title, tenant, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          description: Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.
+        title:
+          type: string
+          description: Start of the first message the caller sent; empty before the first message.
+        tenant:
+          oneOf:
+            - $ref: "#/components/schemas/AIAssistantTenant"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AIAssistantConversationList:
+      type: object
+      required: [conversations, total]
+      properties:
+        conversations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIAssistantConversationSummary"
+        total:
+          type: integer
+          format: int64
+    AIAssistantConversation:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.
+        environment:
+          type: string
+          enum:
+            - sandbox
+            - live
+        tenant:
+          allOf:
+            - $ref: "#/components/schemas/AIAssistantTenant"
+          nullable: true
+        version:
+          type: integer
+          format: int64
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIAssistantEntry"
+        activeRun:
+          allOf:
+            - $ref: "#/components/schemas/AIAssistantRun"
+          nullable: true
+        interactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AIAssistantInteraction"
+        capabilities:
+          type: object
+          additionalProperties: false
+          properties:
+            canSend:
+              type: boolean
+            modelAvailable:
+              type: boolean
+          required:
+            - canSend
+            - modelAvailable
+      required:
+        - id
+        - environment
+        - tenant
+        - version
+        - entries
+        - activeRun
+        - interactions
+        - capabilities
+    CreateAIAssistantConversationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        draft:
+          type: string
+          maxLength: 4096
+        title:
+          type: string
+          maxLength: 120
+        idempotencyKey:
+          type: string
+          minLength: 8
+          maxLength: 128
+    SubmitAIAssistantEntryInput:
+      type: object
+      additionalProperties: false
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4096
+        idempotencyKey:
+          type: string
+          minLength: 8
+          maxLength: 128
+      required:
+        - content
+        - idempotencyKey
+    AIAssistantConversationResult:
+      type: object
+      additionalProperties: false
+      properties:
+        conversation:
+          $ref: "#/components/schemas/AIAssistantConversation"
+      required:
+        - conversation
+    AIAssistantTurnResult:
+      type: object
+      additionalProperties: false
+      properties:
+        run:
+          $ref: "#/components/schemas/AIAssistantRun"
+        conversation:
+          $ref: "#/components/schemas/AIAssistantConversation"
+      required:
+        - run
+        - conversation
+    CreateAIAssistantDraftInput:
+      type: object
+      additionalProperties: false
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4096
+        environment:
+          type: string
+          enum:
+            - sandbox
+            - live
+      required:
+        - content
+        - environment
+    AIAssistantDraft:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.
+        capability:
+          type: string
+          minLength: 43
+          maxLength: 43
+          description: Browser-only capability returned once. Never put in model context, ordinary telemetry or URL query parameters.
+        expiresAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - capability
+        - expiresAt
+    DelegatedAccessGrant:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+        environment:
+          type: string
+          enum:
+            - sandbox
+            - live
+        resource:
+          type: string
+          format: uri
+        scopes:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+            - cancelled
+            - expired
+            - revoked
+        expiresAt:
+          type: string
+          format: date-time
+        tenantId:
+          type: string
+        membershipId:
+          type: string
+          format: uuid
+        policyVersion:
+          type: integer
+      required:
+        - id
+        - clientId
+        - environment
+        - resource
+        - scopes
+        - status
+        - expiresAt
+        - policyVersion
+    DelegatedAccessConsentInput:
+      type: object
+      additionalProperties: false
+      properties:
+        scopes:
+          type: array
+          items:
+            type: string
+        policyVersion:
+          type: integer
+          enum:
+            - 1
+      required:
+        - scopes
+        - policyVersion

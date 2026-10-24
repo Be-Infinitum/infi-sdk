@@ -2,7 +2,7 @@ import { Infi } from "../src/index.js";
 
 /** Cliente pronto para uso: INFI_SECRET_KEY, ou uma conta de teste nova no backend local. */
 export async function setup(): Promise<Infi> {
-  const apiUrl = (process.env.INFI_API_URL ?? "http://127.0.0.1:8098").replace(/\/+$/, "");
+  const apiUrl = (process.env.INFI_API_URL ?? "https://api-sandbox.beinfi.com").replace(/\/+$/, "");
   let secretKey = process.env.INFI_SECRET_KEY;
   if (!secretKey) {
     // Único fetch direto do exemplo: provisionar uma conta de teste (não faz parte do SDK).

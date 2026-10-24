@@ -400,6 +400,139 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AIAssistantConversation: {
+            activeRun: components["schemas"]["AIAssistantRun"] | null;
+            capabilities: {
+                canSend: boolean;
+                modelAvailable: boolean;
+            };
+            entries: components["schemas"]["AIAssistantEntry"][];
+            /** @enum {string} */
+            environment: "sandbox" | "live";
+            /** @description Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input. */
+            id: string;
+            interactions: components["schemas"]["AIAssistantInteraction"][];
+            tenant: components["schemas"]["AIAssistantTenant"] | null;
+            /** Format: int64 */
+            version: number;
+        };
+        AIAssistantConversationList: {
+            conversations: components["schemas"]["AIAssistantConversationSummary"][];
+            /** Format: int64 */
+            total: number;
+        };
+        AIAssistantConversationResult: {
+            conversation: components["schemas"]["AIAssistantConversation"];
+        };
+        AIAssistantConversationSummary: {
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input. */
+            id: string;
+            tenant: components["schemas"]["AIAssistantTenant"] | null;
+            /** @description Start of the first message the caller sent; empty before the first message. */
+            title: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        AIAssistantDraft: {
+            /** @description Browser-only capability returned once. Never put in model context, ordinary telemetry or URL query parameters. */
+            capability: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** @description Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input. */
+            id: string;
+        };
+        AIAssistantEntry: {
+            /** @enum {string} */
+            author: "user" | "assistant" | "system";
+            /** Format: date-time */
+            createdAt: string;
+            /** @description Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input. */
+            id: string;
+            parts: components["schemas"]["AIAssistantPart"][];
+            /** Format: int64 */
+            sequence: number;
+        };
+        AIAssistantError: {
+            code: string;
+            retryable: boolean;
+        };
+        AIAssistantInteraction: {
+            basisRevision: string;
+            contentHash: string;
+            /** Format: date-time */
+            expiresAt: string;
+            id: string;
+            nextAction: components["schemas"]["AIAssistantNextAction"];
+            purpose: string;
+            /** @enum {string} */
+            state: "pending" | "completed" | "expired" | "cancelled";
+            summary: string;
+        };
+        AIAssistantNextAction: {
+            /** @enum {string} */
+            kind: "web";
+            path: string;
+        };
+        AIAssistantPart: {
+            /** @description For a plan part, whether the plan has a change that cannot be applied. */
+            blocked?: boolean;
+            interactionId?: string;
+            /** @description For a plan part, each product the plan touches, for the confirmation card. */
+            items?: {
+                currency: string;
+                /** @enum {string} */
+                cycle?: "weekly" | "monthly" | "annual";
+                key: string;
+                name: string;
+                /** @description Base price of the version to be published, decimal in major units. */
+                price?: string;
+                /** @enum {string} */
+                status: "new" | "price" | "update" | "archive";
+                /**
+                 * Format: int64
+                 * @description Subscribers who keep paying the version they agreed to.
+                 */
+                staying: number;
+            }[];
+            /** @enum {string} */
+            kind: "text" | "resource" | "operation" | "interaction" | "plan";
+            /** @description For a plan part, the changes that are not products (meters, webhooks), as the plan's own sentences. */
+            lines?: string[];
+            operationId?: string;
+            resource?: components["schemas"]["AIAssistantResource"];
+            /** @description Actual command operation state, independent of assistant run completion. */
+            state?: string;
+            summary?: string;
+            text?: string;
+        };
+        AIAssistantResource: {
+            id: string;
+            /** @enum {string} */
+            kind: "business" | "product" | "offer" | "checkout" | "customer" | "receiving" | "kyc" | "catalog_revision";
+            path?: string;
+            tenant?: components["schemas"]["AIAssistantTenant"];
+            url?: string;
+        };
+        AIAssistantRun: {
+            error: components["schemas"]["AIAssistantError"] | null;
+            /** @description Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input. */
+            id: string;
+            /** @description Persisted command outcomes, including results admitted before run cancellation. */
+            operations?: components["schemas"]["AIAssistantPart"][];
+            /** @enum {string} */
+            state: "queued" | "running" | "waiting_user" | "completed" | "failed" | "cancelled";
+        };
+        AIAssistantTenant: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        AIAssistantTurnResult: {
+            conversation: components["schemas"]["AIAssistantConversation"];
+            run: components["schemas"]["AIAssistantRun"];
+        };
         AccessGrant: {
             /** Format: date-time */
             createdAt: string;
@@ -1311,6 +1444,16 @@ export interface components {
          * @example coup_4Hn9sQ1vR7tY2uB0wE3iOa
          */
         CouponId: string;
+        CreateAIAssistantConversationInput: {
+            draft?: string;
+            idempotencyKey?: string;
+            title?: string;
+        };
+        CreateAIAssistantDraftInput: {
+            content: string;
+            /** @enum {string} */
+            environment: "sandbox" | "live";
+        };
         /** @description Create a coupon. Code matches `^[A-Z0-9_-]{3,32}$`; `percentOff` is a decimal string in (0, 100]. `durationInCycles` is required (>=1) for `repeating` and must be omitted otherwise. */
         CreateCouponRequest: {
             code: string;
@@ -1636,6 +1779,29 @@ export interface components {
             leads: number;
             /** Format: int64 */
             total: number;
+        };
+        DelegatedAccessConsentInput: {
+            /** @enum {integer} */
+            policyVersion: 1;
+            scopes: string[];
+        };
+        DelegatedAccessGrant: {
+            clientId: string;
+            /** @enum {string} */
+            environment: "sandbox" | "live";
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            membershipId?: string;
+            policyVersion: number;
+            /** Format: uri */
+            resource: string;
+            scopes: string[];
+            /** @enum {string} */
+            status: "pending" | "active" | "cancelled" | "expired" | "revoked";
+            tenantId?: string;
         };
         Deliverable: {
             contentType?: string | null;
@@ -3514,6 +3680,10 @@ export interface components {
             /** @description Live only, and only while `needsBootstrap` is true: the Infi Terms version the first live login must accept. Show that version and send it back as `acceptedTermsVersion` on `POST /auth/session/bootstrap`. */
             termsVersion?: string;
         };
+        SubmitAIAssistantEntryInput: {
+            content: string;
+            idempotencyKey: string;
+        };
         Subscription: {
             /** Format: date-time */
             anchor: string;
@@ -3583,6 +3753,78 @@ export interface components {
         };
         /** @enum {string} */
         TaxCategory: "digital_general" | "saas" | "ebook" | "online_course" | "live_virtual_training" | "video_subscription" | "software_download" | "digital_images";
+        TeamInvitation: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: email */
+            email: string;
+            /** Format: date-time */
+            emailSentAt?: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["TeamRole"];
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+        };
+        TeamInvitationAcceptance: {
+            /** @enum {string} */
+            mode: "sandbox" | "live";
+            tenant: components["schemas"]["TeamTenant"];
+            user: {
+                /** Format: email */
+                email: string;
+                /** Format: uuid */
+                id: string;
+                role: components["schemas"]["TeamRole"];
+            };
+        };
+        TeamInvitationPreview: {
+            invitation: {
+                /** Format: email */
+                email: string;
+                /** Format: date-time */
+                expiresAt: string;
+                /** Format: uuid */
+                id: string;
+                role: components["schemas"]["TeamRole"];
+                /** @enum {string} */
+                status: "pending" | "accepted" | "revoked" | "expired";
+            };
+            /** @enum {string} */
+            mode: "sandbox" | "live";
+            tenant: components["schemas"]["TeamTenant"];
+            termsVersion?: string;
+        };
+        TeamMember: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: email */
+            email: string;
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["TeamRole"];
+        };
+        /**
+         * @description Fixed merchant role. Only owners manage the team and credentials. Admins perform ordinary business writes; readonly sessions cannot perform business writes. Existing stronger owner and MFA guards remain in effect.
+         * @enum {string}
+         */
+        TeamRole: "owner" | "admin" | "readonly";
+        TeamTenant: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        TeamView: {
+            canManage: boolean;
+            /** Format: uuid */
+            currentUserId: string;
+            invitations: components["schemas"]["TeamInvitation"][];
+            members: components["schemas"]["TeamMember"][];
+            /** @enum {string} */
+            mode: "sandbox" | "live";
+        };
         Tenant: {
             appearance: components["schemas"]["BusinessAppearance"];
             /** Format: date-time */

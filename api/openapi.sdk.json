@@ -593,6 +593,508 @@
       }
     },
     "schemas": {
+      "AIAssistantConversation": {
+        "additionalProperties": false,
+        "properties": {
+          "activeRun": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AIAssistantRun"
+              }
+            ],
+            "nullable": true
+          },
+          "capabilities": {
+            "additionalProperties": false,
+            "properties": {
+              "canSend": {
+                "type": "boolean"
+              },
+              "modelAvailable": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "canSend",
+              "modelAvailable"
+            ],
+            "type": "object"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AIAssistantEntry"
+            },
+            "type": "array"
+          },
+          "environment": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "id": {
+            "description": "Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.",
+            "type": "string"
+          },
+          "interactions": {
+            "items": {
+              "$ref": "#/components/schemas/AIAssistantInteraction"
+            },
+            "type": "array"
+          },
+          "tenant": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AIAssistantTenant"
+              }
+            ],
+            "nullable": true
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "environment",
+          "tenant",
+          "version",
+          "entries",
+          "activeRun",
+          "interactions",
+          "capabilities"
+        ],
+        "type": "object"
+      },
+      "AIAssistantConversationList": {
+        "properties": {
+          "conversations": {
+            "items": {
+              "$ref": "#/components/schemas/AIAssistantConversationSummary"
+            },
+            "type": "array"
+          },
+          "total": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "conversations",
+          "total"
+        ],
+        "type": "object"
+      },
+      "AIAssistantConversationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/AIAssistantConversation"
+          }
+        },
+        "required": [
+          "conversation"
+        ],
+        "type": "object"
+      },
+      "AIAssistantConversationSummary": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.",
+            "type": "string"
+          },
+          "tenant": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AIAssistantTenant"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "description": "Start of the first message the caller sent; empty before the first message.",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "tenant",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "AIAssistantDraft": {
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "description": "Browser-only capability returned once. Never put in model context, ordinary telemetry or URL query parameters.",
+            "maxLength": 43,
+            "minLength": 43,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "capability",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "AIAssistantEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "author": {
+            "enum": [
+              "user",
+              "assistant",
+              "system"
+            ],
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.",
+            "type": "string"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/AIAssistantPart"
+            },
+            "type": "array"
+          },
+          "sequence": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "sequence",
+          "author",
+          "parts",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "AIAssistantError": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "retryable"
+        ],
+        "type": "object"
+      },
+      "AIAssistantInteraction": {
+        "additionalProperties": false,
+        "properties": {
+          "basisRevision": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "nextAction": {
+            "$ref": "#/components/schemas/AIAssistantNextAction"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "completed",
+              "expired",
+              "cancelled"
+            ],
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "purpose",
+          "state",
+          "summary",
+          "contentHash",
+          "basisRevision",
+          "expiresAt",
+          "nextAction"
+        ],
+        "type": "object"
+      },
+      "AIAssistantNextAction": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "web"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "path"
+        ],
+        "type": "object"
+      },
+      "AIAssistantPart": {
+        "additionalProperties": false,
+        "properties": {
+          "blocked": {
+            "description": "For a plan part, whether the plan has a change that cannot be applied.",
+            "type": "boolean"
+          },
+          "interactionId": {
+            "type": "string"
+          },
+          "items": {
+            "description": "For a plan part, each product the plan touches, for the confirmation card.",
+            "items": {
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "cycle": {
+                  "enum": [
+                    "weekly",
+                    "monthly",
+                    "annual"
+                  ],
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "price": {
+                  "description": "Base price of the version to be published, decimal in major units.",
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "new",
+                    "price",
+                    "update",
+                    "archive"
+                  ],
+                  "type": "string"
+                },
+                "staying": {
+                  "description": "Subscribers who keep paying the version they agreed to.",
+                  "format": "int64",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "key",
+                "name",
+                "status",
+                "currency",
+                "staying"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "text",
+              "resource",
+              "operation",
+              "interaction",
+              "plan"
+            ],
+            "type": "string"
+          },
+          "lines": {
+            "description": "For a plan part, the changes that are not products (meters, webhooks), as the plan's own sentences.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "operationId": {
+            "type": "string"
+          },
+          "resource": {
+            "$ref": "#/components/schemas/AIAssistantResource"
+          },
+          "state": {
+            "description": "Actual command operation state, independent of assistant run completion.",
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
+      "AIAssistantResource": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "business",
+              "product",
+              "offer",
+              "checkout",
+              "customer",
+              "receiving",
+              "kyc",
+              "catalog_revision"
+            ],
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/AIAssistantTenant"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
+      "AIAssistantRun": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AIAssistantError"
+              }
+            ],
+            "nullable": true
+          },
+          "id": {
+            "description": "Public id with its prefix (conv_, msg_, run_, draft_, ADR 0015); a bare UUID is still accepted on input.",
+            "type": "string"
+          },
+          "operations": {
+            "description": "Persisted command outcomes, including results admitted before run cancellation.",
+            "items": {
+              "$ref": "#/components/schemas/AIAssistantPart"
+            },
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "waiting_user",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "state",
+          "error"
+        ],
+        "type": "object"
+      },
+      "AIAssistantTenant": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "type": "object"
+      },
+      "AIAssistantTurnResult": {
+        "additionalProperties": false,
+        "properties": {
+          "conversation": {
+            "$ref": "#/components/schemas/AIAssistantConversation"
+          },
+          "run": {
+            "$ref": "#/components/schemas/AIAssistantRun"
+          }
+        },
+        "required": [
+          "run",
+          "conversation"
+        ],
+        "type": "object"
+      },
       "AccessGrant": {
         "properties": {
           "createdAt": {
@@ -3438,6 +3940,47 @@
         "pattern": "^coup_[0-9A-Za-z]{22}$",
         "type": "string"
       },
+      "CreateAIAssistantConversationInput": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "maxLength": 4096,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 128,
+            "minLength": 8,
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "CreateAIAssistantDraftInput": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "environment"
+        ],
+        "type": "object"
+      },
       "CreateCouponRequest": {
         "description": "Create a coupon. Code matches `^[A-Z0-9_-]{3,32}$`; `percentOff` is a decimal string in (0, 100]. `durationInCycles` is required (>=1) for `repeating` and must be omitted otherwise.\n",
         "properties": {
@@ -4602,6 +5145,92 @@
           "total",
           "leads",
           "converted"
+        ],
+        "type": "object"
+      },
+      "DelegatedAccessConsentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "policyVersion": {
+            "enum": [
+              1
+            ],
+            "type": "integer"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scopes",
+          "policyVersion"
+        ],
+        "type": "object"
+      },
+      "DelegatedAccessGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "membershipId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "policyVersion": {
+            "type": "integer"
+          },
+          "resource": {
+            "format": "uri",
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "cancelled",
+              "expired",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "environment",
+          "resource",
+          "scopes",
+          "status",
+          "expiresAt",
+          "policyVersion"
         ],
         "type": "object"
       },
@@ -10794,6 +11423,26 @@
         ],
         "type": "object"
       },
+      "SubmitAIAssistantEntryInput": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 128,
+            "minLength": 8,
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "idempotencyKey"
+        ],
+        "type": "object"
+      },
       "Subscription": {
         "properties": {
           "anchor": {
@@ -11031,6 +11680,244 @@
           "digital_images"
         ],
         "type": "string"
+      },
+      "TeamInvitation": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "emailSentAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRole"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "TeamInvitationAcceptance": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/TeamTenant"
+          },
+          "user": {
+            "properties": {
+              "email": {
+                "format": "email",
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "role": {
+                "$ref": "#/components/schemas/TeamRole"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "role"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "tenant",
+          "user",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "TeamInvitationPreview": {
+        "properties": {
+          "invitation": {
+            "properties": {
+              "email": {
+                "format": "email",
+                "type": "string"
+              },
+              "expiresAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "role": {
+                "$ref": "#/components/schemas/TeamRole"
+              },
+              "status": {
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "revoked",
+                  "expired"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "role",
+              "status",
+              "expiresAt"
+            ],
+            "type": "object"
+          },
+          "mode": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/TeamTenant"
+          },
+          "termsVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitation",
+          "tenant",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "TeamMember": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRole"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TeamRole": {
+        "description": "Fixed merchant role. Only owners manage the team and credentials. Admins perform ordinary business writes; readonly sessions cannot perform business writes. Existing stronger owner and MFA guards remain in effect.",
+        "enum": [
+          "owner",
+          "admin",
+          "readonly"
+        ],
+        "type": "string"
+      },
+      "TeamTenant": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "type": "object"
+      },
+      "TeamView": {
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "currentUserId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/TeamInvitation"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "members",
+          "invitations",
+          "currentUserId",
+          "canManage",
+          "mode"
+        ],
+        "type": "object"
       },
       "Tenant": {
         "properties": {
