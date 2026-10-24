@@ -6,12 +6,12 @@ Um script por caso de uso de cobrança, escrito só com a API pública do SDK (`
 
 ```sh
 cd sdk/typescript
-INFI_API_URL=http://127.0.0.1:8098 bun examples/01-billing-as-code.ts
-INFI_API_URL=http://127.0.0.1:8098 bun examples/run-all.ts   # todos, com ✓/✗ no fim
+bun examples/01-billing-as-code.ts
+bun examples/run-all.ts   # todos, com ✓/✗ no fim
 ```
 
 - `INFI_SECRET_KEY` (opcional): usa essa chave. Sem ela, `_setup.ts` cria uma conta de teste nova em `POST {INFI_API_URL}/public/v1/claimables` (único `fetch` direto), então cada script roda sozinho numa conta limpa.
-- `INFI_API_URL` (padrão `http://127.0.0.1:8098`): backend em modo sandbox, com worker.
+- `INFI_API_URL` (padrão `https://api-sandbox.beinfi.com`): qualquer backend em modo sandbox com worker; para um backend local, `INFI_API_URL=http://127.0.0.1:8088`.
 - Tipos: `bun x tsc --noEmit` cobre `examples/` junto com o pacote.
 
 ## O que cada script mostra
