@@ -563,7 +563,7 @@ paths:
       x-infi-facade: true
       x-infi-scope: config:write
       description: >
-        Applies the plan whose `planHash` is in `If-Match`. The body is the same document and options the plan took. If the account moved since the plan, answers 412 `plan_changed` with the plan as it is now and applies nothing. On sandbox it applies (200). On live it only records a proposal (202): the catalog is untouched until a person approves it at `approvalUrl`, also given as `previewUrl`.
+        Applies the plan whose `planHash` is in `If-Match`. The body is the same document and options the plan took. If the account moved since the plan, answers 412 `plan_changed` with the plan as it is now and applies nothing. It applies (200) on sandbox and on live. On live a plan that changes a webhook endpoint only records a proposal (202, ADR 0070): the catalog is untouched until a person approves it at `approvalUrl`, also given as `previewUrl`.
 
       parameters:
         - $ref: "#/components/parameters/IdempotencyKey"
@@ -726,10 +726,6 @@ components:
             properties:
               ids: {type: array, items: {type: string, format: uuid}}
   securitySchemes:
-    receivingWebhookBasic:
-      type: "http"
-      scheme: "basic"
-      description: "Dedicated webhook username and password for the Brazilian receiving ingress. Dashboard fields were inspected; real authenticated delivery remains an activation gate."
     buyerToken:
       type: http
       scheme: bearer
@@ -1044,6 +1040,11 @@ components:
       content:
         application/json:
           schema: {$ref: "#/components/schemas/Error"}
+    BadGateway:
+      description: A provider Infi depends on did not answer or refused the call
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
     RateLimited:
       description: >
         Rate limit exceeded. Uses the nested middleware envelope, not the flat one. `Retry-After` gives the wait in seconds.
@@ -1065,328 +1066,6 @@ components:
             properties:
               rules: {type: array, items: {$ref: "#/components/schemas/AccessRule"}}
   schemas:
-    "ReceivingKycStatus":
-      "type": "object"
-      "additionalProperties": false
-      "properties":
-        "state":
-          "type": "string"
-          "enum":
-            - "not_requested"
-            - "queued"
-            - "checking"
-            - "issuing"
-            - "ready"
-            - "unavailable"
-            - "outcome_unknown"
-            - "expired"
-            - "stale"
-        "revision":
-          "type": "integer"
-          "format": "int64"
-          "minimum": 0
-        "receivingRevision":
-          "type": "integer"
-          "format": "int64"
-          "minimum": 1
-        "serverTime":
-          "type": "string"
-          "format": "date-time"
-        "expiresAt":
-          "type": "string"
-          "format": "date-time"
-        "retryAfter":
-          "type": "string"
-          "format": "date-time"
-        "reason":
-          "type": "string"
-      "required":
-        - "state"
-        - "revision"
-        - "receivingRevision"
-        - "serverTime"
-    "ReceivingKycLink":
-      "type": "object"
-      "additionalProperties": false
-      "properties":
-        "url":
-          "type": "string"
-          "format": "uri"
-        "expiresAt":
-          "type": "string"
-          "format": "date-time"
-        "revision":
-          "type": "integer"
-          "format": "int64"
-          "minimum": 0
-        "receivingRevision":
-          "type": "integer"
-          "format": "int64"
-          "minimum": 1
-        "serverTime":
-          "type": "string"
-          "format": "date-time"
-      "required":
-        - "url"
-        - "expiresAt"
-        - "revision"
-        - "receivingRevision"
-        - "serverTime"
-    ReceivingAddress:
-      type: "object"
-      additionalProperties: false
-      required:
-        - "street"
-        - "complementary"
-        - "streetNumber"
-        - "neighborhood"
-        - "city"
-        - "state"
-        - "zipCode"
-        - "referencePoint"
-      properties:
-        street:
-          type: "string"
-        complementary:
-          type: "string"
-        streetNumber:
-          type: "string"
-        neighborhood:
-          type: "string"
-        city:
-          type: "string"
-        state:
-          type: "string"
-        zipCode:
-          type: "string"
-        referencePoint:
-          type: "string"
-    ReceivingPhone:
-      type: "object"
-      additionalProperties: false
-      required:
-        - "areaCode"
-        - "number"
-        - "type"
-      properties:
-        areaCode:
-          type: "string"
-        number:
-          type: "string"
-        type:
-          type: "string"
-    ReceivingPerson:
-      type: "object"
-      additionalProperties: false
-      required:
-        - "name"
-        - "email"
-        - "document"
-        - "birthdate"
-        - "professionalOccupation"
-        - "monthlyIncome"
-        - "address"
-        - "phones"
-      properties:
-        name:
-          type: "string"
-        email:
-          type: "string"
-        document:
-          type: "string"
-        siteUrl:
-          type: "string"
-        motherName:
-          type: "string"
-        birthdate:
-          type: "string"
-        professionalOccupation:
-          type: "string"
-        monthlyIncome:
-          type: "integer"
-          format: "int64"
-          minimum: 0
-        address:
-          $ref: "#/components/schemas/ReceivingAddress"
-        phones:
-          type: "array"
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/ReceivingPhone"
-    ReceivingIndividual:
-      allOf:
-        - $ref: "#/components/schemas/ReceivingPerson"
-        - type: object
-          required: [siteUrl]
-    ReceivingCompany:
-      type: "object"
-      additionalProperties: false
-      required:
-        - "companyName"
-        - "tradingName"
-        - "email"
-        - "document"
-        - "siteUrl"
-        - "annualRevenue"
-        - "address"
-        - "phones"
-        - "managingPartner"
-      properties:
-        companyName:
-          type: "string"
-        tradingName:
-          type: "string"
-        email:
-          type: "string"
-        document:
-          type: "string"
-        siteUrl:
-          type: "string"
-        corporationType:
-          type: "string"
-        foundingDate:
-          type: "string"
-        annualRevenue:
-          type: "integer"
-          format: "int64"
-          minimum: 0
-        address:
-          $ref: "#/components/schemas/ReceivingAddress"
-        phones:
-          type: "array"
-          minItems: 1
-          items:
-            $ref: "#/components/schemas/ReceivingPhone"
-        managingPartner:
-          $ref: "#/components/schemas/ReceivingPerson"
-        selfDeclaredLegalRepresentative:
-          type: "boolean"
-    ReceivingBank:
-      type: "object"
-      additionalProperties: false
-      required:
-        - "holderName"
-        - "holderType"
-        - "holderDocument"
-        - "bank"
-        - "branchNumber"
-        - "accountNumber"
-        - "accountCheckDigit"
-        - "type"
-      properties:
-        holderName:
-          type: "string"
-        holderDocument:
-          type: "string"
-        bank:
-          type: "string"
-        branchNumber:
-          type: "string"
-        branchCheckDigit:
-          type: "string"
-        accountNumber:
-          type: "string"
-        accountCheckDigit:
-          type: "string"
-        holderType:
-          type: "string"
-          enum:
-            - "individual"
-            - "company"
-        type:
-          type: "string"
-          enum:
-            - "checking"
-            - "savings"
-    ReceivingApplication:
-      oneOf:
-        - type: "object"
-          additionalProperties: false
-          required:
-            - "individual"
-            - "bank"
-          properties:
-            individual:
-              $ref: "#/components/schemas/ReceivingIndividual"
-            bank:
-              $ref: "#/components/schemas/ReceivingBank"
-        - type: "object"
-          additionalProperties: false
-          required:
-            - "company"
-            - "bank"
-          properties:
-            company:
-              $ref: "#/components/schemas/ReceivingCompany"
-            bank:
-              $ref: "#/components/schemas/ReceivingBank"
-      description: "Exactly one individual or company dossier, plus its bank account. Tenant, actor, provider code, environment and platform account are server-selected. The submitted dossier is immutable in this version."
-    ReceivingView:
-      type: "object"
-      additionalProperties: false
-      required:
-        - "state"
-        - "capabilities"
-        - "updatedAt"
-        - "receivingRevision"
-      properties:
-        receivingRevision:
-          type: integer
-          format: int64
-          minimum: 1
-        state:
-          type: "string"
-          enum:
-            - "reserved"
-            - "dispatched"
-            - "linked"
-            - "outcome_unknown"
-            - "refused"
-        recipientStatus:
-          type: "string"
-          enum:
-            - "registration"
-            - "affiliation"
-            - "active"
-            - "refused"
-            - "suspended"
-            - "blocked"
-            - "inactive"
-            - "unknown"
-        kyc:
-          type: "object"
-          additionalProperties: false
-          required:
-            - "status"
-          properties:
-            status:
-              type: "string"
-              enum:
-                - "pending"
-                - "approved"
-                - "denied"
-                - "partially_denied"
-                - "unknown"
-            reason:
-              type: "string"
-        capabilities:
-          type: "object"
-          additionalProperties: false
-          required:
-            - "canTransact"
-            - "canWithdraw"
-            - "canRequestKyc"
-          properties:
-            canTransact:
-              type: "boolean"
-            canWithdraw:
-              type: "boolean"
-            canRequestKyc:
-              type: "boolean"
-        updatedAt:
-          type: "string"
-          format: "date-time"
-      description: "Provider capabilities from the last applied snapshot, not Infi sale authorization or a guarantee of current provider standing. No dossier, bank data, provider IDs or credentials are returned."
     CompanyConfigReceipt:
       type: object
       required: [docHash, slug, sourceRevisionId, issuedAt, keyId, signature]
@@ -1917,9 +1596,9 @@ components:
         withdrawalWaiver: {$ref: "#/components/schemas/WithdrawalWaiver"}
         unavailableReason:
           type: string
-          enum: [product_not_available, buyer_country_required, supplier_country_required, supplier_country_conflict, domestic_payments_unavailable, collection_unavailable, country_mismatch, invoice_not_payable, direct_collection_reconciliation_required]
+          enum: [product_not_available, buyer_country_required, buyer_country_sanctioned, supplier_country_required, collection_unavailable, country_mismatch, invoice_not_payable]
           description: >
-            Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).
+            Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).
 
         acceptsPayments:
           type: boolean
@@ -2031,6 +1710,30 @@ components:
               action: {type: string}
               source: {type: string}
               time: {type: string}
+    AgentSignupChallenge:
+      type: object
+      required: [challengeId, expiresAt, deliveryStatus]
+      properties:
+        challengeId: {type: string, format: uuid}
+        expiresAt: {type: string, format: date-time}
+        deliveryStatus: {type: string, enum: [unknown, sent]}
+    AgentSignupAccount:
+      type: object
+      required: [tenantId, tenantSlug, accountName, productId, apiKeySecret, publishableKey, dashboardUrl]
+      properties:
+        tenantId: {type: string}
+        tenantSlug: {type: string}
+        accountName: {type: string}
+        productId: {type: string}
+        apiKeySecret: {type: string, description: Test secret returned once. Store in server secrets.}
+        publishableKey: {type: string}
+        dashboardUrl: {type: string, format: uri}
+        intent: {type: string, enum: [one-time, crm, usage-saas, prepaid-ai-chat]}
+        paymentLinkUrl: {type: string, format: uri}
+        amount: {type: string}
+        currency: {type: string}
+        billingCycle: {type: string}
+        pricingModel: {type: string}
     ClaimableTenantCreateResponse:
       type: object
       required: [id, status, tenantSlug, productId, apiKeySecret, publishableKey, accountName, claimUrl, expiresAt]
@@ -2042,7 +1745,39 @@ components:
         productId:
           $ref: '#/components/schemas/ProductId'
           description: >
-            The seeded "App usage" product. Provisioned unsellable on purpose — draft version 1, no key, no price — so publish a version and add a price before selling against it.
+            Without `intent`, the seeded "App usage" product: draft version 1, no key, no price. With a sellable `intent`, a published product whose checkout link is `paymentLinkUrl`.
+
+        intent:
+          type: string
+          enum: [one-time, crm, usage-saas, prepaid-ai-chat]
+          description: Present when the request named a sellable intent.
+        pricingModel:
+          type: string
+          enum: [one_time, subscription, usage, prepaid]
+          description: How the published product charges. Present with `paymentLinkUrl`.
+        billingCycle:
+          type: string
+          enum: [weekly, monthly, annual]
+          description: Present for `crm` (subscription) and `prepaid-ai-chat`.
+        paymentLinkUrl:
+          type: string
+          format: uri
+          description: >
+            Hosted checkout for the published product. Present when `intent` is one of the sellable values. Opening it shows the offer. It does not collect a payment.
+
+        amount:
+          type: string
+          description: >
+            Sample offer amount, present with `paymentLinkUrl`. A flat fee, or the per-request rate for `usage-saas`. Not a price of Infi.
+
+        currency:
+          type: string
+          description: Currency of `amount`. Present with `paymentLinkUrl`.
+        secretsUrl:
+          type: string
+          format: uri
+          description: >
+            Page that shows `INFI_SECRET_KEY` and the other sandbox env values once, when the person asks, then forgets them. Opening the URL does not reveal the keys. Hand this to a person. Do not put the secret in chat or email. The link lasts 24 hours. Asking again, letting it expire, or claiming the account first shows nothing. `apiKeySecret` is still on this response so an agent can write the server env without burning the page.
 
         apiKeySecret:
           type: string
@@ -2449,14 +2184,98 @@ components:
             Among a product's published versions, whether this is the one a buyer gets when nothing names a specific version. A published version with `isDefault: false` is an offer reachable only by an explicit pin — a payment link created with `productVersionId` — which is how a product carries a promotional price without it reaching the shelf.
 
         publishedAt: {type: [string, "null"], format: date-time}
+        optionId:
+          type: string
+          format: uuid
+          description: The price option this version is a term of (ADR 0062).
+        currency:
+          type: string
+          description: What this version charges in. Every order, invoice and renewal of it uses this currency.
+        pricingModel:
+          type: string
+          enum: [subscription, one_time, usage, prepaid]
+          description: How this version charges.
         commitmentAmount: {type: [string, "null"]}
         commitmentResets: {type: boolean}
         # Exposed here, like commitmentAmount, so the floor is visible in
         # GET .../versions without a second call to the consumption resource.
         consumptionFloor: {type: [string, "null"]}
+        trialDays:
+          type: integer
+          minimum: 1
+          maximum: 90
+          description: A subscription's free trial in days, card only (#311). Absent without one.
         grants:
           type: array
           items: {$ref: "#/components/schemas/VersionGrant"}
+    PriceOption:
+      type: object
+      required: [id, name, position, hidden, archived, isDefault]
+      description: >
+        A product's price option (ADR 0062): "Mensal", "Anual", "Vitalício". Its terms are versions; `version` is the current one, the newest published. Editing a sold option publishes a new version and whoever pinned the old one keeps it.
+
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string, maxLength: 60}
+        position: {type: integer}
+        hidden:
+          type: boolean
+          description: Left off the store page and the product page; it still sells through its own link.
+        archived: {type: boolean, description: Sells to nobody new.}
+        isDefault: {type: boolean, description: What a buyer gets when nothing names an option.}
+        version: {$ref: "#/components/schemas/Version"}
+        usage:
+          type: array
+          description: What the current version charges per meter (its meter prices).
+          items: {$ref: "#/components/schemas/Price"}
+    OptionUsagePrice:
+      type: object
+      required: [meterId, model]
+      description: The price of one of the product's meters on an option.
+      properties:
+        meterId: {type: string, format: uuid}
+        model: {type: string, enum: [per_unit, tiered, volume, package]}
+        unitAmount: {type: [string, "null"], description: Decimal string, for per_unit.: null}
+        tiers:
+          type: array
+          items: {type: object, additionalProperties: true}
+          description: Bands for tiered, volume and package ({upTo, unitAmount, flatAmount, size}).
+    PriceOptionInput:
+      type: object
+      description: On an edit, an absent field keeps the current term.
+      properties:
+        name: {type: string, maxLength: 60}
+        pricingModel: {type: string, enum: [subscription, one_time, usage, prepaid]}
+        currency: {type: string, description: ISO 4217 code. A physical product sells only in BRL.}
+        basePrice: {type: [string, "null"], description: Decimal string.}
+        billingCycle:
+          type: [string, "null"]
+          enum: [weekly, monthly, annual, null]
+        trialDays:
+          type: integer
+          minimum: 0
+          maximum: 90
+          description: >
+            A free trial of 1 to 90 days, for a subscription option only (#311). On an edit, 0 removes it; a changed trial publishes a new version.
+
+        usage:
+          type: array
+          description: >
+            The price of each meter the option charges, for a usage or subscription option. On an edit, absent keeps the current ones and a change publishes a new version; [] charges no meter.
+
+          items: {$ref: "#/components/schemas/OptionUsagePrice"}
+        grants:
+          type: array
+          description: >
+            Units the option credits (each cycle or on payment). On an edit, absent keeps the current ones and a change publishes a new version.
+
+          items: {$ref: "#/components/schemas/VersionGrant"}
+        hidden: {type: boolean, description: Create only.}
+    PriceOptionList:
+      type: object
+      required: [options]
+      properties:
+        options: {type: array, items: {$ref: "#/components/schemas/PriceOption"}}
     VersionGrant:
       type: object
       required: [meter, amount, on]
@@ -2914,7 +2733,13 @@ components:
           type: [string, "null"]
           format: uuid
           description: >
-            The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on links created before pinning existed: those resolve the latest published version at pay time.
+            The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on a link that follows its option (optionId) or, without one, the default version, resolved at pay time.
+
+        optionId:
+          type: [string, "null"]
+          format: uuid
+          description: >
+            The price option the link sells (ADR 0062). Without a productVersionId, the link sells the option's current version at pay time, and stops selling when the option is archived.
 
         active: {type: boolean}
         appearance: {$ref: "#/components/schemas/LinkAppearance"}
@@ -3432,6 +3257,10 @@ components:
         nextBillingDate: {type: [string, "null"], format: date-time}
         startedAt: {type: string, format: date-time}
         canceledAt: {type: [string, "null"], format: date-time}
+        trialEndsAt:
+          type: string
+          format: date-time
+          description: When the free trial ends and the first charge falls (#311). Absent without a trial.
         cancelReason:
           type: object
           description: Why it was, or will be, canceled. Absent when nobody said.
@@ -3627,7 +3456,7 @@ components:
         status:
           type: string
           enum: [pending, confirmed, failed, refunded, charged_back]
-        provider: {type: string, enum: [infi_stripe_uk, pagarme_pix, pagarme_card]}
+        provider: {type: string, description: "`infi_stripe_uk` for every new payment."}
         method: {type: string, enum: [pix, boleto, card]}
         invoiceStatus: {type: string}
         refundedAmount:
@@ -3642,21 +3471,10 @@ components:
           description: QR presentation deadline; expiry alone does not prove the payment failed.
     PublicPaymentOption:
       description: >
-        Methods offered for this purchase and buyer country. BR-to-BR Pix uses the merchant's Pagar.me recipient; eligible UK sales use Stripe Elements. Empty when acceptsPayments is false. Charge creation validates again.
+        Methods offered for this purchase: the UK Ltd's Stripe Elements (ADR 0072). Empty when acceptsPayments is false. Charge creation validates again.
 
       oneOf:
         - $ref: "#/components/schemas/PublicStripeElementsPaymentOption"
-        - $ref: "#/components/schemas/PublicPixPaymentOption"
-        - $ref: "#/components/schemas/PublicPagarmeCardPaymentOption"
-    PublicPixPaymentOption:
-      type: object
-      additionalProperties: false
-      required: [method, provider, flow]
-      description: Brazilian purchase collected directly for the merchant's recipient. Repeating charge creation retrieves the same durable Pix attempt.
-      properties:
-        method: {type: string, const: pix}
-        provider: {type: string, const: pagarme_pix}
-        flow: {type: string, const: pix}
     PublicStripeElementsPaymentOption:
       type: object
       additionalProperties: false
@@ -3668,18 +3486,6 @@ components:
         method: {type: string, const: card}
         provider: {type: string, const: infi_stripe_uk}
         flow: {type: string, const: stripe_elements}
-    PublicPagarmeCardPaymentOption:
-      type: object
-      additionalProperties: false
-      description: >
-        Brazilian domestic card. The browser first prepares the purchase, then tokenizes directly with Core v5 using the public key returned by the prepare response. No public key or payer/provider identity is included in the checkout descriptor.
-
-      required: [method, provider, flow, requiresPayerDetails]
-      properties:
-        method: {type: string, const: card}
-        provider: {type: string, const: pagarme_card}
-        flow: {type: string, const: pagarme_core_v5_token}
-        requiresPayerDetails: {type: boolean, const: true}
     TaxCategory:
       type: string
       enum: [digital_general, saas, ebook, online_course, live_virtual_training, video_subscription, software_download, digital_images]
@@ -3701,11 +3507,11 @@ components:
       type: object
       additionalProperties: false
       description: >
-        Who sells the Order: the merchant for a direct Brazilian Pix purchase, or the UK Ltd for an eligible merchant-of-record sale. Shown before paying.
+        Who sells the Order: BEINFI LTD (Companies House 17471225), the merchant of record of every sale (ADR 0072). Shown before paying.
 
       required: [name, country]
       properties:
-        name: {type: string, example: Infi UK Ltd}
+        name: {type: string, example: BEINFI LTD}
         country: {type: string, description: ISO 3166-1 alpha-2., example: GB}
     CheckoutTotals:
       type: object
@@ -3753,6 +3559,12 @@ components:
             When the charge first moved to `failed`. Distinct from the provider's own event clock, which later events move.
 
         createdAt: {type: string, format: date-time}
+        buyerCountry:
+          type: string
+          pattern: '^[A-Z]{2}$'
+          description: >
+            ISO 3166-1 alpha-2 country the buyer paid from, as the checkout recorded it. On the tenant payment list only; absent when no checkout recorded a country.
+
         payer:
           type: ["object", "null"]
           description: >
@@ -3866,7 +3678,7 @@ components:
         createdAt: {type: string, format: date-time}
     BillingSettings:
       type: object
-      required: [autoChargeEnabled, topupDailyCap, updatedAt, cardAutoChargeAvailable]
+      required: [autoChargeEnabled, topupDailyCap, updatedAt]
       description: The tenant's collection switches.
       properties:
         autoChargeEnabled:
@@ -3878,12 +3690,6 @@ components:
           type: [string, "null"]
           description: Decimal string. Per payer per day, across top-up policies.
         updatedAt: {type: [string, "null"], format: date-time}
-        cardAutoChargeAvailable:
-          type: boolean
-          readOnly: true
-          description: >
-            Whether a stored card could be charged off-session at all here. No provider does it until Unit 6 (the UK Ltd's off-session charge), so this is false — and autoChargeEnabled would be a switch with nothing to charge.
-
     PaymentLinkView:
       type: object
       description: Public display payload for a payment link's landing page.
@@ -3918,9 +3724,9 @@ components:
         withdrawalWaiver: {$ref: "#/components/schemas/WithdrawalWaiver"}
         unavailableReason:
           type: string
-          enum: [product_not_available, buyer_country_required, supplier_country_required, supplier_country_conflict, domestic_payments_unavailable, collection_unavailable, country_mismatch, invoice_not_payable, direct_collection_reconciliation_required]
+          enum: [product_not_available, buyer_country_required, buyer_country_sanctioned, supplier_country_required, collection_unavailable, country_mismatch, invoice_not_payable]
           description: >
-            Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).
+            Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).
 
         acceptsPayments:
           type: boolean
@@ -3977,6 +3783,11 @@ components:
           items: {$ref: "#/components/schemas/ProductFAQ"}
         purchaseButtonText: {type: string}
         guaranteeDays: {type: integer}
+        trialDays:
+          type: integer
+          description: >
+            A free trial of this many days (#311): the card is saved through the UK Ltd with nothing charged, and `price` is charged when the trial ends. Card only. One trial per e-mail per product (409 `trial_already_used`).
+
     CheckoutRememberOffer:
       type: object
       description: >
@@ -4031,9 +3842,9 @@ components:
         withdrawalWaiver: {$ref: "#/components/schemas/WithdrawalWaiver"}
         unavailableReason:
           type: string
-          enum: [product_not_available, buyer_country_required, supplier_country_required, supplier_country_conflict, domestic_payments_unavailable, collection_unavailable, country_mismatch, invoice_not_payable, direct_collection_reconciliation_required]
+          enum: [product_not_available, buyer_country_required, buyer_country_sanctioned, supplier_country_required, collection_unavailable, country_mismatch, invoice_not_payable]
           description: >
-            Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).
+            Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).
 
         acceptsPayments:
           type: boolean
@@ -4078,7 +3889,7 @@ components:
         currency: {type: string, example: "BRL"}
     InvoiceChargeRequest:
       description: >
-        `CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ and phone repairs. Values are stored on the payer only when absent and never replace a different value already on file.
+        `CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ repair. The value is stored on the payer only when absent and never replaces a different value already on file.
 
       allOf:
         - $ref: "#/components/schemas/CheckoutChargeRequest"
@@ -4092,117 +3903,6 @@ components:
             taxId:
               type: string
               description: CPF (11 digits) or CNPJ (14), punctuation allowed.
-            phone:
-              type: string
-              description: Required for direct Pix. Brazilian 10/11-digit national or 55-prefixed number; punctuation allowed.
-    InvoiceBrazilCardPrepareRequest:
-      type: object
-      additionalProperties: false
-      required: [quoteId, revision, consentDigest]
-      properties:
-        renewalConsent: {$ref: "#/components/schemas/BrazilCardRenewalConsent"}
-        quoteId: {type: string, format: uuid}
-        revision: {type: integer, format: int64, minimum: 1}
-        consentDigest: {type: string, minLength: 1}
-        taxId:
-          type: string
-          description: Optional CPF/CNPJ supplied through the invoice purchase owner before preparation.
-        phone:
-          type: string
-          description: Required before Pagar.me card preparation. Brazilian 10/11-digit national or 55-prefixed number; punctuation allowed.
-    SessionBrazilCardPrepareRequest:
-      type: object
-      additionalProperties: false
-      properties:
-        renewalConsent: {$ref: "#/components/schemas/BrazilCardRenewalConsent"}
-        remember: {type: boolean}
-        rememberTextVersion: {type: string}
-    CheckoutBrazilCardSubmitRequest:
-      type: object
-      additionalProperties: false
-      required: [preparation, token, billingAddress]
-      properties:
-        preparation:
-          type: string
-          description: Opaque short-lived preparation capability; never a card token.
-        token:
-          type: string
-          description: Transient one-use Core v5 token. Never stored or included in telemetry.
-        billingAddress: {$ref: '#/components/schemas/BrazilCardBillingAddress'}
-    CheckoutBrazilCardStatusRequest:
-      type: object
-      additionalProperties: false
-      required: [preparation]
-      properties:
-        preparation:
-          type: string
-          description: Opaque capability sent in a POST body for token-free readback.
-    CheckoutBrazilCardPreparation:
-      type: object
-      additionalProperties: false
-      required: [preparation, publicKey, expiresAt]
-      properties:
-        renewalOffer: {$ref: "#/components/schemas/BrazilCardRenewalOffer"}
-        preparation: {type: string, description: Opaque short-lived signed capability.}
-        publicKey: {type: string, description: Public Core v5 tokenization key; returned only after preparation succeeds.}
-        expiresAt: {type: string, format: date-time}
-    BrazilCardRenewalConsent:
-      type: object
-      additionalProperties: false
-      required: [textVersion]
-      properties:
-        textVersion: {type: string, minLength: 1}
-    BrazilCardRenewalOffer:
-      type: object
-      additionalProperties: false
-      required: [textVersion, text, amountMinor, currency, cadence]
-      properties:
-        textVersion: {type: string}
-        text: {type: string}
-        amountMinor: {type: integer, format: int64}
-        currency: {type: string}
-        cadence: {type: string}
-    CheckoutBrazilCardStatus:
-      oneOf:
-        - $ref: '#/components/schemas/CheckoutBrazilCardWaiting'
-        - $ref: '#/components/schemas/CheckoutBrazilCardExpired'
-        - $ref: '#/components/schemas/CheckoutBrazilCardAttempt'
-      discriminator:
-        propertyName: kind
-        mapping:
-          waiting: '#/components/schemas/CheckoutBrazilCardWaiting'
-          expired: '#/components/schemas/CheckoutBrazilCardExpired'
-          attempt: '#/components/schemas/CheckoutBrazilCardAttempt'
-    CheckoutBrazilCardWaiting:
-      type: object
-      additionalProperties: false
-      required: [kind]
-      properties:
-        kind: {type: string, const: waiting}
-    CheckoutBrazilCardExpired:
-      type: object
-      additionalProperties: false
-      required: [kind]
-      properties:
-        kind: {type: string, const: expired}
-    CheckoutBrazilCardAttempt:
-      type: object
-      additionalProperties: false
-      required: [kind, payment]
-      properties:
-        kind: {type: string, const: attempt}
-        payment: {$ref: '#/components/schemas/Payment'}
-    BrazilCardBillingAddress:
-      type: object
-      additionalProperties: false
-      required: [line1, zipCode, city, state, country]
-      properties:
-        line1: {type: string, minLength: 1}
-        line2: {type: string}
-        zipCode: {type: string, minLength: 1}
-        city: {type: string, minLength: 1}
-        state: {type: string, minLength: 1}
-        country: {type: string, minLength: 1}
     CheckoutChargeRequest:
       type: object
       required: [method]
@@ -4237,18 +3937,42 @@ components:
           description: >
             The buyer ticked the page's `withdrawalWaiver`: they ask for the digital content at once and acknowledge that it ends the statutory right of withdrawal (plan 6f). Required on every UK sale but the payment of a renewal: without it the charge answers 422 `withdrawal_waiver_required` before anything is frozen or sent to Stripe. The Order records the version, the words and the IP, and the receipt e-mail repeats them.
 
-    MorApplicationInput:
+    MorApplication:
       type: object
-      required: [legalName, country, taxId, productCategories]
+      description: >
+        What the Account declares about itself, derived from its registration (the signup writes the country alone first).
+
+      required: [legalName, country, taxId]
       properties:
-        legalName: {type: string, maxLength: 200}
+        legalName: {type: string}
+        country: {type: string}
+        taxId: {type: string}
+    MorRegistration:
+      type: object
+      additionalProperties: false
+      description: >
+        The Account's registration (ADR 0063): who sells, the same in every country. `document` is the CPF (individual) or CNPJ (company) with its check digits in Brazil (`country` BR), and the tax id (3 to 40 characters) elsewhere. The bank account the Account is paid in is not part of it: it is the Wise beneficiary's, added later.
+
+      required: [country, entityType, legalName, document, address]
+      properties:
         country: {type: string, description: ISO 3166-1 alpha-2, pattern: "^[A-Za-z]{2}$"}
-        taxId: {type: string, maxLength: 64}
-        productCategories:
-          type: array
-          minItems: 1
-          maxItems: 20
-          items: {type: string, maxLength: 64}
+        entityType: {type: string, enum: [individual, company]}
+        legalName: {type: string, maxLength: 200}
+        document: {type: string, minLength: 3, maxLength: 40}
+        email: {type: string, description: "Contact e-mail. Required when saving (422 `email`); absent on a registration saved before it was asked."}
+        address:
+          type: object
+          additionalProperties: false
+          required: [line1, city]
+          properties:
+            line1: {type: string}
+            line2: {type: string}
+            city: {type: string}
+            region: {type: string}
+            postalCode: {type: string}
+    MorAdmissionStatus:
+      type: string
+      enum: [draft, kyc_pending, submitted, approved, rejected]
     MorSeller:
       type: object
       required: [name, country]
@@ -4280,10 +4004,10 @@ components:
       type: object
       required: [status, application, agreementRevisionId, agreementAcceptedAt, submittedAt, decidedAt, decisionReason]
       properties:
-        status: {type: string, enum: [draft, submitted, approved, rejected]}
+        status: {$ref: "#/components/schemas/MorAdmissionStatus"}
         application:
           oneOf:
-            - $ref: "#/components/schemas/MorApplicationInput"
+            - $ref: "#/components/schemas/MorApplication"
             - type: "null"
         agreementRevisionId: {type: [string, "null"], format: uuid}
         agreementAcceptedAt: {type: [string, "null"], format: date-time}
@@ -4311,19 +4035,91 @@ components:
         paid: {type: string, description: "Transferred by BR provider; UK lifetime sent beneficiary amount in its actual currency."}
         reserve: {type: string, nullable: true}
         receivable: {type: string, description: "Positive debt, negative credit. Kept separate from a future cash forecast."}
+    PayoutBeneficiaryForm:
+      type: object
+      required: [quoteId, forms]
+      properties:
+        quoteId: {type: string, format: uuid}
+        forms:
+          type: array
+          items: {$ref: "#/components/schemas/PayoutBeneficiaryFormType"}
+    PayoutBeneficiaryFormType:
+      type: object
+      required: [type, title, fields]
+      properties:
+        type: {type: string}
+        title: {type: string}
+        fields:
+          type: array
+          items:
+            type: object
+            required: [name, group]
+            properties:
+              name: {type: string}
+              group:
+                type: array
+                items: {$ref: "#/components/schemas/PayoutBeneficiaryField"}
+    PayoutBeneficiaryField:
+      type: object
+      required: [key, name, type]
+      properties:
+        key: {type: string}
+        name: {type: string}
+        type: {type: string, enum: [text, select, radio, date]}
+        required: {type: boolean}
+        refreshRequirementsOnChange: {type: boolean}
+        example: {type: string, nullable: true}
+        minLength: {type: integer, nullable: true}
+        maxLength: {type: integer, nullable: true}
+        validationRegexp: {type: string, nullable: true}
+        valuesAllowed:
+          type: array
+          nullable: true
+          items:
+            type: object
+            required: [key, name]
+            properties:
+              key: {type: string}
+              name: {type: string}
+    PayoutBeneficiaryRevision:
+      type: object
+      required: [revision, status, currency, accountMask, holderName, reason, kind]
+      properties:
+        kind: {type: string, enum: [bank, wallet]}
+        revision: {type: integer}
+        status: {type: string, enum: [pending_review, verified, rejected, superseded, removed]}
+        currency: {type: string}
+        accountMask: {type: string, example: "…5678"}
+        holderName: {type: string}
+        reason: {type: string, nullable: true}
+    PayoutCryptoTerms:
+      type: object
+      required: [marginRate, text, version, accepted]
+      properties:
+        marginRate: {type: string, example: "0.01"}
+        text: {type: string}
+        version: {type: string}
+        accepted: {type: boolean}
     AccountPayoutsView:
       type: object
-      required: [identityCheck, beneficiary, brlTerms, payouts, receivables]
+      required: [identityCheck, destinations, brlTerms, payouts, receivables]
       properties:
         identityCheck: {type: string, nullable: true, enum: [open, approved, rejected]}
-        beneficiary:
+        identity:
           type: object
           nullable: true
-          required: [currency, accountMask, holderName]
+          description: Who is paid, as the Account gave it; the document only by its last digits.
+          required: [legalName, documentType, documentMask]
           properties:
-            currency: {type: string, example: BRL}
-            accountMask: {type: string, example: "…3000"}
-            holderName: {type: string}
+            legalName: {type: string}
+            documentType: {type: string, enum: [cpf, cnpj, foreign]}
+            documentMask: {type: string, example: "…4725"}
+        destinations:
+          type: array
+          description: >
+            Where the Account can be paid, newest first; removed ones are left out (ADR 0074). Each currency is paid to its default.
+
+          items: {$ref: "#/components/schemas/PayoutDestination"}
         brlTerms:
           type: object
           required: [text, version, accepted, acceptedAt]
@@ -4337,6 +4133,32 @@ components:
           items: {$ref: "#/components/schemas/AccountPayout"}
         receivables: {$ref: "#/components/schemas/AccountReceivables"}
         reserves: {$ref: "#/components/schemas/AccountReserves"}
+        cryptoAvailable:
+          type: boolean
+          description: Wallet (crypto) payouts can be set up on this deployment (SpherePay on and its account active).
+    PayoutDestination:
+      type: object
+      description: A payout destination; never the account number or address, only the digits that name it.
+      required: [revision, status, kind, currency, asset, network, accountMask, holderName, reason, createdAt, defaultFor, receives]
+      properties:
+        revision: {type: integer}
+        status: {type: string, enum: [pending_review, verified, rejected]}
+        kind: {type: string, enum: [bank, wallet]}
+        currency: {type: string, description: "The bank account's currency; a wallet's is USD.", example: EUR}
+        asset: {type: string, nullable: true, enum: [usdt, usdc]}
+        network: {type: string, nullable: true, enum: [tron, base]}
+        accountMask: {type: string, example: "…3000"}
+        holderName: {type: string}
+        reason: {type: string, nullable: true, description: Staff's reason when refused.}
+        createdAt: {type: string, format: date-time}
+        defaultFor:
+          type: array
+          description: Balance currencies it pays now.
+          items: {type: string, enum: [BRL, USD, EUR, GBP]}
+        receives:
+          type: array
+          description: Balance currencies it can be the default of once verified.
+          items: {type: string, enum: [BRL, USD, EUR, GBP]}
     PlatformRisk:
       type: object
       required: [windowDays, sales, disputes, rate, threshold, alert]
@@ -4569,10 +4391,49 @@ components:
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
         sentAt: {type: string, format: date-time, nullable: true}
+        provider: {type: string, enum: [wise, spherepay]}
+        payoutAsset: {type: string, nullable: true, example: usdc, description: "SpherePay: the asset paid, once the send froze it."}
+        payoutNetwork: {type: string, nullable: true, example: base}
+        providerFee: {type: string, nullable: true, example: "0.02", description: "SpherePay's fee in paidCurrency, frozen at the send."}
+        networkFee: {type: string, nullable: true, example: "0.30", description: "The network's fee in paidCurrency, frozen at the send."}
+    MorSaleSplit:
+      type: object
+      required: [currency, sale, margin, consideration, held]
+      properties:
+        currency: {type: string}
+        sale: {type: string, description: Charged total without tax.}
+        margin: {type: string, description: "Infi's margin."}
+        consideration: {type: string, description: What the Account is owed for the sale.}
+        held: {type: boolean}
+    KycVerification:
+      type: object
+      required: [id, kind, status, statusChangedAt, createdAt]
+      properties:
+        id: {type: string, format: uuid}
+        kind: {type: string, enum: [kyc, kyb]}
+        status:
+          type: string
+          enum: [pending, in_progress, in_review, approved, declined, expired]
+        statusChangedAt: {type: string, format: date-time}
+        createdAt: {type: string, format: date-time}
+        url:
+          type: string
+          description: The hosted link; only on start, never stored.
     MorAdmissionView:
       type: object
-      required: [seller, agreement, admission, policy, eligibility]
+      required: [seller, agreement, admission, policy, eligibility, registration, kyc]
       properties:
+        registration:
+          description: The Account's own registration, documents included; null until it registers.
+          oneOf:
+            - $ref: "#/components/schemas/MorRegistration"
+            - type: "null"
+        kyc:
+          type: object
+          required: [status]
+          description: The identity verification; status is null until the registration is submitted.
+          properties:
+            status: {type: [string, "null"], enum: [skipped, pending, passed, failed, null]}
         seller:
           oneOf:
             - $ref: "#/components/schemas/MorSeller"
@@ -4599,8 +4460,12 @@ components:
       additionalProperties: false
       properties:
         sells:
-          type: string
-          enum: [digital_downloads, software_saas, ai_agents, courses_training, memberships_community, productized_services, physical_goods, regulated_services, adult, gambling, crypto_investments, money_gift_cards, resale_without_rights]
+          type: array
+          minItems: 1
+          description: Every kind the Account sells. A prohibited kind among them blocks.
+          items:
+            type: string
+            enum: [digital_downloads, software_saas, ai_agents, courses_training, memberships_community, productized_services, physical_goods, regulated_services, adult, gambling, crypto_investments, money_gift_cards, resale_without_rights]
         country: {type: string, description: ISO 3166-1 alpha-2.}
         entityType: {type: string, enum: [individual, company]}
         currency: {type: string, description: ISO 4217.}
@@ -4652,10 +4517,9 @@ components:
               decidedAt: {type: [string, "null"], format: date-time}
     ProductReviewQueue:
       type: object
-      required: [required, trustAfter, items]
+      required: [required, items]
       properties:
         required: {type: boolean}
-        trustAfter: {type: integer, description: "PULSE_PRODUCT_REVIEW_TRUST_AFTER; 0 is off."}
         items:
           type: array
           items: {$ref: "#/components/schemas/ProductReviewQueueItem"}
@@ -4911,6 +4775,17 @@ components:
           description: >
             The Infi Terms version the operator accepted. Required on live for the first login and must equal `termsVersion` from `POST /auth/session/sync`; sending it is the acceptance. Ignored on sandbox and for a subject already attached.
 
+        country:
+          type: string
+          description: >
+            The business's country, ISO 3166-1 alpha-2. With the `signupDocuments` accepted, the new account is admitted to sell through the UK Ltd as it is created (ADR 0026, amended 2026-10-29); without them, or when the UK Ltd cannot take it yet, the country is kept on its application and it applies from the dashboard. A code under sanctions refuses the signup (409 `mor_sanctioned_country`).
+
+        acceptedDocuments:
+          type: object
+          additionalProperties: {type: string}
+          description: >
+            Each `signupDocuments` kind and the version the person accepted, e.g. `{"supplier_agreement": "2026-10-17", "product_policy": "2026-10-17"}`.
+
     SessionBootstrapResponse:
       type: object
       required: [email, tenant, user]
@@ -4987,6 +4862,24 @@ components:
           description: >
             Live only, and only while `needsBootstrap` is true: the Infi Terms version the first live login must accept. Show that version and send it back as `acceptedTermsVersion` on `POST /auth/session/bootstrap`.
 
+        signupDocuments:
+          type: array
+          description: >
+            Only while `needsBootstrap` is true: the texts the signup shows besides the Terms (the UK Ltd's supplier agreement and product policy), each accepted by sending its version in `acceptedDocuments` on `POST /auth/session/bootstrap` (ADR 0026, amended 2026-10-29).
+
+          items:
+            $ref: "#/components/schemas/SignupDocument"
+    SignupDocument:
+      type: object
+      required: [kind, version, text]
+      properties:
+        kind:
+          type: string
+          enum: [supplier_agreement, product_policy]
+        version: {type: string}
+        text:
+          type: string
+          description: The document's text, in Markdown.
     WebhookEndpoint:
       type: object
       required: [id, url, events, isActive, createdAt]
@@ -5121,6 +5014,219 @@ components:
       properties:
         value: {type: string}
         source: {type: string, enum: [link, product, business, default]}
+    ProductInventory:
+      type: object
+      required: [tracked, onHand, movements]
+      properties:
+        tracked: {type: boolean}
+        onHand: {type: integer, format: int64, description: The sum of the movements. Negative after an oversell.}
+        movements:
+          type: array
+          description: The latest 100, newest first.
+          items:
+            type: object
+            required: [id, kind, quantity, createdAt]
+            properties:
+              id: {type: string, format: uuid}
+              kind: {type: string, enum: [in, out, count, sale]}
+              quantity: {type: integer, format: int32, description: Signed.}
+              reason: {type: string}
+              paymentId: {type: string, description: The sale's payment.}
+              createdAt: {type: string, format: date-time}
+    DiscoverCategory:
+      type: string
+      enum: [education, software, templates, ebooks, audio, communities, services, other]
+    DiscoverStaffAction:
+      type: object
+      required: [reason]
+      properties:
+        reason: {type: string}
+    DiscoverProfile:
+      type: object
+      required: [status, eligible, category, description, products]
+      properties:
+        status: {type: string, enum: [off, listed, removed]}
+        eligible: {type: boolean}
+        ineligibleReason: {type: string, enum: [not_live, not_admitted, no_approved_product]}
+        category:
+          oneOf:
+            - $ref: "#/components/schemas/DiscoverCategory"
+            - type: "null"
+        description: {type: [string, "null"]}
+        removedReason: {type: string, description: Why staff removed it, while removed.: null}
+        products:
+          type: array
+          items:
+            type: object
+            required: [productId, name, currency, hidden, eligible]
+            properties:
+              productId: {type: string}
+              name: {type: string}
+              currency: {type: string}
+              hidden: {type: boolean}
+              eligible: {type: boolean, description: "Approved in review and in a currency the UK Ltd charges."}
+              linkUrl: {type: string, description: "Discover's payment link, while listed and shown."}
+    SiteCatalogChoice:
+      type: object
+      required: [mode]
+      properties:
+        mode: {type: string, enum: [all, chosen]}
+        order: {type: array, maxItems: 200, items: {type: string}, description: Product ids, in the order the site shows them.: null}
+        hidden: {type: array, maxItems: 200, items: {type: string}, description: "Product ids an `all` site leaves out."}
+        hiddenOptions: {type: array, maxItems: 200, items: {type: string, format: uuid}, description: Price option ids this site leaves out.}
+        description: {type: [string, "null"], maxLength: 500, description: "The site's text below the business name; empty clears it."}
+    SiteCatalogView:
+      type: object
+      required: [mode, description, products]
+      properties:
+        mode: {type: string, enum: [all, chosen]}
+        description: {type: [string, "null"]}
+        products:
+          type: array
+          items:
+            type: object
+            required: [productId, name, sellable, onSite, options]
+            properties:
+              productId: {type: string}
+              name: {type: string}
+              sellable: {type: boolean, description: One of its options can sell.}
+              reason: {type: string, enum: [hidden, not_approved, not_sold, unsupported_model], description: Why it cannot sell.}
+              onSite: {type: boolean}
+              options:
+                type: array
+                items:
+                  type: object
+                  required: [id, name, price, currency, pricingModel, billingCycle, isDefault, sellable, onSite]
+                  properties:
+                    id: {type: string, format: uuid}
+                    name: {type: string}
+                    price: {type: [string, "null"]}
+                    currency: {type: string}
+                    pricingModel: {type: string}
+                    billingCycle: {type: [string, "null"]}
+                    isDefault: {type: boolean}
+                    sellable: {type: boolean}
+                    reason: {type: string, enum: [hidden, not_approved, not_sold, unsupported_model]}
+                    onSite: {type: boolean}
+    SiteField:
+      type: object
+      required: [key, type, label]
+      properties:
+        key: {type: string}
+        type: {type: string, enum: [text, textarea, url, color, toggle, choice, list]}
+        label: {type: object, additionalProperties: {type: string}}
+        hint: {type: object, additionalProperties: {type: string}}
+        group: {type: string}
+        max: {type: integer, description: The longest text, or the most items of a list.: null}
+        item: {type: array, items: {$ref: "#/components/schemas/SiteField"}, description: "A list item's fields."}
+        options: {type: array, items: {type: string}, description: "A choice's values; the first is its default."}
+        default: {}
+    SitePage:
+      type: object
+      required: [theme, sections]
+      properties:
+        theme: {type: object, additionalProperties: true, description: "accent, mode, font, buttons, radius, width (schema.theme)."}
+        sections:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [type]
+            additionalProperties: true
+            properties:
+              type: {type: string, description: "One of schema.sections[].type; the rest are that type's fields."}
+    SiteSectionType:
+      type: object
+      required: [type, label, description, fields]
+      properties:
+        type: {type: string}
+        label: {type: object, additionalProperties: {type: string}}
+        description: {type: object, additionalProperties: {type: string}}
+        fields: {type: array, items: {$ref: "#/components/schemas/SiteField"}}
+    SiteSettings:
+      type: object
+      required: [template, schema, page]
+      properties:
+        template: {type: [string, "null"]}
+        schema:
+          type: object
+          required: [theme, sections]
+          properties:
+            theme: {type: array, items: {$ref: "#/components/schemas/SiteField"}}
+            sections: {type: array, items: {$ref: "#/components/schemas/SiteSectionType"}}
+        page:
+          oneOf:
+            - {$ref: "#/components/schemas/SitePage"}
+            - {type: "null"}
+    HostedSiteDeploy:
+      type: object
+      required: [deployId, status]
+      properties:
+        deployId: {type: string, format: uuid}
+        status: {type: string, enum: [deploying, live, failed]}
+        files: {type: integer}
+        bytes: {type: integer}
+        failure: {type: string, description: "Why it failed: refused_by_provider or interrupted."}
+        createdAt: {type: string, format: date-time}
+        finishedAt: {type: string, format: date-time}
+    HostedSite:
+      type: object
+      required: [slug, url, live]
+      properties:
+        slug: {type: string}
+        url: {type: string}
+        live: {type: boolean}
+        template: {type: [string, "null"], description: "The template the site's files came from; null when they are its own (written by hand or by the AI)."}
+        latestDeploy: {$ref: "#/components/schemas/HostedSiteDeploy"}
+        deploy: {$ref: "#/components/schemas/HostedSiteDeploy"}
+    PublicSiteCatalog:
+      type: object
+      required: [site, name, logoUrl, appearance, description, products]
+      properties:
+        site: {type: string}
+        name: {type: string}
+        logoUrl: {type: [string, "null"]}
+        appearance:
+          type: object
+          required: [accentColor, backgroundColor, font, radius]
+          properties:
+            accentColor: {type: string}
+            backgroundColor: {type: string}
+            font: {type: string}
+            radius: {type: string}
+        description: {type: [string, "null"]}
+        products:
+          type: array
+          items:
+            type: object
+            required: [productId, name, description, imageUrl, price, currency, type, pricingModel, billingCycle, buttonText, buyUrl]
+            properties:
+              productId: {type: string}
+              name: {type: string}
+              description: {type: [string, "null"]}
+              imageUrl: {type: [string, "null"]}
+              price: {type: [string, "null"], description: "The lead option's price (the default option when it shows, else the first that does), two decimals; null for usage pricing."}
+              currency: {type: string, description: The lead option's currency.}
+              type: {type: string}
+              pricingModel: {type: string, description: The lead option's pricing model.}
+              billingCycle: {type: [string, "null"], description: The lead option's cycle.}
+              buttonText: {type: [string, "null"], description: "The product's purchase button text; null uses the page's default."}
+              buyUrl: {type: string, description: The lead option's store link checkout URL.}
+              options:
+                type: array
+                description: The options that show, in order, each sold by its own store link (ADR 0062).
+                items:
+                  type: object
+                  required: [id, name, price, currency, pricingModel, billingCycle, isDefault, buyUrl]
+                  properties:
+                    id: {type: string, format: uuid}
+                    name: {type: string}
+                    price: {type: [string, "null"]}
+                    currency: {type: string}
+                    pricingModel: {type: string}
+                    billingCycle: {type: [string, "null"]}
+                    isDefault: {type: boolean}
+                    buyUrl: {type: string}
     AppearanceResolution:
       type: object
       required: [business, product, link, defaults, effective]
@@ -5181,7 +5287,7 @@ components:
           type: object
           required: [amount, currency]
           properties:
-            amount: {type: string, description: Decimal string.}
+            amount: {type: string, description: "Decimal string."}
             currency: {type: string}
         requiredFields:
           type: array
@@ -5272,7 +5378,7 @@ components:
         id: {type: string, format: uuid}
         status: {type: string, enum: [pending, approved, declined]}
         withinWindow: {type: boolean}
-        decidedBy: {type: string, description: "`automatic`, or the store's actor."}
+        decidedBy: {type: string, description: "`automatic`, `infi` (Infi staff, for BEINFI LTD), or the store's actor."}
         note: {type: string}
         createdAt: {type: string, format: date-time}
     PortalCard:
@@ -5294,24 +5400,12 @@ components:
         cancelAtPeriodEnd: {type: boolean}
         accessUntil: {type: string, format: date-time}
         canceledAt: {type: string, format: date-time}
-        renewalAuthorization: {$ref: "#/components/schemas/PortalRenewalAuthorization"}
         card: {$ref: "#/components/schemas/PortalCard"}
         usage:
           type: array
           description: What the current period has used so far, per meter. Absent without meters.
           items: {$ref: "#/components/schemas/PortalUsageLine"}
         usageSince: {type: string, format: date-time, description: When the current period began.}
-    PortalRenewalAuthorization:
-      type: object
-      additionalProperties: false
-      required: [state, version, textVersion, amountMinor, currency, cadence]
-      properties:
-        state: {type: string, enum: [pending_first, active, revoked]}
-        version: {type: integer, format: int64}
-        textVersion: {type: string}
-        amountMinor: {type: integer, format: int64}
-        currency: {type: string}
-        cadence: {type: string}
     PortalUsageLine:
       type: object
       required: [meter, unit, quantity]
@@ -5481,3 +5575,212 @@ components:
         title: {type: string}
         status: {type: string, enum: [active, disabled]}
         createdAt: {type: string, format: date-time}
+    TeamRole:
+      type: string
+      enum:
+        - owner
+        - admin
+        - readonly
+      description: Fixed merchant role. Only owners manage the team and credentials. Admins perform ordinary business writes; readonly sessions cannot perform business writes. Existing stronger owner and MFA guards remain in effect.
+    TeamMember:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - createdAt
+      properties:
+        id: &a1
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role: &a2
+          $ref: "#/components/schemas/TeamRole"
+        createdAt: &a3
+          type: string
+          format: date-time
+    TeamInvitation:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - status
+        - createdAt
+        - expiresAt
+      properties:
+        id: *a1
+        email:
+          type: string
+          format: email
+        role: *a2
+        status:
+          type: string
+          enum:
+            - pending
+            - accepted
+            - revoked
+            - expired
+        createdAt: *a3
+        expiresAt: *a3
+        emailSentAt:
+          type: string
+          format: date-time
+          nullable: true
+    TeamView:
+      type: object
+      required:
+        - members
+        - invitations
+        - currentUserId
+        - canManage
+        - mode
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamMember"
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamInvitation"
+        currentUserId: *a1
+        canManage:
+          type: boolean
+        mode: &a5
+          type: string
+          enum:
+            - sandbox
+            - live
+    TeamTenant:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id: &a4
+          type: string
+        slug: *a4
+        name: *a4
+    TeamInvitationPreview:
+      type: object
+      required:
+        - invitation
+        - tenant
+        - mode
+      properties:
+        invitation:
+          type: object
+          required:
+            - id
+            - email
+            - role
+            - status
+            - expiresAt
+          properties:
+            id: *a1
+            email:
+              type: string
+              format: email
+            role: *a2
+            status:
+              type: string
+              enum:
+                - pending
+                - accepted
+                - revoked
+                - expired
+            expiresAt: *a3
+        tenant:
+          $ref: "#/components/schemas/TeamTenant"
+        mode: *a5
+        termsVersion:
+          type: string
+    TeamInvitationAcceptance:
+      type: object
+      required:
+        - tenant
+        - user
+        - mode
+      properties:
+        tenant:
+          $ref: "#/components/schemas/TeamTenant"
+        user:
+          type: object
+          required:
+            - id
+            - email
+            - role
+          properties:
+            id: *a1
+            email:
+              type: string
+              format: email
+            role: *a2
+        mode: *a5
+    DelegatedAccessGrant:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        clientId:
+          type: string
+        environment:
+          type: string
+          enum:
+            - sandbox
+            - live
+        resource:
+          type: string
+          format: uri
+        scopes:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum:
+            - pending
+            - active
+            - cancelled
+            - expired
+            - revoked
+        expiresAt:
+          type: string
+          format: date-time
+        tenantId:
+          type: string
+        membershipId:
+          type: string
+          format: uuid
+        policyVersion:
+          type: integer
+      required:
+        - id
+        - clientId
+        - environment
+        - resource
+        - scopes
+        - status
+        - expiresAt
+        - policyVersion
+    DelegatedAccessConsentInput:
+      type: object
+      additionalProperties: false
+      properties:
+        scopes:
+          type: array
+          items:
+            type: string
+        policyVersion:
+          type: integer
+          enum:
+            - 1
+      required:
+        - scopes
+        - policyVersion

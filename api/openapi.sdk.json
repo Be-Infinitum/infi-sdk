@@ -330,6 +330,16 @@
         },
         "description": "What buying the product grants"
       },
+      "BadGateway": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "description": "A provider Infi depends on did not answer or refused the call"
+      },
       "BadRequest": {
         "content": {
           "application/json": {
@@ -815,6 +825,12 @@
             "format": "uuid",
             "type": "string"
           },
+          "networkFee": {
+            "description": "The network's fee in paidCurrency, frozen at the send.",
+            "example": "0.30",
+            "nullable": true,
+            "type": "string"
+          },
           "offset": {
             "description": "The part of owed the Account's debt paid.",
             "example": "39.88",
@@ -833,6 +849,30 @@
             "type": "string"
           },
           "paidCurrency": {
+            "nullable": true,
+            "type": "string"
+          },
+          "payoutAsset": {
+            "description": "SpherePay: the asset paid, once the send froze it.",
+            "example": "usdc",
+            "nullable": true,
+            "type": "string"
+          },
+          "payoutNetwork": {
+            "example": "base",
+            "nullable": true,
+            "type": "string"
+          },
+          "provider": {
+            "enum": [
+              "wise",
+              "spherepay"
+            ],
+            "type": "string"
+          },
+          "providerFee": {
+            "description": "SpherePay's fee in paidCurrency, frozen at the send.",
+            "example": "0.02",
             "nullable": true,
             "type": "string"
           },
@@ -890,28 +930,6 @@
       },
       "AccountPayoutsView": {
         "properties": {
-          "beneficiary": {
-            "nullable": true,
-            "properties": {
-              "accountMask": {
-                "example": "…3000",
-                "type": "string"
-              },
-              "currency": {
-                "example": "BRL",
-                "type": "string"
-              },
-              "holderName": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "currency",
-              "accountMask",
-              "holderName"
-            ],
-            "type": "object"
-          },
           "brlTerms": {
             "properties": {
               "accepted": {
@@ -934,6 +952,44 @@
               "version",
               "accepted",
               "acceptedAt"
+            ],
+            "type": "object"
+          },
+          "cryptoAvailable": {
+            "description": "Wallet (crypto) payouts can be set up on this deployment (SpherePay on and its account active).",
+            "type": "boolean"
+          },
+          "destinations": {
+            "description": "Where the Account can be paid, newest first; removed ones are left out (ADR 0074). Each currency is paid to its default.\n",
+            "items": {
+              "$ref": "#/components/schemas/PayoutDestination"
+            },
+            "type": "array"
+          },
+          "identity": {
+            "description": "Who is paid, as the Account gave it; the document only by its last digits.",
+            "nullable": true,
+            "properties": {
+              "documentMask": {
+                "example": "…4725",
+                "type": "string"
+              },
+              "documentType": {
+                "enum": [
+                  "cpf",
+                  "cnpj",
+                  "foreign"
+                ],
+                "type": "string"
+              },
+              "legalName": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "legalName",
+              "documentType",
+              "documentMask"
             ],
             "type": "object"
           },
@@ -961,7 +1017,7 @@
         },
         "required": [
           "identityCheck",
-          "beneficiary",
+          "destinations",
           "brlTerms",
           "payouts",
           "receivables"
@@ -1170,6 +1226,93 @@
         "required": [
           "balances",
           "releases"
+        ],
+        "type": "object"
+      },
+      "AgentSignupAccount": {
+        "properties": {
+          "accountName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string"
+          },
+          "apiKeySecret": {
+            "description": "Test secret returned once. Store in server secrets.",
+            "type": "string"
+          },
+          "billingCycle": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "dashboardUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "intent": {
+            "enum": [
+              "one-time",
+              "crm",
+              "usage-saas",
+              "prepaid-ai-chat"
+            ],
+            "type": "string"
+          },
+          "paymentLinkUrl": {
+            "format": "uri",
+            "type": "string"
+          },
+          "pricingModel": {
+            "type": "string"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "publishableKey": {
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "tenantSlug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenantId",
+          "tenantSlug",
+          "accountName",
+          "productId",
+          "apiKeySecret",
+          "publishableKey",
+          "dashboardUrl"
+        ],
+        "type": "object"
+      },
+      "AgentSignupChallenge": {
+        "properties": {
+          "challengeId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "deliveryStatus": {
+            "enum": [
+              "unknown",
+              "sent"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeId",
+          "expiresAt",
+          "deliveryStatus"
         ],
         "type": "object"
       },
@@ -1557,11 +1700,6 @@
             "description": "Whether invoices may be collected from a stored credential with nobody present. Defaults to false, per tenant, deliberately.\n",
             "type": "boolean"
           },
-          "cardAutoChargeAvailable": {
-            "description": "Whether a stored card could be charged off-session at all here. No provider does it until Unit 6 (the UK Ltd's off-session charge), so this is false — and autoChargeEnabled would be a switch with nothing to charge.\n",
-            "readOnly": true,
-            "type": "boolean"
-          },
           "topupDailyCap": {
             "description": "Decimal string. Per payer per day, across top-up policies.",
             "type": [
@@ -1580,86 +1718,7 @@
         "required": [
           "autoChargeEnabled",
           "topupDailyCap",
-          "updatedAt",
-          "cardAutoChargeAvailable"
-        ],
-        "type": "object"
-      },
-      "BrazilCardBillingAddress": {
-        "additionalProperties": false,
-        "properties": {
-          "city": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "country": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "line1": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "line2": {
-            "type": "string"
-          },
-          "state": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "zipCode": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "line1",
-          "zipCode",
-          "city",
-          "state",
-          "country"
-        ],
-        "type": "object"
-      },
-      "BrazilCardRenewalConsent": {
-        "additionalProperties": false,
-        "properties": {
-          "textVersion": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "required": [
-          "textVersion"
-        ],
-        "type": "object"
-      },
-      "BrazilCardRenewalOffer": {
-        "additionalProperties": false,
-        "properties": {
-          "amountMinor": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "cadence": {
-            "type": "string"
-          },
-          "currency": {
-            "type": "string"
-          },
-          "text": {
-            "type": "string"
-          },
-          "textVersion": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "textVersion",
-          "text",
-          "amountMinor",
-          "currency",
-          "cadence"
+          "updatedAt"
         ],
         "type": "object"
       },
@@ -1843,131 +1902,6 @@
           "actionId",
           "revision",
           "consentDigest"
-        ],
-        "type": "object"
-      },
-      "CheckoutBrazilCardAttempt": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": {
-            "const": "attempt",
-            "type": "string"
-          },
-          "payment": {
-            "$ref": "#/components/schemas/Payment"
-          }
-        },
-        "required": [
-          "kind",
-          "payment"
-        ],
-        "type": "object"
-      },
-      "CheckoutBrazilCardExpired": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": {
-            "const": "expired",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind"
-        ],
-        "type": "object"
-      },
-      "CheckoutBrazilCardPreparation": {
-        "additionalProperties": false,
-        "properties": {
-          "expiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "preparation": {
-            "description": "Opaque short-lived signed capability.",
-            "type": "string"
-          },
-          "publicKey": {
-            "description": "Public Core v5 tokenization key; returned only after preparation succeeds.",
-            "type": "string"
-          },
-          "renewalOffer": {
-            "$ref": "#/components/schemas/BrazilCardRenewalOffer"
-          }
-        },
-        "required": [
-          "preparation",
-          "publicKey",
-          "expiresAt"
-        ],
-        "type": "object"
-      },
-      "CheckoutBrazilCardStatus": {
-        "discriminator": {
-          "mapping": {
-            "attempt": "#/components/schemas/CheckoutBrazilCardAttempt",
-            "expired": "#/components/schemas/CheckoutBrazilCardExpired",
-            "waiting": "#/components/schemas/CheckoutBrazilCardWaiting"
-          },
-          "propertyName": "kind"
-        },
-        "oneOf": [
-          {
-            "$ref": "#/components/schemas/CheckoutBrazilCardWaiting"
-          },
-          {
-            "$ref": "#/components/schemas/CheckoutBrazilCardExpired"
-          },
-          {
-            "$ref": "#/components/schemas/CheckoutBrazilCardAttempt"
-          }
-        ]
-      },
-      "CheckoutBrazilCardStatusRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "preparation": {
-            "description": "Opaque capability sent in a POST body for token-free readback.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "preparation"
-        ],
-        "type": "object"
-      },
-      "CheckoutBrazilCardSubmitRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "billingAddress": {
-            "$ref": "#/components/schemas/BrazilCardBillingAddress"
-          },
-          "preparation": {
-            "description": "Opaque short-lived preparation capability; never a card token.",
-            "type": "string"
-          },
-          "token": {
-            "description": "Transient one-use Core v5 token. Never stored or included in telemetry.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "preparation",
-          "token",
-          "billingAddress"
-        ],
-        "type": "object"
-      },
-      "CheckoutBrazilCardWaiting": {
-        "additionalProperties": false,
-        "properties": {
-          "kind": {
-            "const": "waiting",
-            "type": "string"
-          }
-        },
-        "required": [
-          "kind"
         ],
         "type": "object"
       },
@@ -2292,17 +2226,15 @@
             "$ref": "#/components/schemas/CheckoutTotals"
           },
           "unavailableReason": {
-            "description": "Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).\n",
+            "description": "Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).\n",
             "enum": [
               "product_not_available",
               "buyer_country_required",
+              "buyer_country_sanctioned",
               "supplier_country_required",
-              "supplier_country_conflict",
-              "domestic_payments_unavailable",
               "collection_unavailable",
               "country_mismatch",
-              "invoice_not_payable",
-              "direct_collection_reconciliation_required"
+              "invoice_not_payable"
             ],
             "type": "string"
           },
@@ -2450,13 +2382,30 @@
           "accountName": {
             "type": "string"
           },
+          "amount": {
+            "description": "Sample offer amount, present with `paymentLinkUrl`. A flat fee, or the per-request rate for `usage-saas`. Not a price of Infi.\n",
+            "type": "string"
+          },
           "apiKeySecret": {
             "description": "`sk_test_*`, returned once and never again.",
+            "type": "string"
+          },
+          "billingCycle": {
+            "description": "Present for `crm` (subscription) and `prepaid-ai-chat`.",
+            "enum": [
+              "weekly",
+              "monthly",
+              "annual"
+            ],
             "type": "string"
           },
           "claimUrl": {
             "description": "`{PULSE_APP_BASE_URL}/claim/{id}` — `https://app-sandbox.beinfi.com/claim/{id}` on the deployed sandbox.\n",
             "format": "uri",
+            "type": "string"
+          },
+          "currency": {
+            "description": "Currency of `amount`. Present with `paymentLinkUrl`.",
             "type": "string"
           },
           "expiresAt": {
@@ -2468,12 +2417,42 @@
             "format": "uuid",
             "type": "string"
           },
+          "intent": {
+            "description": "Present when the request named a sellable intent.",
+            "enum": [
+              "one-time",
+              "crm",
+              "usage-saas",
+              "prepaid-ai-chat"
+            ],
+            "type": "string"
+          },
+          "paymentLinkUrl": {
+            "description": "Hosted checkout for the published product. Present when `intent` is one of the sellable values. Opening it shows the offer. It does not collect a payment.\n",
+            "format": "uri",
+            "type": "string"
+          },
+          "pricingModel": {
+            "description": "How the published product charges. Present with `paymentLinkUrl`.",
+            "enum": [
+              "one_time",
+              "subscription",
+              "usage",
+              "prepaid"
+            ],
+            "type": "string"
+          },
           "productId": {
             "$ref": "#/components/schemas/ProductId",
-            "description": "The seeded \"App usage\" product. Provisioned unsellable on purpose — draft version 1, no key, no price — so publish a version and add a price before selling against it.\n"
+            "description": "Without `intent`, the seeded \"App usage\" product: draft version 1, no key, no price. With a sellable `intent`, a published product whose checkout link is `paymentLinkUrl`.\n"
           },
           "publishableKey": {
             "description": "An Infi `pk_test_` key, returned and RESERVED: **no route accepts it today.** Secret-key authentication rejects the `pk_` prefix outright, and nothing is mounted that takes one, so it authorizes nothing anywhere in this API. Never a payment-provider key.\nThe embedded checkout needs no key at all — the `plink_` payment-link token is the capability. Do not build against this field yet.\n",
+            "type": "string"
+          },
+          "secretsUrl": {
+            "description": "Page that shows `INFI_SECRET_KEY` and the other sandbox env values once, when the person asks, then forgets them. Opening the URL does not reveal the keys. Hand this to a person. Do not put the secret in chat or email. The link lasts 24 hours. Asking again, letting it expire, or claiming the account first shows nothing. `apiKeySecret` is still on this response so an agent can write the server env without burning the page.\n",
+            "format": "uri",
             "type": "string"
           },
           "status": {
@@ -4605,6 +4584,92 @@
         ],
         "type": "object"
       },
+      "DelegatedAccessConsentInput": {
+        "additionalProperties": false,
+        "properties": {
+          "policyVersion": {
+            "enum": [
+              1
+            ],
+            "type": "integer"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "scopes",
+          "policyVersion"
+        ],
+        "type": "object"
+      },
+      "DelegatedAccessGrant": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "environment": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "membershipId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "policyVersion": {
+            "type": "integer"
+          },
+          "resource": {
+            "format": "uri",
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "cancelled",
+              "expired",
+              "revoked"
+            ],
+            "type": "string"
+          },
+          "tenantId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "environment",
+          "resource",
+          "scopes",
+          "status",
+          "expiresAt",
+          "policyVersion"
+        ],
+        "type": "object"
+      },
       "Deliverable": {
         "properties": {
           "contentType": {
@@ -4703,6 +4768,117 @@
           "token",
           "downloadUrl",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "DiscoverCategory": {
+        "enum": [
+          "education",
+          "software",
+          "templates",
+          "ebooks",
+          "audio",
+          "communities",
+          "services",
+          "other"
+        ],
+        "type": "string"
+      },
+      "DiscoverProfile": {
+        "properties": {
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DiscoverCategory"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "ineligibleReason": {
+            "enum": [
+              "not_live",
+              "not_admitted",
+              "no_approved_product"
+            ],
+            "type": "string"
+          },
+          "products": {
+            "items": {
+              "properties": {
+                "currency": {
+                  "type": "string"
+                },
+                "eligible": {
+                  "description": "Approved in review and in a currency the UK Ltd charges.",
+                  "type": "boolean"
+                },
+                "hidden": {
+                  "type": "boolean"
+                },
+                "linkUrl": {
+                  "description": "Discover's payment link, while listed and shown.",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "productId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "productId",
+                "name",
+                "currency",
+                "hidden",
+                "eligible"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "removedReason": {
+            "description": "Why staff removed it",
+            "type": "string",
+            "while removed.": null
+          },
+          "status": {
+            "enum": [
+              "off",
+              "listed",
+              "removed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "eligible",
+          "category",
+          "description",
+          "products"
+        ],
+        "type": "object"
+      },
+      "DiscoverStaffAction": {
+        "properties": {
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
         ],
         "type": "object"
       },
@@ -4979,6 +5155,77 @@
           "customerId",
           "from",
           "to"
+        ],
+        "type": "object"
+      },
+      "HostedSite": {
+        "properties": {
+          "deploy": {
+            "$ref": "#/components/schemas/HostedSiteDeploy"
+          },
+          "latestDeploy": {
+            "$ref": "#/components/schemas/HostedSiteDeploy"
+          },
+          "live": {
+            "type": "boolean"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "template": {
+            "description": "The template the site's files came from; null when they are its own (written by hand or by the AI).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "url",
+          "live"
+        ],
+        "type": "object"
+      },
+      "HostedSiteDeploy": {
+        "properties": {
+          "bytes": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deployId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "failure": {
+            "description": "Why it failed: refused_by_provider or interrupted.",
+            "type": "string"
+          },
+          "files": {
+            "type": "integer"
+          },
+          "finishedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "deploying",
+              "live",
+              "failed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "deployId",
+          "status"
         ],
         "type": "object"
       },
@@ -5348,41 +5595,6 @@
         ],
         "type": "object"
       },
-      "InvoiceBrazilCardPrepareRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "consentDigest": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "phone": {
-            "description": "Required before Pagar.me card preparation. Brazilian 10/11-digit national or 55-prefixed number; punctuation allowed.",
-            "type": "string"
-          },
-          "quoteId": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "renewalConsent": {
-            "$ref": "#/components/schemas/BrazilCardRenewalConsent"
-          },
-          "revision": {
-            "format": "int64",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "taxId": {
-            "description": "Optional CPF/CNPJ supplied through the invoice purchase owner before preparation.",
-            "type": "string"
-          }
-        },
-        "required": [
-          "quoteId",
-          "revision",
-          "consentDigest"
-        ],
-        "type": "object"
-      },
       "InvoiceChargeRequest": {
         "allOf": [
           {
@@ -5392,10 +5604,6 @@
             "properties": {
               "consentDigest": {
                 "description": "Required with quoteId and revision for a fresh invoice purchase. Existing financial identities use their original retry protocol.",
-                "type": "string"
-              },
-              "phone": {
-                "description": "Required for direct Pix. Brazilian 10/11-digit national or 55-prefixed number; punctuation allowed.",
                 "type": "string"
               },
               "quoteId": {
@@ -5415,7 +5623,7 @@
             "type": "object"
           }
         ],
-        "description": "`CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ and phone repairs. Values are stored on the payer only when absent and never replace a different value already on file.\n"
+        "description": "`CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ repair. The value is stored on the payer only when absent and never replaces a different value already on file.\n"
       },
       "InvoiceId": {
         "description": "An invoice's id. Starts with `inv_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.",
@@ -5704,9 +5912,55 @@
         ],
         "type": "object"
       },
+      "KycVerification": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "kyc",
+              "kyb"
+            ],
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "in_progress",
+              "in_review",
+              "approved",
+              "declined",
+              "expired"
+            ],
+            "type": "string"
+          },
+          "statusChangedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "url": {
+            "description": "The hosted link; only on start, never stored.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "statusChangedAt",
+          "createdAt"
+        ],
+        "type": "object"
+      },
       "LegalSellerView": {
         "additionalProperties": false,
-        "description": "Who sells the Order: the merchant for a direct Brazilian Pix purchase, or the UK Ltd for an eligible merchant-of-record sale. Shown before paying.\n",
+        "description": "Who sells the Order: BEINFI LTD (Companies House 17471225), the merchant of record of every sale (ADR 0072). Shown before paying.\n",
         "properties": {
           "country": {
             "description": "ISO 3166-1 alpha-2.",
@@ -5714,7 +5968,7 @@
             "type": "string"
           },
           "name": {
-            "example": "Infi UK Ltd",
+            "example": "BEINFI LTD",
             "type": "string"
           }
         },
@@ -5814,17 +6068,15 @@
             "$ref": "#/components/schemas/CheckoutTotals"
           },
           "unavailableReason": {
-            "description": "Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).\n",
+            "description": "Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).\n",
             "enum": [
               "product_not_available",
               "buyer_country_required",
+              "buyer_country_sanctioned",
               "supplier_country_required",
-              "supplier_country_conflict",
-              "domestic_payments_unavailable",
               "collection_unavailable",
               "country_mismatch",
-              "invoice_not_payable",
-              "direct_collection_reconciliation_required"
+              "invoice_not_payable"
             ],
             "type": "string"
           },
@@ -6165,7 +6417,7 @@
           "application": {
             "oneOf": [
               {
-                "$ref": "#/components/schemas/MorApplicationInput"
+                "$ref": "#/components/schemas/MorApplication"
               },
               {
                 "type": "null"
@@ -6186,13 +6438,7 @@
             ]
           },
           "status": {
-            "enum": [
-              "draft",
-              "submitted",
-              "approved",
-              "rejected"
-            ],
-            "type": "string"
+            "$ref": "#/components/schemas/MorAdmissionStatus"
           },
           "submittedAt": {
             "format": "date-time",
@@ -6213,6 +6459,16 @@
         ],
         "type": "object"
       },
+      "MorAdmissionStatus": {
+        "enum": [
+          "draft",
+          "kyc_pending",
+          "submitted",
+          "approved",
+          "rejected"
+        ],
+        "type": "string"
+      },
       "MorAdmissionView": {
         "properties": {
           "admission": {
@@ -6231,8 +6487,41 @@
           "eligibility": {
             "$ref": "#/components/schemas/MorEligibility"
           },
+          "kyc": {
+            "description": "The identity verification; status is null until the registration is submitted.",
+            "properties": {
+              "status": {
+                "enum": [
+                  "skipped",
+                  "pending",
+                  "passed",
+                  "failed",
+                  null
+                ],
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ],
+            "type": "object"
+          },
           "policy": {
             "$ref": "#/components/schemas/MorPolicy"
+          },
+          "registration": {
+            "description": "The Account's own registration, documents included; null until it registers.",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MorRegistration"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "seller": {
             "oneOf": [
@@ -6250,7 +6539,9 @@
           "agreement",
           "admission",
           "policy",
-          "eligibility"
+          "eligibility",
+          "registration",
+          "kyc"
         ],
         "type": "object"
       },
@@ -6298,36 +6589,23 @@
         ],
         "type": "object"
       },
-      "MorApplicationInput": {
+      "MorApplication": {
+        "description": "What the Account declares about itself, derived from its registration (the signup writes the country alone first).\n",
         "properties": {
           "country": {
-            "description": "ISO 3166-1 alpha-2",
-            "pattern": "^[A-Za-z]{2}$",
             "type": "string"
           },
           "legalName": {
-            "maxLength": 200,
             "type": "string"
           },
-          "productCategories": {
-            "items": {
-              "maxLength": 64,
-              "type": "string"
-            },
-            "maxItems": 20,
-            "minItems": 1,
-            "type": "array"
-          },
           "taxId": {
-            "maxLength": 64,
             "type": "string"
           }
         },
         "required": [
           "legalName",
           "country",
-          "taxId",
-          "productCategories"
+          "taxId"
         ],
         "type": "object"
       },
@@ -6424,22 +6702,27 @@
             "type": "string"
           },
           "sells": {
-            "enum": [
-              "digital_downloads",
-              "software_saas",
-              "ai_agents",
-              "courses_training",
-              "memberships_community",
-              "productized_services",
-              "physical_goods",
-              "regulated_services",
-              "adult",
-              "gambling",
-              "crypto_investments",
-              "money_gift_cards",
-              "resale_without_rights"
-            ],
-            "type": "string"
+            "description": "Every kind the Account sells. A prohibited kind among them blocks.",
+            "items": {
+              "enum": [
+                "digital_downloads",
+                "software_saas",
+                "ai_agents",
+                "courses_training",
+                "memberships_community",
+                "productized_services",
+                "physical_goods",
+                "regulated_services",
+                "adult",
+                "gambling",
+                "crypto_investments",
+                "money_gift_cards",
+                "resale_without_rights"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
           }
         },
         "required": [
@@ -6501,6 +6784,100 @@
           "text",
           "acceptedVersion",
           "acceptedAt"
+        ],
+        "type": "object"
+      },
+      "MorRegistration": {
+        "additionalProperties": false,
+        "description": "The Account's registration (ADR 0063): who sells, the same in every country. `document` is the CPF (individual) or CNPJ (company) with its check digits in Brazil (`country` BR), and the tax id (3 to 40 characters) elsewhere. The bank account the Account is paid in is not part of it: it is the Wise beneficiary's, added later.\n",
+        "properties": {
+          "address": {
+            "additionalProperties": false,
+            "properties": {
+              "city": {
+                "type": "string"
+              },
+              "line1": {
+                "type": "string"
+              },
+              "line2": {
+                "type": "string"
+              },
+              "postalCode": {
+                "type": "string"
+              },
+              "region": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "line1",
+              "city"
+            ],
+            "type": "object"
+          },
+          "country": {
+            "description": "ISO 3166-1 alpha-2",
+            "pattern": "^[A-Za-z]{2}$",
+            "type": "string"
+          },
+          "document": {
+            "maxLength": 40,
+            "minLength": 3,
+            "type": "string"
+          },
+          "email": {
+            "description": "Contact e-mail. Required when saving (422 `email`); absent on a registration saved before it was asked.",
+            "type": "string"
+          },
+          "entityType": {
+            "enum": [
+              "individual",
+              "company"
+            ],
+            "type": "string"
+          },
+          "legalName": {
+            "maxLength": 200,
+            "type": "string"
+          }
+        },
+        "required": [
+          "country",
+          "entityType",
+          "legalName",
+          "document",
+          "address"
+        ],
+        "type": "object"
+      },
+      "MorSaleSplit": {
+        "properties": {
+          "consideration": {
+            "description": "What the Account is owed for the sale.",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "held": {
+            "type": "boolean"
+          },
+          "margin": {
+            "description": "Infi's margin.",
+            "type": "string"
+          },
+          "sale": {
+            "description": "Charged total without tax.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "sale",
+          "margin",
+          "consideration",
+          "held"
         ],
         "type": "object"
       },
@@ -6639,6 +7016,45 @@
         ],
         "type": "object"
       },
+      "OptionUsagePrice": {
+        "description": "The price of one of the product's meters on an option.",
+        "properties": {
+          "meterId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "model": {
+            "enum": [
+              "per_unit",
+              "tiered",
+              "volume",
+              "package"
+            ],
+            "type": "string"
+          },
+          "tiers": {
+            "description": "Bands for tiered, volume and package ({upTo, unitAmount, flatAmount, size}).",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "unitAmount": {
+            "description": "Decimal string",
+            "for per_unit.": null,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "meterId",
+          "model"
+        ],
+        "type": "object"
+      },
       "OverviewMetrics": {
         "properties": {
           "activeSubs": {
@@ -6755,6 +7171,11 @@
       "Payment": {
         "properties": {
           "amount": {
+            "type": "string"
+          },
+          "buyerCountry": {
+            "description": "ISO 3166-1 alpha-2 country the buyer paid from, as the checkout recorded it. On the tenant payment list only; absent when no checkout recorded a country.\n",
+            "pattern": "^[A-Z]{2}$",
             "type": "string"
           },
           "checkoutAction": {
@@ -6977,11 +7398,19 @@
             "format": "uuid",
             "type": "string"
           },
+          "optionId": {
+            "description": "The price option the link sells (ADR 0062). Without a productVersionId, the link sells the option's current version at pay time, and stops selling when the option is archived.\n",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "productId": {
             "$ref": "#/components/schemas/ProductId"
           },
           "productVersionId": {
-            "description": "The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on links created before pinning existed: those resolve the latest published version at pay time.\n",
+            "description": "The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on a link that follows its option (optionId) or, without one, the default version, resolved at pay time.\n",
             "format": "uuid",
             "type": [
               "string",
@@ -7080,6 +7509,10 @@
           "purchaseButtonText": {
             "type": "string"
           },
+          "trialDays": {
+            "description": "A free trial of this many days (#311): the card is saved through the UK Ltd with nothing charged, and `price` is charged when the trial ends. Card only. One trial per e-mail per product (409 `trial_already_used`).\n",
+            "type": "integer"
+          },
           "type": {
             "enum": [
               "agent",
@@ -7172,17 +7605,15 @@
             "$ref": "#/components/schemas/CheckoutTotals"
           },
           "unavailableReason": {
-            "description": "Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).\n",
+            "description": "Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).\n",
             "enum": [
               "product_not_available",
               "buyer_country_required",
+              "buyer_country_sanctioned",
               "supplier_country_required",
-              "supplier_country_conflict",
-              "domestic_payments_unavailable",
               "collection_unavailable",
               "country_mismatch",
-              "invoice_not_payable",
-              "direct_collection_reconciliation_required"
+              "invoice_not_payable"
             ],
             "type": "string"
           },
@@ -7353,6 +7784,301 @@
           "amount",
           "currency",
           "accessRevoked"
+        ],
+        "type": "object"
+      },
+      "PayoutBeneficiaryField": {
+        "properties": {
+          "example": {
+            "nullable": true,
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "maxLength": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "minLength": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "refreshRequirementsOnChange": {
+            "type": "boolean"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "select",
+              "radio",
+              "date"
+            ],
+            "type": "string"
+          },
+          "validationRegexp": {
+            "nullable": true,
+            "type": "string"
+          },
+          "valuesAllowed": {
+            "items": {
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "name"
+              ],
+              "type": "object"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "PayoutBeneficiaryForm": {
+        "properties": {
+          "forms": {
+            "items": {
+              "$ref": "#/components/schemas/PayoutBeneficiaryFormType"
+            },
+            "type": "array"
+          },
+          "quoteId": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quoteId",
+          "forms"
+        ],
+        "type": "object"
+      },
+      "PayoutBeneficiaryFormType": {
+        "properties": {
+          "fields": {
+            "items": {
+              "properties": {
+                "group": {
+                  "items": {
+                    "$ref": "#/components/schemas/PayoutBeneficiaryField"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "group"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "PayoutBeneficiaryRevision": {
+        "properties": {
+          "accountMask": {
+            "example": "…5678",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "holderName": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "bank",
+              "wallet"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "nullable": true,
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "pending_review",
+              "verified",
+              "rejected",
+              "superseded",
+              "removed"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "status",
+          "currency",
+          "accountMask",
+          "holderName",
+          "reason",
+          "kind"
+        ],
+        "type": "object"
+      },
+      "PayoutCryptoTerms": {
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          },
+          "marginRate": {
+            "example": "0.01",
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "marginRate",
+          "text",
+          "version",
+          "accepted"
+        ],
+        "type": "object"
+      },
+      "PayoutDestination": {
+        "description": "A payout destination; never the account number or address, only the digits that name it.",
+        "properties": {
+          "accountMask": {
+            "example": "…3000",
+            "type": "string"
+          },
+          "asset": {
+            "enum": [
+              "usdt",
+              "usdc"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "description": "The bank account's currency; a wallet's is USD.",
+            "example": "EUR",
+            "type": "string"
+          },
+          "defaultFor": {
+            "description": "Balance currencies it pays now.",
+            "items": {
+              "enum": [
+                "BRL",
+                "USD",
+                "EUR",
+                "GBP"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "holderName": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "bank",
+              "wallet"
+            ],
+            "type": "string"
+          },
+          "network": {
+            "enum": [
+              "tron",
+              "base"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "reason": {
+            "description": "Staff's reason when refused.",
+            "nullable": true,
+            "type": "string"
+          },
+          "receives": {
+            "description": "Balance currencies it can be the default of once verified.",
+            "items": {
+              "enum": [
+                "BRL",
+                "USD",
+                "EUR",
+                "GBP"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "revision": {
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "pending_review",
+              "verified",
+              "rejected"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "status",
+          "kind",
+          "currency",
+          "asset",
+          "network",
+          "accountMask",
+          "holderName",
+          "reason",
+          "createdAt",
+          "defaultFor",
+          "receives"
         ],
         "type": "object"
       },
@@ -7827,7 +8553,7 @@
             "type": "string"
           },
           "decidedBy": {
-            "description": "`automatic`, or the store's actor.",
+            "description": "`automatic`, `infi` (Infi staff, for BEINFI LTD), or the store's actor.",
             "type": "string"
           },
           "id": {
@@ -7854,45 +8580,6 @@
           "status",
           "withinWindow",
           "createdAt"
-        ],
-        "type": "object"
-      },
-      "PortalRenewalAuthorization": {
-        "additionalProperties": false,
-        "properties": {
-          "amountMinor": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "cadence": {
-            "type": "string"
-          },
-          "currency": {
-            "type": "string"
-          },
-          "state": {
-            "enum": [
-              "pending_first",
-              "active",
-              "revoked"
-            ],
-            "type": "string"
-          },
-          "textVersion": {
-            "type": "string"
-          },
-          "version": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "state",
-          "version",
-          "textVersion",
-          "amountMinor",
-          "currency",
-          "cadence"
         ],
         "type": "object"
       },
@@ -8030,9 +8717,6 @@
           },
           "productName": {
             "type": "string"
-          },
-          "renewalAuthorization": {
-            "$ref": "#/components/schemas/PortalRenewalAuthorization"
           },
           "status": {
             "type": "string"
@@ -8266,6 +8950,133 @@
         "required": [
           "meterId",
           "model"
+        ],
+        "type": "object"
+      },
+      "PriceOption": {
+        "description": "A product's price option (ADR 0062): \"Mensal\", \"Anual\", \"Vitalício\". Its terms are versions; `version` is the current one, the newest published. Editing a sold option publishes a new version and whoever pinned the old one keeps it.\n",
+        "properties": {
+          "archived": {
+            "description": "Sells to nobody new.",
+            "type": "boolean"
+          },
+          "hidden": {
+            "description": "Left off the store page and the product page; it still sells through its own link.",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "isDefault": {
+            "description": "What a buyer gets when nothing names an option.",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "usage": {
+            "description": "What the current version charges per meter (its meter prices).",
+            "items": {
+              "$ref": "#/components/schemas/Price"
+            },
+            "type": "array"
+          },
+          "version": {
+            "$ref": "#/components/schemas/Version"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "position",
+          "hidden",
+          "archived",
+          "isDefault"
+        ],
+        "type": "object"
+      },
+      "PriceOptionInput": {
+        "description": "On an edit, an absent field keeps the current term.",
+        "properties": {
+          "basePrice": {
+            "description": "Decimal string.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "billingCycle": {
+            "enum": [
+              "weekly",
+              "monthly",
+              "annual",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currency": {
+            "description": "ISO 4217 code. A physical product sells only in BRL.",
+            "type": "string"
+          },
+          "grants": {
+            "description": "Units the option credits (each cycle or on payment). On an edit, absent keeps the current ones and a change publishes a new version.\n",
+            "items": {
+              "$ref": "#/components/schemas/VersionGrant"
+            },
+            "type": "array"
+          },
+          "hidden": {
+            "description": "Create only.",
+            "type": "boolean"
+          },
+          "name": {
+            "maxLength": 60,
+            "type": "string"
+          },
+          "pricingModel": {
+            "enum": [
+              "subscription",
+              "one_time",
+              "usage",
+              "prepaid"
+            ],
+            "type": "string"
+          },
+          "trialDays": {
+            "description": "A free trial of 1 to 90 days, for a subscription option only (#311). On an edit, 0 removes it; a changed trial publishes a new version.\n",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "usage": {
+            "description": "The price of each meter the option charges, for a usage or subscription option. On an edit, absent keeps the current ones and a change publishes a new version; [] charges no meter.\n",
+            "items": {
+              "$ref": "#/components/schemas/OptionUsagePrice"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "PriceOptionList": {
+        "properties": {
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/PriceOption"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "options"
         ],
         "type": "object"
       },
@@ -8629,6 +9440,68 @@
         "pattern": "^prod_[0-9A-Za-z]{22}$",
         "type": "string"
       },
+      "ProductInventory": {
+        "properties": {
+          "movements": {
+            "description": "The latest 100, newest first.",
+            "items": {
+              "properties": {
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": [
+                    "in",
+                    "out",
+                    "count",
+                    "sale"
+                  ],
+                  "type": "string"
+                },
+                "paymentId": {
+                  "description": "The sale's payment.",
+                  "type": "string"
+                },
+                "quantity": {
+                  "description": "Signed.",
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "quantity",
+                "createdAt"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "onHand": {
+            "description": "The sum of the movements. Negative after an oversell.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "tracked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "tracked",
+          "onHand",
+          "movements"
+        ],
+        "type": "object"
+      },
       "ProductMedia": {
         "properties": {
           "alt": {
@@ -8880,15 +9753,10 @@
           },
           "required": {
             "type": "boolean"
-          },
-          "trustAfter": {
-            "description": "PULSE_PRODUCT_REVIEW_TRUST_AFTER; 0 is off.",
-            "type": "integer"
           }
         },
         "required": [
           "required",
-          "trustAfter",
           "items"
         ],
         "type": "object"
@@ -9147,46 +10015,11 @@
         ],
         "type": "object"
       },
-      "PublicPagarmeCardPaymentOption": {
-        "additionalProperties": false,
-        "description": "Brazilian domestic card. The browser first prepares the purchase, then tokenizes directly with Core v5 using the public key returned by the prepare response. No public key or payer/provider identity is included in the checkout descriptor.\n",
-        "properties": {
-          "flow": {
-            "const": "pagarme_core_v5_token",
-            "type": "string"
-          },
-          "method": {
-            "const": "card",
-            "type": "string"
-          },
-          "provider": {
-            "const": "pagarme_card",
-            "type": "string"
-          },
-          "requiresPayerDetails": {
-            "const": true,
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "method",
-          "provider",
-          "flow",
-          "requiresPayerDetails"
-        ],
-        "type": "object"
-      },
       "PublicPaymentOption": {
-        "description": "Methods offered for this purchase and buyer country. BR-to-BR Pix uses the merchant's Pagar.me recipient; eligible UK sales use Stripe Elements. Empty when acceptsPayments is false. Charge creation validates again.\n",
+        "description": "Methods offered for this purchase: the UK Ltd's Stripe Elements (ADR 0072). Empty when acceptsPayments is false. Charge creation validates again.\n",
         "oneOf": [
           {
             "$ref": "#/components/schemas/PublicStripeElementsPaymentOption"
-          },
-          {
-            "$ref": "#/components/schemas/PublicPixPaymentOption"
-          },
-          {
-            "$ref": "#/components/schemas/PublicPagarmeCardPaymentOption"
           }
         ]
       },
@@ -9224,11 +10057,7 @@
             "type": "string"
           },
           "provider": {
-            "enum": [
-              "infi_stripe_uk",
-              "pagarme_pix",
-              "pagarme_card"
-            ],
+            "description": "`infi_stripe_uk` for every new payment.",
             "type": "string"
           },
           "refundedAmount": {
@@ -9257,27 +10086,182 @@
         ],
         "type": "object"
       },
-      "PublicPixPaymentOption": {
-        "additionalProperties": false,
-        "description": "Brazilian purchase collected directly for the merchant's recipient. Repeating charge creation retrieves the same durable Pix attempt.",
+      "PublicSiteCatalog": {
         "properties": {
-          "flow": {
-            "const": "pix",
+          "appearance": {
+            "properties": {
+              "accentColor": {
+                "type": "string"
+              },
+              "backgroundColor": {
+                "type": "string"
+              },
+              "font": {
+                "type": "string"
+              },
+              "radius": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "accentColor",
+              "backgroundColor",
+              "font",
+              "radius"
+            ],
+            "type": "object"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
             "type": "string"
           },
-          "method": {
-            "const": "pix",
-            "type": "string"
+          "products": {
+            "items": {
+              "properties": {
+                "billingCycle": {
+                  "description": "The lead option's cycle.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "buttonText": {
+                  "description": "The product's purchase button text; null uses the page's default.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "buyUrl": {
+                  "description": "The lead option's store link checkout URL.",
+                  "type": "string"
+                },
+                "currency": {
+                  "description": "The lead option's currency.",
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "imageUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "options": {
+                  "description": "The options that show, in order, each sold by its own store link (ADR 0062).",
+                  "items": {
+                    "properties": {
+                      "billingCycle": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "buyUrl": {
+                        "type": "string"
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "price": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "pricingModel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "price",
+                      "currency",
+                      "pricingModel",
+                      "billingCycle",
+                      "isDefault",
+                      "buyUrl"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "price": {
+                  "description": "The lead option's price (the default option when it shows, else the first that does), two decimals; null for usage pricing.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "pricingModel": {
+                  "description": "The lead option's pricing model.",
+                  "type": "string"
+                },
+                "productId": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "productId",
+                "name",
+                "description",
+                "imageUrl",
+                "price",
+                "currency",
+                "type",
+                "pricingModel",
+                "billingCycle",
+                "buttonText",
+                "buyUrl"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           },
-          "provider": {
-            "const": "pagarme_pix",
+          "site": {
             "type": "string"
           }
         },
         "required": [
-          "method",
-          "provider",
-          "flow"
+          "site",
+          "name",
+          "logoUrl",
+          "appearance",
+          "description",
+          "products"
         ],
         "type": "object"
       },
@@ -9496,83 +10480,6 @@
         ],
         "type": "object"
       },
-      "ReceivingAddress": {
-        "additionalProperties": false,
-        "properties": {
-          "city": {
-            "type": "string"
-          },
-          "complementary": {
-            "type": "string"
-          },
-          "neighborhood": {
-            "type": "string"
-          },
-          "referencePoint": {
-            "type": "string"
-          },
-          "state": {
-            "type": "string"
-          },
-          "street": {
-            "type": "string"
-          },
-          "streetNumber": {
-            "type": "string"
-          },
-          "zipCode": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "street",
-          "complementary",
-          "streetNumber",
-          "neighborhood",
-          "city",
-          "state",
-          "zipCode",
-          "referencePoint"
-        ],
-        "type": "object"
-      },
-      "ReceivingApplication": {
-        "description": "Exactly one individual or company dossier, plus its bank account. Tenant, actor, provider code, environment and platform account are server-selected. The submitted dossier is immutable in this version.",
-        "oneOf": [
-          {
-            "additionalProperties": false,
-            "properties": {
-              "bank": {
-                "$ref": "#/components/schemas/ReceivingBank"
-              },
-              "individual": {
-                "$ref": "#/components/schemas/ReceivingIndividual"
-              }
-            },
-            "required": [
-              "individual",
-              "bank"
-            ],
-            "type": "object"
-          },
-          {
-            "additionalProperties": false,
-            "properties": {
-              "bank": {
-                "$ref": "#/components/schemas/ReceivingBank"
-              },
-              "company": {
-                "$ref": "#/components/schemas/ReceivingCompany"
-              }
-            },
-            "required": [
-              "company",
-              "bank"
-            ],
-            "type": "object"
-          }
-        ]
-      },
       "ReceivingBalanceSummary": {
         "properties": {
           "asOf": {
@@ -9589,116 +10496,6 @@
         "required": [
           "balances",
           "asOf"
-        ],
-        "type": "object"
-      },
-      "ReceivingBank": {
-        "additionalProperties": false,
-        "properties": {
-          "accountCheckDigit": {
-            "type": "string"
-          },
-          "accountNumber": {
-            "type": "string"
-          },
-          "bank": {
-            "type": "string"
-          },
-          "branchCheckDigit": {
-            "type": "string"
-          },
-          "branchNumber": {
-            "type": "string"
-          },
-          "holderDocument": {
-            "type": "string"
-          },
-          "holderName": {
-            "type": "string"
-          },
-          "holderType": {
-            "enum": [
-              "individual",
-              "company"
-            ],
-            "type": "string"
-          },
-          "type": {
-            "enum": [
-              "checking",
-              "savings"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "holderName",
-          "holderType",
-          "holderDocument",
-          "bank",
-          "branchNumber",
-          "accountNumber",
-          "accountCheckDigit",
-          "type"
-        ],
-        "type": "object"
-      },
-      "ReceivingCompany": {
-        "additionalProperties": false,
-        "properties": {
-          "address": {
-            "$ref": "#/components/schemas/ReceivingAddress"
-          },
-          "annualRevenue": {
-            "format": "int64",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "companyName": {
-            "type": "string"
-          },
-          "corporationType": {
-            "type": "string"
-          },
-          "document": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "foundingDate": {
-            "type": "string"
-          },
-          "managingPartner": {
-            "$ref": "#/components/schemas/ReceivingPerson"
-          },
-          "phones": {
-            "items": {
-              "$ref": "#/components/schemas/ReceivingPhone"
-            },
-            "minItems": 1,
-            "type": "array"
-          },
-          "selfDeclaredLegalRepresentative": {
-            "type": "boolean"
-          },
-          "siteUrl": {
-            "type": "string"
-          },
-          "tradingName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "companyName",
-          "tradingName",
-          "email",
-          "document",
-          "siteUrl",
-          "annualRevenue",
-          "address",
-          "phones",
-          "managingPartner"
         ],
         "type": "object"
       },
@@ -9751,264 +10548,6 @@
           "paid",
           "reserve",
           "receivable"
-        ],
-        "type": "object"
-      },
-      "ReceivingIndividual": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/ReceivingPerson"
-          },
-          {
-            "required": [
-              "siteUrl"
-            ],
-            "type": "object"
-          }
-        ]
-      },
-      "ReceivingKycLink": {
-        "additionalProperties": false,
-        "properties": {
-          "expiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "receivingRevision": {
-            "format": "int64",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "revision": {
-            "format": "int64",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "serverTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "url": {
-            "format": "uri",
-            "type": "string"
-          }
-        },
-        "required": [
-          "url",
-          "expiresAt",
-          "revision",
-          "receivingRevision",
-          "serverTime"
-        ],
-        "type": "object"
-      },
-      "ReceivingKycStatus": {
-        "additionalProperties": false,
-        "properties": {
-          "expiresAt": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "reason": {
-            "type": "string"
-          },
-          "receivingRevision": {
-            "format": "int64",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "retryAfter": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "revision": {
-            "format": "int64",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "serverTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "state": {
-            "enum": [
-              "not_requested",
-              "queued",
-              "checking",
-              "issuing",
-              "ready",
-              "unavailable",
-              "outcome_unknown",
-              "expired",
-              "stale"
-            ],
-            "type": "string"
-          }
-        },
-        "required": [
-          "state",
-          "revision",
-          "receivingRevision",
-          "serverTime"
-        ],
-        "type": "object"
-      },
-      "ReceivingPerson": {
-        "additionalProperties": false,
-        "properties": {
-          "address": {
-            "$ref": "#/components/schemas/ReceivingAddress"
-          },
-          "birthdate": {
-            "type": "string"
-          },
-          "document": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "monthlyIncome": {
-            "format": "int64",
-            "minimum": 0,
-            "type": "integer"
-          },
-          "motherName": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "phones": {
-            "items": {
-              "$ref": "#/components/schemas/ReceivingPhone"
-            },
-            "minItems": 1,
-            "type": "array"
-          },
-          "professionalOccupation": {
-            "type": "string"
-          },
-          "siteUrl": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "email",
-          "document",
-          "birthdate",
-          "professionalOccupation",
-          "monthlyIncome",
-          "address",
-          "phones"
-        ],
-        "type": "object"
-      },
-      "ReceivingPhone": {
-        "additionalProperties": false,
-        "properties": {
-          "areaCode": {
-            "type": "string"
-          },
-          "number": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "areaCode",
-          "number",
-          "type"
-        ],
-        "type": "object"
-      },
-      "ReceivingView": {
-        "additionalProperties": false,
-        "description": "Provider capabilities from the last applied snapshot, not Infi sale authorization or a guarantee of current provider standing. No dossier, bank data, provider IDs or credentials are returned.",
-        "properties": {
-          "capabilities": {
-            "additionalProperties": false,
-            "properties": {
-              "canRequestKyc": {
-                "type": "boolean"
-              },
-              "canTransact": {
-                "type": "boolean"
-              },
-              "canWithdraw": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "canTransact",
-              "canWithdraw",
-              "canRequestKyc"
-            ],
-            "type": "object"
-          },
-          "kyc": {
-            "additionalProperties": false,
-            "properties": {
-              "reason": {
-                "type": "string"
-              },
-              "status": {
-                "enum": [
-                  "pending",
-                  "approved",
-                  "denied",
-                  "partially_denied",
-                  "unknown"
-                ],
-                "type": "string"
-              }
-            },
-            "required": [
-              "status"
-            ],
-            "type": "object"
-          },
-          "receivingRevision": {
-            "format": "int64",
-            "minimum": 1,
-            "type": "integer"
-          },
-          "recipientStatus": {
-            "enum": [
-              "registration",
-              "affiliation",
-              "active",
-              "refused",
-              "suspended",
-              "blocked",
-              "inactive",
-              "unknown"
-            ],
-            "type": "string"
-          },
-          "state": {
-            "enum": [
-              "reserved",
-              "dispatched",
-              "linked",
-              "outcome_unknown",
-              "refused"
-            ],
-            "type": "string"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string"
-          }
-        },
-        "required": [
-          "state",
-          "capabilities",
-          "updatedAt",
-          "receivingRevision"
         ],
         "type": "object"
       },
@@ -10598,12 +11137,23 @@
       },
       "SessionBootstrapRequest": {
         "properties": {
+          "acceptedDocuments": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Each `signupDocuments` kind and the version the person accepted, e.g. `{\"supplier_agreement\": \"2026-10-17\", \"product_policy\": \"2026-10-17\"}`.\n",
+            "type": "object"
+          },
           "acceptedTermsVersion": {
             "description": "The Infi Terms version the operator accepted. Required on live for the first login and must equal `termsVersion` from `POST /auth/session/sync`; sending it is the acceptance. Ignored on sandbox and for a subject already attached.\n",
             "type": "string"
           },
           "accountName": {
             "description": "Display name for the new tenant",
+            "type": "string"
+          },
+          "country": {
+            "description": "The business's country, ISO 3166-1 alpha-2. With the `signupDocuments` accepted, the new account is admitted to sell through the UK Ltd as it is created (ADR 0026, amended 2026-10-29); without them, or when the UK Ltd cannot take it yet, the country is kept on its application and it applies from the dashboard. A code under sanctions refuses the signup (409 `mor_sanctioned_country`).\n",
             "type": "string"
           },
           "signupSource": {
@@ -10676,21 +11226,6 @@
           "tenant",
           "user"
         ],
-        "type": "object"
-      },
-      "SessionBrazilCardPrepareRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "remember": {
-            "type": "boolean"
-          },
-          "rememberTextVersion": {
-            "type": "string"
-          },
-          "renewalConsent": {
-            "$ref": "#/components/schemas/BrazilCardRenewalConsent"
-          }
-        },
         "type": "object"
       },
       "SessionSyncResponse": {
@@ -10778,6 +11313,13 @@
             ],
             "type": "string"
           },
+          "signupDocuments": {
+            "description": "Only while `needsBootstrap` is true: the texts the signup shows besides the Terms (the UK Ltd's supplier agreement and product policy), each accepted by sending its version in `acceptedDocuments` on `POST /auth/session/bootstrap` (ADR 0026, amended 2026-10-29).\n",
+            "items": {
+              "$ref": "#/components/schemas/SignupDocument"
+            },
+            "type": "array"
+          },
           "signupSource": {
             "description": "Partner or channel attribution stored on the tenant",
             "type": "string"
@@ -10791,6 +11333,372 @@
           "needsBootstrap",
           "needsOnboarding",
           "memberships"
+        ],
+        "type": "object"
+      },
+      "SignupDocument": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "supplier_agreement",
+              "product_policy"
+            ],
+            "type": "string"
+          },
+          "text": {
+            "description": "The document's text, in Markdown.",
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "version",
+          "text"
+        ],
+        "type": "object"
+      },
+      "SiteCatalogChoice": {
+        "properties": {
+          "description": {
+            "description": "The site's text below the business name; empty clears it.",
+            "maxLength": 500,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hidden": {
+            "description": "Product ids an `all` site leaves out.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "hiddenOptions": {
+            "description": "Price option ids this site leaves out.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "all",
+              "chosen"
+            ],
+            "type": "string"
+          },
+          "order": {
+            "description": "Product ids",
+            "in the order the site shows them.": null,
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode"
+        ],
+        "type": "object"
+      },
+      "SiteCatalogView": {
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "all",
+              "chosen"
+            ],
+            "type": "string"
+          },
+          "products": {
+            "items": {
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "onSite": {
+                  "type": "boolean"
+                },
+                "options": {
+                  "items": {
+                    "properties": {
+                      "billingCycle": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "currency": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "format": "uuid",
+                        "type": "string"
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "onSite": {
+                        "type": "boolean"
+                      },
+                      "price": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "pricingModel": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "enum": [
+                          "hidden",
+                          "not_approved",
+                          "not_sold",
+                          "unsupported_model"
+                        ],
+                        "type": "string"
+                      },
+                      "sellable": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "price",
+                      "currency",
+                      "pricingModel",
+                      "billingCycle",
+                      "isDefault",
+                      "sellable",
+                      "onSite"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "productId": {
+                  "type": "string"
+                },
+                "reason": {
+                  "description": "Why it cannot sell.",
+                  "enum": [
+                    "hidden",
+                    "not_approved",
+                    "not_sold",
+                    "unsupported_model"
+                  ],
+                  "type": "string"
+                },
+                "sellable": {
+                  "description": "One of its options can sell.",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "productId",
+                "name",
+                "sellable",
+                "onSite",
+                "options"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "mode",
+          "description",
+          "products"
+        ],
+        "type": "object"
+      },
+      "SiteField": {
+        "properties": {
+          "default": {},
+          "group": {
+            "type": "string"
+          },
+          "hint": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "item": {
+            "description": "A list item's fields.",
+            "items": {
+              "$ref": "#/components/schemas/SiteField"
+            },
+            "type": "array"
+          },
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "max": {
+            "description": "The longest text",
+            "or the most items of a list.": null,
+            "type": "integer"
+          },
+          "options": {
+            "description": "A choice's values; the first is its default.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "textarea",
+              "url",
+              "color",
+              "toggle",
+              "choice",
+              "list"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "label"
+        ],
+        "type": "object"
+      },
+      "SitePage": {
+        "properties": {
+          "sections": {
+            "items": {
+              "additionalProperties": true,
+              "properties": {
+                "type": {
+                  "description": "One of schema.sections[].type; the rest are that type's fields.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "theme": {
+            "additionalProperties": true,
+            "description": "accent, mode, font, buttons, radius, width (schema.theme).",
+            "type": "object"
+          }
+        },
+        "required": [
+          "theme",
+          "sections"
+        ],
+        "type": "object"
+      },
+      "SiteSectionType": {
+        "properties": {
+          "description": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/SiteField"
+            },
+            "type": "array"
+          },
+          "label": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "label",
+          "description",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "SiteSettings": {
+        "properties": {
+          "page": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SitePage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema": {
+            "properties": {
+              "sections": {
+                "items": {
+                  "$ref": "#/components/schemas/SiteSectionType"
+                },
+                "type": "array"
+              },
+              "theme": {
+                "items": {
+                  "$ref": "#/components/schemas/SiteField"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "theme",
+              "sections"
+            ],
+            "type": "object"
+          },
+          "template": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "template",
+          "schema",
+          "page"
         ],
         "type": "object"
       },
@@ -10887,6 +11795,11 @@
               "paused",
               "canceled"
             ],
+            "type": "string"
+          },
+          "trialEndsAt": {
+            "description": "When the free trial ends and the first charge falls (#311). Absent without a trial.",
+            "format": "date-time",
             "type": "string"
           }
         },
@@ -11031,6 +11944,244 @@
           "digital_images"
         ],
         "type": "string"
+      },
+      "TeamInvitation": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "emailSentAt": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRole"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "accepted",
+              "revoked",
+              "expired"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "createdAt",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "TeamInvitationAcceptance": {
+        "properties": {
+          "mode": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/TeamTenant"
+          },
+          "user": {
+            "properties": {
+              "email": {
+                "format": "email",
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "role": {
+                "$ref": "#/components/schemas/TeamRole"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "role"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "tenant",
+          "user",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "TeamInvitationPreview": {
+        "properties": {
+          "invitation": {
+            "properties": {
+              "email": {
+                "format": "email",
+                "type": "string"
+              },
+              "expiresAt": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "role": {
+                "$ref": "#/components/schemas/TeamRole"
+              },
+              "status": {
+                "enum": [
+                  "pending",
+                  "accepted",
+                  "revoked",
+                  "expired"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "role",
+              "status",
+              "expiresAt"
+            ],
+            "type": "object"
+          },
+          "mode": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/TeamTenant"
+          },
+          "termsVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "invitation",
+          "tenant",
+          "mode"
+        ],
+        "type": "object"
+      },
+      "TeamMember": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "email": {
+            "format": "email",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/TeamRole"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "TeamRole": {
+        "description": "Fixed merchant role. Only owners manage the team and credentials. Admins perform ordinary business writes; readonly sessions cannot perform business writes. Existing stronger owner and MFA guards remain in effect.",
+        "enum": [
+          "owner",
+          "admin",
+          "readonly"
+        ],
+        "type": "string"
+      },
+      "TeamTenant": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "type": "object"
+      },
+      "TeamView": {
+        "properties": {
+          "canManage": {
+            "type": "boolean"
+          },
+          "currentUserId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "invitations": {
+            "items": {
+              "$ref": "#/components/schemas/TeamInvitation"
+            },
+            "type": "array"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "type": "array"
+          },
+          "mode": {
+            "enum": [
+              "sandbox",
+              "live"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "members",
+          "invitations",
+          "currentUserId",
+          "canManage",
+          "mode"
+        ],
+        "type": "object"
       },
       "Tenant": {
         "properties": {
@@ -11457,6 +12608,10 @@
               "null"
             ]
           },
+          "currency": {
+            "description": "What this version charges in. Every order, invoice and renewal of it uses this currency.",
+            "type": "string"
+          },
           "grants": {
             "items": {
               "$ref": "#/components/schemas/VersionGrant"
@@ -11470,6 +12625,21 @@
           "isDefault": {
             "description": "Among a product's published versions, whether this is the one a buyer gets when nothing names a specific version. A published version with `isDefault: false` is an offer reachable only by an explicit pin — a payment link created with `productVersionId` — which is how a product carries a promotional price without it reaching the shelf.\n",
             "type": "boolean"
+          },
+          "optionId": {
+            "description": "The price option this version is a term of (ADR 0062).",
+            "format": "uuid",
+            "type": "string"
+          },
+          "pricingModel": {
+            "description": "How this version charges.",
+            "enum": [
+              "subscription",
+              "one_time",
+              "usage",
+              "prepaid"
+            ],
+            "type": "string"
           },
           "productId": {
             "$ref": "#/components/schemas/ProductId"
@@ -11488,6 +12658,12 @@
               "archived"
             ],
             "type": "string"
+          },
+          "trialDays": {
+            "description": "A subscription's free trial in days, card only (#311). Absent without one.",
+            "maximum": 90,
+            "minimum": 1,
+            "type": "integer"
           },
           "version": {
             "type": "integer"
@@ -11852,11 +13028,6 @@
         "scheme": "bearer",
         "type": "http"
       },
-      "receivingWebhookBasic": {
-        "description": "Dedicated webhook username and password for the Brazilian receiving ingress. Dashboard fields were inspected; real authenticated delivery remains an activation gate.",
-        "scheme": "basic",
-        "type": "http"
-      },
       "sessionAuth": {
         "bearerFormat": "JWT",
         "description": "A verified CIAM session token (Clerk JWT) from dashboard login. Requires a linked users row. Pass `X-Tenant-Slug` when the operator belongs to multiple tenants.\n",
@@ -11910,7 +13081,7 @@
     },
     "/v1/config/apply": {
       "post": {
-        "description": "Applies the plan whose `planHash` is in `If-Match`. The body is the same document and options the plan took. If the account moved since the plan, answers 412 `plan_changed` with the plan as it is now and applies nothing. On sandbox it applies (200). On live it only records a proposal (202): the catalog is untouched until a person approves it at `approvalUrl`, also given as `previewUrl`.\n",
+        "description": "Applies the plan whose `planHash` is in `If-Match`. The body is the same document and options the plan took. If the account moved since the plan, answers 412 `plan_changed` with the plan as it is now and applies nothing. It applies (200) on sandbox and on live. On live a plan that changes a webhook endpoint only records a proposal (202, ADR 0070): the catalog is untouched until a person approves it at `approvalUrl`, also given as `previewUrl`.\n",
         "operationId": "config_apply",
         "parameters": [
           {

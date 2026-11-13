@@ -35,7 +35,7 @@ export interface paths {
         put?: never;
         /**
          * Apply the plan a caller reviewed
-         * @description Applies the plan whose `planHash` is in `If-Match`. The body is the same document and options the plan took. If the account moved since the plan, answers 412 `plan_changed` with the plan as it is now and applies nothing. On sandbox it applies (200). On live it only records a proposal (202): the catalog is untouched until a person approves it at `approvalUrl`, also given as `previewUrl`.
+         * @description Applies the plan whose `planHash` is in `If-Match`. The body is the same document and options the plan took. If the account moved since the plan, answers 412 `plan_changed` with the plan as it is now and applies nothing. It applies (200) on sandbox and on live. On live a plan that changes a webhook endpoint only records a proposal (202, ADR 0070): the catalog is untouched until a person approves it at `approvalUrl`, also given as `previewUrl`.
          */
         post: operations["config_apply"];
         delete?: never;
@@ -477,6 +477,11 @@ export interface components {
             /** Format: uuid */
             id: string;
             /**
+             * @description The network's fee in paidCurrency, frozen at the send.
+             * @example 0.30
+             */
+            networkFee?: string | null;
+            /**
              * @description The part of owed the Account's debt paid.
              * @example 39.88
              */
@@ -487,6 +492,20 @@ export interface components {
             /** @example 196.15 */
             paid: string | null;
             paidCurrency: string | null;
+            /**
+             * @description SpherePay: the asset paid, once the send froze it.
+             * @example usdc
+             */
+            payoutAsset?: string | null;
+            /** @example base */
+            payoutNetwork?: string | null;
+            /** @enum {string} */
+            provider?: "wise" | "spherepay";
+            /**
+             * @description SpherePay's fee in paidCurrency, frozen at the send.
+             * @example 0.02
+             */
+            providerFee?: string | null;
             /** Format: date-time */
             sentAt: string | null;
             /**
@@ -503,13 +522,6 @@ export interface components {
             updatedAt: string;
         };
         AccountPayoutsView: {
-            beneficiary: {
-                /** @example …3000 */
-                accountMask: string;
-                /** @example BRL */
-                currency: string;
-                holderName: string;
-            } | null;
             brlTerms: {
                 accepted: boolean;
                 /** Format: date-time */
@@ -517,6 +529,18 @@ export interface components {
                 text: string;
                 version: string;
             };
+            /** @description Wallet (crypto) payouts can be set up on this deployment (SpherePay on and its account active). */
+            cryptoAvailable?: boolean;
+            /** @description Where the Account can be paid, newest first; removed ones are left out (ADR 0074). Each currency is paid to its default. */
+            destinations: components["schemas"]["PayoutDestination"][];
+            /** @description Who is paid, as the Account gave it; the document only by its last digits. */
+            identity?: {
+                /** @example …4725 */
+                documentMask: string;
+                /** @enum {string} */
+                documentType: "cpf" | "cnpj" | "foreign";
+                legalName: string;
+            } | null;
             /** @enum {string|null} */
             identityCheck: "open" | "approved" | "rejected" | null;
             payouts: components["schemas"]["AccountPayout"][];
@@ -592,6 +616,33 @@ export interface components {
                 /** Format: date-time */
                 releaseOn: string;
             }[];
+        };
+        AgentSignupAccount: {
+            accountName: string;
+            amount?: string;
+            /** @description Test secret returned once. Store in server secrets. */
+            apiKeySecret: string;
+            billingCycle?: string;
+            currency?: string;
+            /** Format: uri */
+            dashboardUrl: string;
+            /** @enum {string} */
+            intent?: "one-time" | "crm" | "usage-saas" | "prepaid-ai-chat";
+            /** Format: uri */
+            paymentLinkUrl?: string;
+            pricingModel?: string;
+            productId: string;
+            publishableKey: string;
+            tenantId: string;
+            tenantSlug: string;
+        };
+        AgentSignupChallenge: {
+            /** Format: uuid */
+            challengeId: string;
+            /** @enum {string} */
+            deliveryStatus: "unknown" | "sent";
+            /** Format: date-time */
+            expiresAt: string;
         };
         ApiKey: {
             /** Format: date-time */
@@ -705,31 +756,10 @@ export interface components {
         BillingSettings: {
             /** @description Whether invoices may be collected from a stored credential with nobody present. Defaults to false, per tenant, deliberately. */
             autoChargeEnabled: boolean;
-            /** @description Whether a stored card could be charged off-session at all here. No provider does it until Unit 6 (the UK Ltd's off-session charge), so this is false — and autoChargeEnabled would be a switch with nothing to charge. */
-            readonly cardAutoChargeAvailable: boolean;
             /** @description Decimal string. Per payer per day, across top-up policies. */
             topupDailyCap: string | null;
             /** Format: date-time */
             updatedAt: string | null;
-        };
-        BrazilCardBillingAddress: {
-            city: string;
-            country: string;
-            line1: string;
-            line2?: string;
-            state: string;
-            zipCode: string;
-        };
-        BrazilCardRenewalConsent: {
-            textVersion: string;
-        };
-        BrazilCardRenewalOffer: {
-            /** Format: int64 */
-            amountMinor: number;
-            cadence: string;
-            currency: string;
-            text: string;
-            textVersion: string;
         };
         /** @description The business theme every product and link inherits. On a write, an absent field is left alone and "" clears it (back to the default). */
         BusinessAppearance: {
@@ -785,49 +815,6 @@ export interface components {
             };
             /** @description The snapshot's `revision`. */
             revision: string;
-        };
-        CheckoutBrazilCardAttempt: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            kind: "attempt";
-            payment: components["schemas"]["Payment"];
-        };
-        CheckoutBrazilCardExpired: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            kind: "expired";
-        };
-        CheckoutBrazilCardPreparation: {
-            /** Format: date-time */
-            expiresAt: string;
-            /** @description Opaque short-lived signed capability. */
-            preparation: string;
-            /** @description Public Core v5 tokenization key; returned only after preparation succeeds. */
-            publicKey: string;
-            renewalOffer?: components["schemas"]["BrazilCardRenewalOffer"];
-        };
-        CheckoutBrazilCardStatus: components["schemas"]["CheckoutBrazilCardWaiting"] | components["schemas"]["CheckoutBrazilCardExpired"] | components["schemas"]["CheckoutBrazilCardAttempt"];
-        CheckoutBrazilCardStatusRequest: {
-            /** @description Opaque capability sent in a POST body for token-free readback. */
-            preparation: string;
-        };
-        CheckoutBrazilCardSubmitRequest: {
-            billingAddress: components["schemas"]["BrazilCardBillingAddress"];
-            /** @description Opaque short-lived preparation capability; never a card token. */
-            preparation: string;
-            /** @description Transient one-use Core v5 token. Never stored or included in telemetry. */
-            token: string;
-        };
-        CheckoutBrazilCardWaiting: {
-            /**
-             * @description discriminator enum property added by openapi-typescript
-             * @enum {string}
-             */
-            kind: "waiting";
         };
         /** @description `method` is validated server-side and answers **422** (not 400) when missing, outside the enum, or not offered in the checkout's `paymentOptions`. The current UK integration offers only `card`. A request for `pix` is refused rather than converted to card, before creating an Order, updating payer tax ID, or preparing a payment. */
         CheckoutChargeRequest: {
@@ -958,10 +945,10 @@ export interface components {
             testMode: boolean;
             totals?: components["schemas"]["CheckoutTotals"];
             /**
-             * @description Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).
+             * @description Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).
              * @enum {string}
              */
-            unavailableReason?: "product_not_available" | "buyer_country_required" | "supplier_country_required" | "supplier_country_conflict" | "domestic_payments_unavailable" | "collection_unavailable" | "country_mismatch" | "invoice_not_payable" | "direct_collection_reconciliation_required";
+            unavailableReason?: "product_not_available" | "buyer_country_required" | "buyer_country_sanctioned" | "supplier_country_required" | "collection_unavailable" | "country_mismatch" | "invoice_not_payable";
             withdrawalWaiver?: components["schemas"]["WithdrawalWaiver"];
         };
         /** @description How the buyer pays an Order sold by Infi's UK company as merchant of record (ADR 0018, amended 2026-10-16): a Stripe Checkout Session in elements mode, mounted on the Order's own page (also inside the embed). Present only on the create-charge response of such an Order, and on a repeat of it while the session is open (the same session comes back). Load Stripe.js with `publishableKey`, mount Elements on `clientSecret` and confirm with `redirect: "if_required"`: a card, 3DS included, stays on the page. Then read the payment's status back; only the provider's webhook confirms it. A redirect-based method returns to the Order's page; never trust its query string. The client secret is transient: not stored, not on later reads. */
@@ -1011,13 +998,22 @@ export interface components {
         };
         ClaimableTenantCreateResponse: {
             accountName: string;
+            /** @description Sample offer amount, present with `paymentLinkUrl`. A flat fee, or the per-request rate for `usage-saas`. Not a price of Infi. */
+            amount?: string;
             /** @description `sk_test_*`, returned once and never again. */
             apiKeySecret: string;
+            /**
+             * @description Present for `crm` (subscription) and `prepaid-ai-chat`.
+             * @enum {string}
+             */
+            billingCycle?: "weekly" | "monthly" | "annual";
             /**
              * Format: uri
              * @description `{PULSE_APP_BASE_URL}/claim/{id}` — `https://app-sandbox.beinfi.com/claim/{id}` on the deployed sandbox.
              */
             claimUrl: string;
+            /** @description Currency of `amount`. Present with `paymentLinkUrl`. */
+            currency?: string;
             /**
              * Format: date-time
              * @description When an unclaimed tenant is reclaimed and its `sk_test_` key revoked. 30 days out: claiming means signing in, which means leaving the editor, which is the one thing this door promises the developer they will not have to do — so the window has to outlive an absence (ADR 0056). The welcome email includes this deadline (ADR 0059).
@@ -1025,13 +1021,33 @@ export interface components {
             expiresAt: string;
             /** Format: uuid */
             id: string;
-            /** @description The seeded "App usage" product. Provisioned unsellable on purpose — draft version 1, no key, no price — so publish a version and add a price before selling against it. */
+            /**
+             * @description Present when the request named a sellable intent.
+             * @enum {string}
+             */
+            intent?: "one-time" | "crm" | "usage-saas" | "prepaid-ai-chat";
+            /**
+             * Format: uri
+             * @description Hosted checkout for the published product. Present when `intent` is one of the sellable values. Opening it shows the offer. It does not collect a payment.
+             */
+            paymentLinkUrl?: string;
+            /**
+             * @description How the published product charges. Present with `paymentLinkUrl`.
+             * @enum {string}
+             */
+            pricingModel?: "one_time" | "subscription" | "usage" | "prepaid";
+            /** @description Without `intent`, the seeded "App usage" product: draft version 1, no key, no price. With a sellable `intent`, a published product whose checkout link is `paymentLinkUrl`. */
             productId: components["schemas"]["ProductId"];
             /**
              * @description An Infi `pk_test_` key, returned and RESERVED: **no route accepts it today.** Secret-key authentication rejects the `pk_` prefix outright, and nothing is mounted that takes one, so it authorizes nothing anywhere in this API. Never a payment-provider key.
              *     The embedded checkout needs no key at all — the `plink_` payment-link token is the capability. Do not build against this field yet.
              */
             publishableKey: string;
+            /**
+             * Format: uri
+             * @description Page that shows `INFI_SECRET_KEY` and the other sandbox env values once, when the person asks, then forgets them. Opening the URL does not reveal the keys. Hand this to a person. Do not put the secret in chat or email. The link lasts 24 hours. Asking again, letting it expire, or claiming the account first shows nothing. `apiKeySecret` is still on this response so an agent can write the server env without burning the page.
+             */
+            secretsUrl?: string;
             /** @enum {string} */
             status: "UNCLAIMED" | "CLAIMED";
             tenantSlug: string;
@@ -1637,6 +1653,29 @@ export interface components {
             /** Format: int64 */
             total: number;
         };
+        DelegatedAccessConsentInput: {
+            /** @enum {integer} */
+            policyVersion: 1;
+            scopes: string[];
+        };
+        DelegatedAccessGrant: {
+            clientId: string;
+            /** @enum {string} */
+            environment: "sandbox" | "live";
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            membershipId?: string;
+            policyVersion: number;
+            /** Format: uri */
+            resource: string;
+            scopes: string[];
+            /** @enum {string} */
+            status: "pending" | "active" | "cancelled" | "expired" | "revoked";
+            tenantId?: string;
+        };
         Deliverable: {
             contentType?: string | null;
             /** Format: date-time */
@@ -1671,6 +1710,32 @@ export interface components {
             revokedAt?: string | null;
             /** @description The bearer capability inside downloadUrl. Treat it like a password: anyone holding it downloads the paid product with no further proof of purchase. */
             token: string;
+        };
+        /** @enum {string} */
+        DiscoverCategory: "education" | "software" | "templates" | "ebooks" | "audio" | "communities" | "services" | "other";
+        DiscoverProfile: {
+            category: components["schemas"]["DiscoverCategory"] | null;
+            description: string | null;
+            eligible: boolean;
+            /** @enum {string} */
+            ineligibleReason?: "not_live" | "not_admitted" | "no_approved_product";
+            products: {
+                currency: string;
+                /** @description Approved in review and in a currency the UK Ltd charges. */
+                eligible: boolean;
+                hidden: boolean;
+                /** @description Discover's payment link, while listed and shown. */
+                linkUrl?: string;
+                name: string;
+                productId: string;
+            }[];
+            /** @description Why staff removed it */
+            removedReason?: string;
+            /** @enum {string} */
+            status: "off" | "listed" | "removed";
+        };
+        DiscoverStaffAction: {
+            reason: string;
         };
         /** @description The standard error body for anything a handler raises. Flat — there is no `error` wrapper — and the correlation id is `tracer_id`, not `request_id`. */
         Error: {
@@ -1763,6 +1828,29 @@ export interface components {
             send?: boolean;
             /** Format: date-time */
             to: string;
+        };
+        HostedSite: {
+            deploy?: components["schemas"]["HostedSiteDeploy"];
+            latestDeploy?: components["schemas"]["HostedSiteDeploy"];
+            live: boolean;
+            slug: string;
+            /** @description The template the site's files came from; null when they are its own (written by hand or by the AI). */
+            template?: string | null;
+            url: string;
+        };
+        HostedSiteDeploy: {
+            bytes?: number;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: uuid */
+            deployId: string;
+            /** @description Why it failed: refused_by_provider or interrupted. */
+            failure?: string;
+            files?: number;
+            /** Format: date-time */
+            finishedAt?: string;
+            /** @enum {string} */
+            status: "deploying" | "live" | "failed";
         };
         /** @description Public included quantity from the same published product version as the link price. No balance or grant action is implied. */
         IncludedUnit: {
@@ -1879,24 +1967,10 @@ export interface components {
             /** @description Decimal string. */
             total: string;
         };
-        InvoiceBrazilCardPrepareRequest: {
-            consentDigest: string;
-            /** @description Required before Pagar.me card preparation. Brazilian 10/11-digit national or 55-prefixed number; punctuation allowed. */
-            phone?: string;
-            /** Format: uuid */
-            quoteId: string;
-            renewalConsent?: components["schemas"]["BrazilCardRenewalConsent"];
-            /** Format: int64 */
-            revision: number;
-            /** @description Optional CPF/CNPJ supplied through the invoice purchase owner before preparation. */
-            taxId?: string;
-        };
-        /** @description `CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ and phone repairs. Values are stored on the payer only when absent and never replace a different value already on file. */
+        /** @description `CheckoutChargeRequest` on an invoice's own payment page, plus the payer's CPF/CNPJ repair. The value is stored on the payer only when absent and never replaces a different value already on file. */
         InvoiceChargeRequest: components["schemas"]["CheckoutChargeRequest"] & {
             /** @description Required with quoteId and revision for a fresh invoice purchase. Existing financial identities use their original retry protocol. */
             consentDigest?: string;
-            /** @description Required for direct Pix. Brazilian 10/11-digit national or 55-prefixed number; punctuation allowed. */
-            phone?: string;
             /** Format: uuid */
             quoteId?: string;
             /** Format: int64 */
@@ -1997,14 +2071,28 @@ export interface components {
              */
             until?: string;
         };
-        /** @description Who sells the Order: the merchant for a direct Brazilian Pix purchase, or the UK Ltd for an eligible merchant-of-record sale. Shown before paying. */
+        KycVerification: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            kind: "kyc" | "kyb";
+            /** @enum {string} */
+            status: "pending" | "in_progress" | "in_review" | "approved" | "declined" | "expired";
+            /** Format: date-time */
+            statusChangedAt: string;
+            /** @description The hosted link; only on start, never stored. */
+            url?: string;
+        };
+        /** @description Who sells the Order: BEINFI LTD (Companies House 17471225), the merchant of record of every sale (ADR 0072). Shown before paying. */
         LegalSellerView: {
             /**
              * @description ISO 3166-1 alpha-2.
              * @example GB
              */
             country: string;
-            /** @example Infi UK Ltd */
+            /** @example BEINFI LTD */
             name: string;
         };
         /** @description A checkout link's own look: `accentColor` is its button. On a write, an absent field is left alone and "" clears it (inherit again). */
@@ -2037,10 +2125,10 @@ export interface components {
             testMode: boolean;
             totals?: components["schemas"]["CheckoutTotals"];
             /**
-             * @description Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).
+             * @description Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).
              * @enum {string}
              */
-            unavailableReason?: "product_not_available" | "buyer_country_required" | "supplier_country_required" | "supplier_country_conflict" | "domestic_payments_unavailable" | "collection_unavailable" | "country_mismatch" | "invoice_not_payable" | "direct_collection_reconciliation_required";
+            unavailableReason?: "product_not_available" | "buyer_country_required" | "buyer_country_sanctioned" | "supplier_country_required" | "collection_unavailable" | "country_mismatch" | "invoice_not_payable";
             withdrawalWaiver?: components["schemas"]["WithdrawalWaiver"];
         };
         /** @description What a coupon does to a payment-link purchase, computed server-side. The browser renders these figures; it must not derive a total of its own, because the invoice is priced by the backend at materialization. */
@@ -2150,20 +2238,28 @@ export interface components {
             agreementAcceptedAt: string | null;
             /** Format: uuid */
             agreementRevisionId: string | null;
-            application: components["schemas"]["MorApplicationInput"] | null;
+            application: components["schemas"]["MorApplication"] | null;
             /** Format: date-time */
             decidedAt: string | null;
             decisionReason: string | null;
-            /** @enum {string} */
-            status: "draft" | "submitted" | "approved" | "rejected";
+            status: components["schemas"]["MorAdmissionStatus"];
             /** Format: date-time */
             submittedAt: string | null;
         };
+        /** @enum {string} */
+        MorAdmissionStatus: "draft" | "kyc_pending" | "submitted" | "approved" | "rejected";
         MorAdmissionView: {
             admission: components["schemas"]["MorAdmission"];
             agreement: components["schemas"]["MorAgreement"] | null;
             eligibility: components["schemas"]["MorEligibility"];
+            /** @description The identity verification; status is null until the registration is submitted. */
+            kyc: {
+                /** @enum {string|null} */
+                status: "skipped" | "pending" | "passed" | "failed" | null;
+            };
             policy: components["schemas"]["MorPolicy"];
+            /** @description The Account's own registration, documents included; null until it registers. */
+            registration: components["schemas"]["MorRegistration"] | null;
             seller: components["schemas"]["MorSeller"] | null;
         };
         MorAgreement: {
@@ -2180,11 +2276,10 @@ export interface components {
             termsText: string | null;
             version: number;
         };
-        MorApplicationInput: {
-            /** @description ISO 3166-1 alpha-2 */
+        /** @description What the Account declares about itself, derived from its registration (the signup writes the country alone first). */
+        MorApplication: {
             country: string;
             legalName: string;
-            productCategories: string[];
             taxId: string;
         };
         MorDecision: {
@@ -2213,8 +2308,8 @@ export interface components {
             currency: string;
             /** @enum {string} */
             entityType: "individual" | "company";
-            /** @enum {string} */
-            sells: "digital_downloads" | "software_saas" | "ai_agents" | "courses_training" | "memberships_community" | "productized_services" | "physical_goods" | "regulated_services" | "adult" | "gambling" | "crypto_investments" | "money_gift_cards" | "resale_without_rights";
+            /** @description Every kind the Account sells. A prohibited kind among them blocks. */
+            sells: ("digital_downloads" | "software_saas" | "ai_agents" | "courses_training" | "memberships_community" | "productized_services" | "physical_goods" | "regulated_services" | "adult" | "gambling" | "crypto_investments" | "money_gift_cards" | "resale_without_rights")[];
         };
         MorEligibilityIssue: {
             blocking: boolean;
@@ -2231,6 +2326,34 @@ export interface components {
             text: string;
             /** @example 2026-10-17 */
             version: string;
+        };
+        /** @description The Account's registration (ADR 0063): who sells, the same in every country. `document` is the CPF (individual) or CNPJ (company) with its check digits in Brazil (`country` BR), and the tax id (3 to 40 characters) elsewhere. The bank account the Account is paid in is not part of it: it is the Wise beneficiary's, added later. */
+        MorRegistration: {
+            address: {
+                city: string;
+                line1: string;
+                line2?: string;
+                postalCode?: string;
+                region?: string;
+            };
+            /** @description ISO 3166-1 alpha-2 */
+            country: string;
+            document: string;
+            /** @description Contact e-mail. Required when saving (422 `email`); absent on a registration saved before it was asked. */
+            email?: string;
+            /** @enum {string} */
+            entityType: "individual" | "company";
+            legalName: string;
+        };
+        MorSaleSplit: {
+            /** @description What the Account is owed for the sale. */
+            consideration: string;
+            currency: string;
+            held: boolean;
+            /** @description Infi's margin. */
+            margin: string;
+            /** @description Charged total without tax. */
+            sale: string;
         };
         MorSeller: {
             country: string;
@@ -2277,6 +2400,19 @@ export interface components {
             /** Format: uuid */
             id: string;
         };
+        /** @description The price of one of the product's meters on an option. */
+        OptionUsagePrice: {
+            /** Format: uuid */
+            meterId: string;
+            /** @enum {string} */
+            model: "per_unit" | "tiered" | "volume" | "package";
+            /** @description Bands for tiered, volume and package ({upTo, unitAmount, flatAmount, size}). */
+            tiers?: {
+                [key: string]: unknown;
+            }[];
+            /** @description Decimal string */
+            unitAmount?: string | null;
+        };
         OverviewMetrics: {
             activeSubs: components["schemas"]["IntMetric"];
             activity: {
@@ -2306,6 +2442,8 @@ export interface components {
         };
         Payment: {
             amount: string;
+            /** @description ISO 3166-1 alpha-2 country the buyer paid from, as the checkout recorded it. On the tenant payment list only; absent when no checkout recorded a country. */
+            buyerCountry?: string;
             checkoutAction?: components["schemas"]["CheckoutSessionAction"];
             /** Format: date-time */
             createdAt: string;
@@ -2386,10 +2524,15 @@ export interface components {
             createdAt: string;
             /** Format: uuid */
             id: string;
+            /**
+             * Format: uuid
+             * @description The price option the link sells (ADR 0062). Without a productVersionId, the link sells the option's current version at pay time, and stops selling when the option is archived.
+             */
+            optionId?: string | null;
             productId: components["schemas"]["ProductId"];
             /**
              * Format: uuid
-             * @description The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on links created before pinning existed: those resolve the latest published version at pay time.
+             * @description The product version this link sells, fixed when the link was created. Publishing a new version never reprices a link already issued. Null on a link that follows its option (optionId) or, without one, the default version, resolved at pay time.
              */
             productVersionId?: string | null;
             /** Format: date-time */
@@ -2421,6 +2564,8 @@ export interface components {
             /** @enum {string} */
             pricingModel: "subscription" | "one_time" | "usage" | "prepaid";
             purchaseButtonText?: string;
+            /** @description A free trial of this many days (#311): the card is saved through the UK Ltd with nothing charged, and `price` is charged when the trial ends. Card only. One trial per e-mail per product (409 `trial_already_used`). */
+            trialDays?: number;
             /** @enum {string} */
             type: "agent" | "item";
         };
@@ -2453,10 +2598,10 @@ export interface components {
             testMode: boolean;
             totals?: components["schemas"]["CheckoutTotals"];
             /**
-             * @description Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Domestic BR card/Pix remains unavailable until Pagar.me dispatch is integrated, without UK fallback. Supplier country can also be missing/conflicting, or the product may still require UK approval (ADR 0026).
+             * @description Why this purchase cannot currently accept payment. Missing buyer country allows collecting contact first. Supplier country can also be missing, or the product may still require UK approval (ADR 0026). `buyer_country_sanctioned`: the declared buyer country is under comprehensive sanctions (product policy P.3); paying is refused with a 422 of the same code. Every sale is the UK Ltd's (ADR 0072).
              * @enum {string}
              */
-            unavailableReason?: "product_not_available" | "buyer_country_required" | "supplier_country_required" | "supplier_country_conflict" | "domestic_payments_unavailable" | "collection_unavailable" | "country_mismatch" | "invoice_not_payable" | "direct_collection_reconciliation_required";
+            unavailableReason?: "product_not_available" | "buyer_country_required" | "buyer_country_sanctioned" | "supplier_country_required" | "collection_unavailable" | "country_mismatch" | "invoice_not_payable";
             withdrawalWaiver?: components["schemas"]["WithdrawalWaiver"];
         };
         PaymentList: {
@@ -2506,6 +2651,82 @@ export interface components {
             currency: string;
             invoiceId: components["schemas"]["InvoiceId"];
             paymentId: components["schemas"]["PaymentId"];
+        };
+        PayoutBeneficiaryField: {
+            example?: string | null;
+            key: string;
+            maxLength?: number | null;
+            minLength?: number | null;
+            name: string;
+            refreshRequirementsOnChange?: boolean;
+            required?: boolean;
+            /** @enum {string} */
+            type: "text" | "select" | "radio" | "date";
+            validationRegexp?: string | null;
+            valuesAllowed?: {
+                key: string;
+                name: string;
+            }[] | null;
+        };
+        PayoutBeneficiaryForm: {
+            forms: components["schemas"]["PayoutBeneficiaryFormType"][];
+            /** Format: uuid */
+            quoteId: string;
+        };
+        PayoutBeneficiaryFormType: {
+            fields: {
+                group: components["schemas"]["PayoutBeneficiaryField"][];
+                name: string;
+            }[];
+            title: string;
+            type: string;
+        };
+        PayoutBeneficiaryRevision: {
+            /** @example …5678 */
+            accountMask: string;
+            currency: string;
+            holderName: string;
+            /** @enum {string} */
+            kind: "bank" | "wallet";
+            reason: string | null;
+            revision: number;
+            /** @enum {string} */
+            status: "pending_review" | "verified" | "rejected" | "superseded" | "removed";
+        };
+        PayoutCryptoTerms: {
+            accepted: boolean;
+            /** @example 0.01 */
+            marginRate: string;
+            text: string;
+            version: string;
+        };
+        /** @description A payout destination; never the account number or address, only the digits that name it. */
+        PayoutDestination: {
+            /** @example …3000 */
+            accountMask: string;
+            /** @enum {string|null} */
+            asset: "usdt" | "usdc" | null;
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * @description The bank account's currency; a wallet's is USD.
+             * @example EUR
+             */
+            currency: string;
+            /** @description Balance currencies it pays now. */
+            defaultFor: ("BRL" | "USD" | "EUR" | "GBP")[];
+            holderName: string;
+            /** @enum {string} */
+            kind: "bank" | "wallet";
+            /** @enum {string|null} */
+            network: "tron" | "base" | null;
+            /** @description Staff's reason when refused. */
+            reason: string | null;
+            /** @description Balance currencies it can be the default of once verified. */
+            receives: ("BRL" | "USD" | "EUR" | "GBP")[];
+            revision: number;
+            /** @enum {string} */
+            status: "pending_review" | "verified" | "rejected";
         };
         /** @description Body of plan.changed — a subscription's plan change took effect. Plans are named by their public key and version, never by id. effectiveAt is when the new plan starts rating the subscription: for an upgrade, the top of the hour it was requested in, announced at once; for any other change, the end of the period it was requested in, announced when that period closes. from is null when the subscription had no plan before (a move off the model before plans, which takes effect at a period boundary like any scheduled change). */
         PlanChangedData: {
@@ -2654,7 +2875,7 @@ export interface components {
         PortalRefundRequest: {
             /** Format: date-time */
             createdAt: string;
-            /** @description `automatic`, or the store's actor. */
+            /** @description `automatic`, `infi` (Infi staff, for BEINFI LTD), or the store's actor. */
             decidedBy?: string;
             /** Format: uuid */
             id: string;
@@ -2662,17 +2883,6 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "approved" | "declined";
             withinWindow: boolean;
-        };
-        PortalRenewalAuthorization: {
-            /** Format: int64 */
-            amountMinor: number;
-            cadence: string;
-            currency: string;
-            /** @enum {string} */
-            state: "pending_first" | "active" | "revoked";
-            textVersion: string;
-            /** Format: int64 */
-            version: number;
         };
         PortalServiceUse: {
             /**
@@ -2720,7 +2930,6 @@ export interface components {
             /** Format: date-time */
             nextBillingDate?: string;
             productName: string;
-            renewalAuthorization?: components["schemas"]["PortalRenewalAuthorization"];
             status: string;
             /** @description What the current period has used so far, per meter. Absent without meters. */
             usage?: components["schemas"]["PortalUsageLine"][];
@@ -2805,6 +3014,45 @@ export interface components {
              */
             tiers: components["schemas"]["PriceTier"][];
             unitAmount?: string | null;
+        };
+        /** @description A product's price option (ADR 0062): "Mensal", "Anual", "Vitalício". Its terms are versions; `version` is the current one, the newest published. Editing a sold option publishes a new version and whoever pinned the old one keeps it. */
+        PriceOption: {
+            /** @description Sells to nobody new. */
+            archived: boolean;
+            /** @description Left off the store page and the product page; it still sells through its own link. */
+            hidden: boolean;
+            /** Format: uuid */
+            id: string;
+            /** @description What a buyer gets when nothing names an option. */
+            isDefault: boolean;
+            name: string;
+            position: number;
+            /** @description What the current version charges per meter (its meter prices). */
+            usage?: components["schemas"]["Price"][];
+            version?: components["schemas"]["Version"];
+        };
+        /** @description On an edit, an absent field keeps the current term. */
+        PriceOptionInput: {
+            /** @description Decimal string. */
+            basePrice?: string | null;
+            /** @enum {string|null} */
+            billingCycle?: "weekly" | "monthly" | "annual" | null;
+            /** @description ISO 4217 code. A physical product sells only in BRL. */
+            currency?: string;
+            /** @description Units the option credits (each cycle or on payment). On an edit, absent keeps the current ones and a change publishes a new version. */
+            grants?: components["schemas"]["VersionGrant"][];
+            /** @description Create only. */
+            hidden?: boolean;
+            name?: string;
+            /** @enum {string} */
+            pricingModel?: "subscription" | "one_time" | "usage" | "prepaid";
+            /** @description A free trial of 1 to 90 days, for a subscription option only (#311). On an edit, 0 removes it; a changed trial publishes a new version. */
+            trialDays?: number;
+            /** @description The price of each meter the option charges, for a usage or subscription option. On an edit, absent keeps the current ones and a change publishes a new version; [] charges no meter. */
+            usage?: components["schemas"]["OptionUsagePrice"][];
+        };
+        PriceOptionList: {
+            options: components["schemas"]["PriceOption"][];
         };
         PriceTier: {
             /** @description Decimal string added when the band is used. */
@@ -2912,6 +3160,31 @@ export interface components {
          * @example prod_1d4YogBuw00jAySh5mbUpk
          */
         ProductId: string;
+        ProductInventory: {
+            /** @description The latest 100, newest first. */
+            movements: {
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: uuid */
+                id: string;
+                /** @enum {string} */
+                kind: "in" | "out" | "count" | "sale";
+                /** @description The sale's payment. */
+                paymentId?: string;
+                /**
+                 * Format: int32
+                 * @description Signed.
+                 */
+                quantity: number;
+                reason?: string;
+            }[];
+            /**
+             * Format: int64
+             * @description The sum of the movements. Negative after an oversell.
+             */
+            onHand: number;
+            tracked: boolean;
+        };
         ProductMedia: {
             alt?: string;
             /** @description An image's key from `POST /catalog/images/presign` (this account's only). Absent on a video. */
@@ -2975,8 +3248,6 @@ export interface components {
         ProductReviewQueue: {
             items: components["schemas"]["ProductReviewQueueItem"][];
             required: boolean;
-            /** @description PULSE_PRODUCT_REVIEW_TRUST_AFTER; 0 is off. */
-            trustAfter: number;
         };
         ProductReviewQueueItem: {
             admissionStatus: string;
@@ -3038,19 +3309,8 @@ export interface components {
             /** @description The Stripe Tax code the category maps to. */
             taxCode: string | null;
         };
-        /** @description Brazilian domestic card. The browser first prepares the purchase, then tokenizes directly with Core v5 using the public key returned by the prepare response. No public key or payer/provider identity is included in the checkout descriptor. */
-        PublicPagarmeCardPaymentOption: {
-            /** @constant */
-            flow: "pagarme_core_v5_token";
-            /** @constant */
-            method: "card";
-            /** @constant */
-            provider: "pagarme_card";
-            /** @constant */
-            requiresPayerDetails: true;
-        };
-        /** @description Methods offered for this purchase and buyer country. BR-to-BR Pix uses the merchant's Pagar.me recipient; eligible UK sales use Stripe Elements. Empty when acceptsPayments is false. Charge creation validates again. */
-        PublicPaymentOption: components["schemas"]["PublicStripeElementsPaymentOption"] | components["schemas"]["PublicPixPaymentOption"] | components["schemas"]["PublicPagarmeCardPaymentOption"];
+        /** @description Methods offered for this purchase: the UK Ltd's Stripe Elements (ADR 0072). Empty when acceptsPayments is false. Charge creation validates again. */
+        PublicPaymentOption: components["schemas"]["PublicStripeElementsPaymentOption"];
         /** @description Safe public polling projection. It intentionally excludes PSP references, payer identity, decline details and transient browser-action material. */
         PublicPaymentStatus: {
             id: components["schemas"]["PaymentId"];
@@ -3065,21 +3325,55 @@ export interface components {
             pixExpiresAt?: string | null;
             /** @description Persisted copy-paste Pix code, available while this payment is pending. */
             pixPayload?: string;
-            /** @enum {string} */
-            provider: "infi_stripe_uk" | "pagarme_pix" | "pagarme_card";
+            /** @description `infi_stripe_uk` for every new payment. */
+            provider: string;
             /** @description Succeeded, non-reversed refund total as a decimal string. */
             refundedAmount: string;
             /** @enum {string} */
             status: "pending" | "confirmed" | "failed" | "refunded" | "charged_back";
         };
-        /** @description Brazilian purchase collected directly for the merchant's recipient. Repeating charge creation retrieves the same durable Pix attempt. */
-        PublicPixPaymentOption: {
-            /** @constant */
-            flow: "pix";
-            /** @constant */
-            method: "pix";
-            /** @constant */
-            provider: "pagarme_pix";
+        PublicSiteCatalog: {
+            appearance: {
+                accentColor: string;
+                backgroundColor: string;
+                font: string;
+                radius: string;
+            };
+            description: string | null;
+            logoUrl: string | null;
+            name: string;
+            products: {
+                /** @description The lead option's cycle. */
+                billingCycle: string | null;
+                /** @description The product's purchase button text; null uses the page's default. */
+                buttonText: string | null;
+                /** @description The lead option's store link checkout URL. */
+                buyUrl: string;
+                /** @description The lead option's currency. */
+                currency: string;
+                description: string | null;
+                imageUrl: string | null;
+                name: string;
+                /** @description The options that show, in order, each sold by its own store link (ADR 0062). */
+                options?: {
+                    billingCycle: string | null;
+                    buyUrl: string;
+                    currency: string;
+                    /** Format: uuid */
+                    id: string;
+                    isDefault: boolean;
+                    name: string;
+                    price: string | null;
+                    pricingModel: string;
+                }[];
+                /** @description The lead option's price (the default option when it shows, else the first that does), two decimals; null for usage pricing. */
+                price: string | null;
+                /** @description The lead option's pricing model. */
+                pricingModel: string;
+                productId: string;
+                type: string;
+            }[];
+            site: string;
         };
         /** @description A sale of the UK Ltd (ADR 0018, amended 2026-10-16): the buyer pays in Stripe Elements on this page, on a Checkout Session of the UK Ltd's account, so nothing is tokenized for Infi. When offered it is the only option; the charge answers with `checkoutAction` to mount. */
         PublicStripeElementsPaymentOption: {
@@ -3151,56 +3445,10 @@ export interface components {
             tiers: unknown;
             unitAmount?: string | null;
         };
-        ReceivingAddress: {
-            city: string;
-            complementary: string;
-            neighborhood: string;
-            referencePoint: string;
-            state: string;
-            street: string;
-            streetNumber: string;
-            zipCode: string;
-        };
-        /** @description Exactly one individual or company dossier, plus its bank account. Tenant, actor, provider code, environment and platform account are server-selected. The submitted dossier is immutable in this version. */
-        ReceivingApplication: {
-            bank: components["schemas"]["ReceivingBank"];
-            individual: components["schemas"]["ReceivingIndividual"];
-        } | {
-            bank: components["schemas"]["ReceivingBank"];
-            company: components["schemas"]["ReceivingCompany"];
-        };
         ReceivingBalanceSummary: {
             /** Format: date-time */
             asOf: string;
             balances: components["schemas"]["ReceivingCurrencyBalance"][];
-        };
-        ReceivingBank: {
-            accountCheckDigit: string;
-            accountNumber: string;
-            bank: string;
-            branchCheckDigit?: string;
-            branchNumber: string;
-            holderDocument: string;
-            holderName: string;
-            /** @enum {string} */
-            holderType: "individual" | "company";
-            /** @enum {string} */
-            type: "checking" | "savings";
-        };
-        ReceivingCompany: {
-            address: components["schemas"]["ReceivingAddress"];
-            /** Format: int64 */
-            annualRevenue: number;
-            companyName: string;
-            corporationType?: string;
-            document: string;
-            email: string;
-            foundingDate?: string;
-            managingPartner: components["schemas"]["ReceivingPerson"];
-            phones: components["schemas"]["ReceivingPhone"][];
-            selfDeclaredLegalRepresentative?: boolean;
-            siteUrl: string;
-            tradingName: string;
         };
         ReceivingCurrencyBalance: {
             /** @description BR withdrawable balance; UK approved payout intent net of offsets. */
@@ -3217,73 +3465,6 @@ export interface components {
             receivable: string;
             reserve: string | null;
             review: string | null;
-        };
-        ReceivingIndividual: components["schemas"]["ReceivingPerson"] & Record<string, never>;
-        ReceivingKycLink: {
-            /** Format: date-time */
-            expiresAt: string;
-            /** Format: int64 */
-            receivingRevision: number;
-            /** Format: int64 */
-            revision: number;
-            /** Format: date-time */
-            serverTime: string;
-            /** Format: uri */
-            url: string;
-        };
-        ReceivingKycStatus: {
-            /** Format: date-time */
-            expiresAt?: string;
-            reason?: string;
-            /** Format: int64 */
-            receivingRevision: number;
-            /** Format: date-time */
-            retryAfter?: string;
-            /** Format: int64 */
-            revision: number;
-            /** Format: date-time */
-            serverTime: string;
-            /** @enum {string} */
-            state: "not_requested" | "queued" | "checking" | "issuing" | "ready" | "unavailable" | "outcome_unknown" | "expired" | "stale";
-        };
-        ReceivingPerson: {
-            address: components["schemas"]["ReceivingAddress"];
-            birthdate: string;
-            document: string;
-            email: string;
-            /** Format: int64 */
-            monthlyIncome: number;
-            motherName?: string;
-            name: string;
-            phones: components["schemas"]["ReceivingPhone"][];
-            professionalOccupation: string;
-            siteUrl?: string;
-        };
-        ReceivingPhone: {
-            areaCode: string;
-            number: string;
-            type: string;
-        };
-        /** @description Provider capabilities from the last applied snapshot, not Infi sale authorization or a guarantee of current provider standing. No dossier, bank data, provider IDs or credentials are returned. */
-        ReceivingView: {
-            capabilities: {
-                canRequestKyc: boolean;
-                canTransact: boolean;
-                canWithdraw: boolean;
-            };
-            kyc?: {
-                reason?: string;
-                /** @enum {string} */
-                status: "pending" | "approved" | "denied" | "partially_denied" | "unknown";
-            };
-            /** Format: int64 */
-            receivingRevision: number;
-            /** @enum {string} */
-            recipientStatus?: "registration" | "affiliation" | "active" | "refused" | "suspended" | "blocked" | "inactive" | "unknown";
-            /** @enum {string} */
-            state: "reserved" | "dispatched" | "linked" | "outcome_unknown" | "refused";
-            /** Format: date-time */
-            updatedAt: string;
         };
         Refund: {
             /** @description Decimal string. */
@@ -3445,10 +3626,16 @@ export interface components {
             use: components["schemas"]["ServiceUse"];
         };
         SessionBootstrapRequest: {
+            /** @description Each `signupDocuments` kind and the version the person accepted, e.g. `{"supplier_agreement": "2026-10-17", "product_policy": "2026-10-17"}`. */
+            acceptedDocuments?: {
+                [key: string]: string;
+            };
             /** @description The Infi Terms version the operator accepted. Required on live for the first login and must equal `termsVersion` from `POST /auth/session/sync`; sending it is the acceptance. Ignored on sandbox and for a subject already attached. */
             acceptedTermsVersion?: string;
             /** @description Display name for the new tenant */
             accountName: string;
+            /** @description The business's country, ISO 3166-1 alpha-2. With the `signupDocuments` accepted, the new account is admitted to sell through the UK Ltd as it is created (ADR 0026, amended 2026-10-29); without them, or when the UK Ltd cannot take it yet, the country is kept on its application and it applies from the dashboard. A code under sanctions refuses the signup (409 `mor_sanctioned_country`). */
+            country?: string;
             /** @description Partner or channel attribution (e.g. lovable, cli, web) */
             signupSource?: string;
             /** @description URL-safe tenant slug; derived from accountName when omitted */
@@ -3470,11 +3657,6 @@ export interface components {
                 role: string;
                 tenantId: components["schemas"]["AccountId"];
             };
-        };
-        SessionBrazilCardPrepareRequest: {
-            remember?: boolean;
-            rememberTextVersion?: string;
-            renewalConsent?: components["schemas"]["BrazilCardRenewalConsent"];
         };
         SessionSyncResponse: {
             /** Format: email */
@@ -3509,10 +3691,111 @@ export interface components {
              * @enum {string}
              */
             onboardingStep?: "account" | "complete";
+            /** @description Only while `needsBootstrap` is true: the texts the signup shows besides the Terms (the UK Ltd's supplier agreement and product policy), each accepted by sending its version in `acceptedDocuments` on `POST /auth/session/bootstrap` (ADR 0026, amended 2026-10-29). */
+            signupDocuments?: components["schemas"]["SignupDocument"][];
             /** @description Partner or channel attribution stored on the tenant */
             signupSource?: string;
             /** @description Live only, and only while `needsBootstrap` is true: the Infi Terms version the first live login must accept. Show that version and send it back as `acceptedTermsVersion` on `POST /auth/session/bootstrap`. */
             termsVersion?: string;
+        };
+        SignupDocument: {
+            /** @enum {string} */
+            kind: "supplier_agreement" | "product_policy";
+            /** @description The document's text, in Markdown. */
+            text: string;
+            version: string;
+        };
+        SiteCatalogChoice: {
+            /** @description The site's text below the business name; empty clears it. */
+            description?: string | null;
+            /** @description Product ids an `all` site leaves out. */
+            hidden?: string[];
+            /** @description Price option ids this site leaves out. */
+            hiddenOptions?: string[];
+            /** @enum {string} */
+            mode: "all" | "chosen";
+            /** @description Product ids */
+            order?: string[];
+        };
+        SiteCatalogView: {
+            description: string | null;
+            /** @enum {string} */
+            mode: "all" | "chosen";
+            products: {
+                name: string;
+                onSite: boolean;
+                options: {
+                    billingCycle: string | null;
+                    currency: string;
+                    /** Format: uuid */
+                    id: string;
+                    isDefault: boolean;
+                    name: string;
+                    onSite: boolean;
+                    price: string | null;
+                    pricingModel: string;
+                    /** @enum {string} */
+                    reason?: "hidden" | "not_approved" | "not_sold" | "unsupported_model";
+                    sellable: boolean;
+                }[];
+                productId: string;
+                /**
+                 * @description Why it cannot sell.
+                 * @enum {string}
+                 */
+                reason?: "hidden" | "not_approved" | "not_sold" | "unsupported_model";
+                /** @description One of its options can sell. */
+                sellable: boolean;
+            }[];
+        };
+        SiteField: {
+            default?: unknown;
+            group?: string;
+            hint?: {
+                [key: string]: string;
+            };
+            /** @description A list item's fields. */
+            item?: components["schemas"]["SiteField"][];
+            key: string;
+            label: {
+                [key: string]: string;
+            };
+            /** @description The longest text */
+            max?: number;
+            /** @description A choice's values; the first is its default. */
+            options?: string[];
+            /** @enum {string} */
+            type: "text" | "textarea" | "url" | "color" | "toggle" | "choice" | "list";
+        };
+        SitePage: {
+            sections: ({
+                /** @description One of schema.sections[].type; the rest are that type's fields. */
+                type: string;
+            } & {
+                [key: string]: unknown;
+            })[];
+            /** @description accent, mode, font, buttons, radius, width (schema.theme). */
+            theme: {
+                [key: string]: unknown;
+            };
+        };
+        SiteSectionType: {
+            description: {
+                [key: string]: string;
+            };
+            fields: components["schemas"]["SiteField"][];
+            label: {
+                [key: string]: string;
+            };
+            type: string;
+        };
+        SiteSettings: {
+            page: components["schemas"]["SitePage"] | null;
+            schema: {
+                sections: components["schemas"]["SiteSectionType"][];
+                theme: components["schemas"]["SiteField"][];
+            };
+            template: string | null;
         };
         Subscription: {
             /** Format: date-time */
@@ -3544,6 +3827,11 @@ export interface components {
             startedAt: string;
             /** @enum {string} */
             status: "trialing" | "active" | "past_due" | "paused" | "canceled";
+            /**
+             * Format: date-time
+             * @description When the free trial ends and the first charge falls (#311). Absent without a trial.
+             */
+            trialEndsAt?: string;
         };
         /**
          * @description A subscription's id. Starts with `sub_`; the rest is 22 base62 characters. A bare UUID is still accepted as input while clients move over.
@@ -3583,6 +3871,78 @@ export interface components {
         };
         /** @enum {string} */
         TaxCategory: "digital_general" | "saas" | "ebook" | "online_course" | "live_virtual_training" | "video_subscription" | "software_download" | "digital_images";
+        TeamInvitation: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: email */
+            email: string;
+            /** Format: date-time */
+            emailSentAt?: string | null;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["TeamRole"];
+            /** @enum {string} */
+            status: "pending" | "accepted" | "revoked" | "expired";
+        };
+        TeamInvitationAcceptance: {
+            /** @enum {string} */
+            mode: "sandbox" | "live";
+            tenant: components["schemas"]["TeamTenant"];
+            user: {
+                /** Format: email */
+                email: string;
+                /** Format: uuid */
+                id: string;
+                role: components["schemas"]["TeamRole"];
+            };
+        };
+        TeamInvitationPreview: {
+            invitation: {
+                /** Format: email */
+                email: string;
+                /** Format: date-time */
+                expiresAt: string;
+                /** Format: uuid */
+                id: string;
+                role: components["schemas"]["TeamRole"];
+                /** @enum {string} */
+                status: "pending" | "accepted" | "revoked" | "expired";
+            };
+            /** @enum {string} */
+            mode: "sandbox" | "live";
+            tenant: components["schemas"]["TeamTenant"];
+            termsVersion?: string;
+        };
+        TeamMember: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: email */
+            email: string;
+            /** Format: uuid */
+            id: string;
+            role: components["schemas"]["TeamRole"];
+        };
+        /**
+         * @description Fixed merchant role. Only owners manage the team and credentials. Admins perform ordinary business writes; readonly sessions cannot perform business writes. Existing stronger owner and MFA guards remain in effect.
+         * @enum {string}
+         */
+        TeamRole: "owner" | "admin" | "readonly";
+        TeamTenant: {
+            id: string;
+            name: string;
+            slug: string;
+        };
+        TeamView: {
+            canManage: boolean;
+            /** Format: uuid */
+            currentUserId: string;
+            invitations: components["schemas"]["TeamInvitation"][];
+            members: components["schemas"]["TeamMember"][];
+            /** @enum {string} */
+            mode: "sandbox" | "live";
+        };
         Tenant: {
             appearance: components["schemas"]["BusinessAppearance"];
             /** Format: date-time */
@@ -3717,16 +4077,30 @@ export interface components {
             commitmentAmount?: string | null;
             commitmentResets: boolean;
             consumptionFloor?: string | null;
+            /** @description What this version charges in. Every order, invoice and renewal of it uses this currency. */
+            currency?: string;
             grants?: components["schemas"]["VersionGrant"][];
             /** Format: uuid */
             id: string;
             /** @description Among a product's published versions, whether this is the one a buyer gets when nothing names a specific version. A published version with `isDefault: false` is an offer reachable only by an explicit pin — a payment link created with `productVersionId` — which is how a product carries a promotional price without it reaching the shelf. */
             isDefault: boolean;
+            /**
+             * Format: uuid
+             * @description The price option this version is a term of (ADR 0062).
+             */
+            optionId?: string;
+            /**
+             * @description How this version charges.
+             * @enum {string}
+             */
+            pricingModel?: "subscription" | "one_time" | "usage" | "prepaid";
             productId: components["schemas"]["ProductId"];
             /** Format: date-time */
             publishedAt?: string | null;
             /** @enum {string} */
             status: "draft" | "published" | "archived";
+            /** @description A subscription's free trial in days, card only (#311). Absent without one. */
+            trialDays?: number;
             version: number;
         };
         /** @description A version's unit-wallet configuration: which wallet each meter draws, what a unit of that wallet is worth in money, and the gate's floor. */
@@ -3841,6 +4215,15 @@ export interface components {
                 "application/json": {
                     rules: components["schemas"]["AccessRule"][];
                 };
+            };
+        };
+        /** @description A provider Infi depends on did not answer or refused the call */
+        BadGateway: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["Error"];
             };
         };
         /** @description Malformed request */
