@@ -25,6 +25,23 @@ export type Result<K extends keyof operations> = operations[K]["responses"] exte
   ? { [S in keyof R & (200 | 201 | 202)]: R[S] extends { content: { "application/json": infer B } } ? B : void }[keyof R & (200 | 201 | 202)]
   : never;
 
+export class CheckoutsResource {
+  constructor(private readonly t: Transport) {}
+
+  /** POST /v1/checkouts (scope invoices:write) */
+  create(...args: Args<"checkouts_create", MutationOptions>): Promise<Result<"checkouts_create">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "POST", path: "/v1/checkouts", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
+  /** GET /v1/checkouts/{checkoutId} (scope invoices:read) */
+  get(...args: Args<"checkouts_get", CallOptions>): Promise<Result<"checkouts_get">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "GET", path: "/v1/checkouts/{checkoutId}", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
+}
+
 export class ConfigResource {
   constructor(private readonly t: Transport) {}
 
@@ -167,6 +184,24 @@ export class ProductsResource {
     return this.t.request({ method: "POST", path: "/v1/products/drafts/{draftKey}/publish", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
   }
 
+  /** GET /v1/products/{productId}/deliverable (scope products:write) */
+  getDeliverable(...args: Args<"products_get_deliverable", CallOptions>): Promise<Result<"products_get_deliverable">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "GET", path: "/v1/products/{productId}/deliverable", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
+  /** PUT /v1/products/{productId}/deliverable (scope products:write) */
+  setDeliverable(...args: Args<"products_set_deliverable", MutationOptions>): Promise<Result<"products_set_deliverable">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "PUT", path: "/v1/products/{productId}/deliverable", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
+  /** POST /v1/products/{productId}/deliverable/upload (scope products:write) */
+  createDeliverableUpload(...args: Args<"products_create_deliverable_upload", MutationOptions>): Promise<Result<"products_create_deliverable_upload">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "POST", path: "/v1/products/{productId}/deliverable/upload", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
 }
 
 export class UsageResource {
@@ -186,9 +221,27 @@ export class UsageResource {
 
 }
 
+export class WebhooksResource {
+  constructor(private readonly t: Transport) {}
+
+  /** GET /v1/webhooks (scope config:read) */
+  list(...args: Args<"webhooks_list", CallOptions>): Promise<Result<"webhooks_list">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "GET", path: "/v1/webhooks", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
+  /** POST /v1/webhooks (scope config:write) */
+  subscribe(...args: Args<"webhooks_subscribe", MutationOptions>): Promise<Result<"webhooks_subscribe">> {
+    const [params, options] = args as [any, any];
+    return this.t.request({ method: "POST", path: "/v1/webhooks", pathParams: params?.path, query: params?.query, headers: params?.headers, body: params?.body, ...options }) as any;
+  }
+
+}
+
 export type MutationOptions = CallOptions;
 
 export interface Resources {
+  checkouts: CheckoutsResource;
   config: ConfigResource;
   customerSessions: CustomerSessionsResource;
   customers: CustomersResource;
@@ -196,10 +249,12 @@ export interface Resources {
   payments: PaymentsResource;
   products: ProductsResource;
   usage: UsageResource;
+  webhooks: WebhooksResource;
 }
 
 export function buildResources(t: Transport): Resources {
   return {
+    checkouts: new CheckoutsResource(t),
     config: new ConfigResource(t),
     customerSessions: new CustomerSessionsResource(t),
     customers: new CustomersResource(t),
@@ -207,11 +262,30 @@ export function buildResources(t: Transport): Resources {
     payments: new PaymentsResource(t),
     products: new ProductsResource(t),
     usage: new UsageResource(t),
+    webhooks: new WebhooksResource(t),
   };
 }
 
 /** Operações do contrato, para o teste de alcance. */
 export const OPERATIONS = [
+  {
+    "operationId": "checkouts_create",
+    "tag": "checkouts",
+    "property": "checkouts",
+    "method": "create",
+    "httpMethod": "POST",
+    "path": "/v1/checkouts",
+    "scope": "invoices:write"
+  },
+  {
+    "operationId": "checkouts_get",
+    "tag": "checkouts",
+    "property": "checkouts",
+    "method": "get",
+    "httpMethod": "GET",
+    "path": "/v1/checkouts/{checkoutId}",
+    "scope": "invoices:read"
+  },
   {
     "operationId": "config_pull",
     "tag": "config",
@@ -384,6 +458,33 @@ export const OPERATIONS = [
     "scope": "products:write"
   },
   {
+    "operationId": "products_get_deliverable",
+    "tag": "products",
+    "property": "products",
+    "method": "getDeliverable",
+    "httpMethod": "GET",
+    "path": "/v1/products/{productId}/deliverable",
+    "scope": "products:write"
+  },
+  {
+    "operationId": "products_set_deliverable",
+    "tag": "products",
+    "property": "products",
+    "method": "setDeliverable",
+    "httpMethod": "PUT",
+    "path": "/v1/products/{productId}/deliverable",
+    "scope": "products:write"
+  },
+  {
+    "operationId": "products_create_deliverable_upload",
+    "tag": "products",
+    "property": "products",
+    "method": "createDeliverableUpload",
+    "httpMethod": "POST",
+    "path": "/v1/products/{productId}/deliverable/upload",
+    "scope": "products:write"
+  },
+  {
     "operationId": "usage_get",
     "tag": "usage",
     "property": "usage",
@@ -400,5 +501,23 @@ export const OPERATIONS = [
     "httpMethod": "POST",
     "path": "/v1/usage/events",
     "scope": "usage:write"
+  },
+  {
+    "operationId": "webhooks_list",
+    "tag": "webhooks",
+    "property": "webhooks",
+    "method": "list",
+    "httpMethod": "GET",
+    "path": "/v1/webhooks",
+    "scope": "config:read"
+  },
+  {
+    "operationId": "webhooks_subscribe",
+    "tag": "webhooks",
+    "property": "webhooks",
+    "method": "subscribe",
+    "httpMethod": "POST",
+    "path": "/v1/webhooks",
+    "scope": "config:write"
   }
 ] as const;

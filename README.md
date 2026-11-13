@@ -19,6 +19,9 @@ const infi = new Infi({ secretKey: process.env.INFI_SECRET_KEY! }); // sk_test_ 
 - customerSessions: `await infi.customerSessions.create({ body: { customerId } })`
 - products: `const { data } = await infi.products.saveDraft({ path: { draftKey }, body })` e `infi.products.publishDraft(...)`
 - links: `await infi.links.publishDraft({ path: { draftKey } }, { ifMatch: draftHash })`
+- checkouts: `const c = await infi.checkouts.create({ body: { productId, customer: { externalId } } })` — mande o comprador para `c.url`; `infi.checkouts.get({ path: { checkoutId: c.id } })` lê `status` e os pagamentos
+- webhooks: `await infi.webhooks.subscribe({ body: { url, events: ["payment.confirmed"] } })` (no live devolve `approvalUrl`); `infi.webhooks.list()`
+- entrega: `infi.products.setDeliverable({ path: { productId }, body: { kind: "link", url } })`
 - config: `const plan = await infi.config.plan({ body: { document } })` e `infi.config.apply({ body }, { ifMatch: plan.planHash })`
 
 Listagens paginam por cursor: `for await (const p of paginate((q) => infi.payments.list(q), { query: { limit: 50 } })) {}`.

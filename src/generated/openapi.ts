@@ -4,6 +4,48 @@
  */
 
 export interface paths {
+    "/v1/checkouts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open a checkout for one buyer
+         * @description Enrolls the customer on the product by `customer.externalId` and opens the product's invoice for them, as `POST /billing/products/{productID}/invoices` does, without mailing anyone. Send the buyer to `url`, the hosted pay page, then read the result with `checkouts_get` or a webhook. `amount` and `currency` override the product's published price; without a price on the product, `amount` is required. The `Idempotency-Key` makes a retry answer the same checkout.
+         */
+        post: operations["checkouts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/checkouts/{checkoutId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                checkoutId: components["schemas"]["InvoiceId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a checkout
+         * @description The checkout is the invoice, so `status` is the invoice's own and there is no separate checkout status. `payments` are its charge attempts, newest first; the invoice is paid when `status` is `paid` and `paidAt` is set. An invoice of another account answers 404.
+         */
+        get: operations["checkouts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/config": {
         parameters: {
             query?: never;
@@ -356,6 +398,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/products/{productId}/deliverable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The `product.id` that `products_publish_draft` answers. */
+                productId: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Get a product's deliverable
+         * @description What the buyer receives once the invoice is paid, a link or a file. 404 when none is set.
+         */
+        get: operations["products_get_deliverable"];
+        /**
+         * Set a product's deliverable
+         * @description Creates or replaces the product's single deliverable. `kind: link` takes `url`; `kind: file` takes the `objectKey` that `products_create_deliverable_upload` answered, after the file was uploaded to its `uploadUrl`.
+         */
+        put: operations["products_set_deliverable"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/products/{productId}/deliverable/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                productId: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Get an upload URL for a file deliverable
+         * @description A presigned PUT to object storage and the `objectKey` that `products_set_deliverable` takes. Answers 503 when the deployment has no object storage.
+         */
+        post: operations["products_create_deliverable_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/usage": {
         parameters: {
             query?: never;
@@ -390,6 +481,30 @@ export interface paths {
          * @description Same semantics as `POST /metering/events`. Name the product by `productId` or `productKey`: exactly one, else 422. `customerId` is the customer's `externalId` (as sent to `customers_create`), not an enrollment id. `eventId` deduplicates (a replay answers 202 with `duplicate: true`).
          */
         post: operations["usage_record"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List webhook endpoints
+         * @description The account's endpoints as the company document has them. Signing secrets are never listed.
+         */
+        get: operations["webhooks_list"];
+        put?: never;
+        /**
+         * Subscribe a URL to events
+         * @description Adds the endpoint, or changes the events of one `config_apply` created, in one call: it plans and applies the account's company document plus this endpoint, so nothing else moves. On sandbox it applies: 201 with the signing `secret`, shown once (200 without a secret when only the events changed). On live (ADR 0070) it only records a proposal: 202 with the `approvalUrl` where a person approves it, and nothing is applied. An endpoint already subscribed with these events answers 200 `unchanged`. A URL that exists but was not created by config answers 409 `webhook_unmanaged`; nothing is applied.
+         */
+        post: operations["webhooks_subscribe"];
         delete?: never;
         options?: never;
         head?: never;
@@ -793,6 +908,27 @@ export interface components {
                 slug: string;
             };
         };
+        Checkout: {
+            amountDue: string;
+            cancelUrl?: string;
+            /** Format: date-time */
+            createdAt: string;
+            currency: string;
+            /** @description The buyer's `externalId` as the customer is stored. */
+            externalId?: string;
+            id: components["schemas"]["InvoiceId"];
+            /** Format: date-time */
+            paidAt?: string;
+            /** @description Charge attempts, newest first. Empty on creation. */
+            payments: components["schemas"]["Payment"][];
+            productId?: components["schemas"]["ProductId"];
+            /** @description The invoice's own status (`open`, `paid`, `void`, ...). There is no checkout status of its own. */
+            status: string;
+            successUrl?: string;
+            total: string;
+            /** @description The hosted pay page; send the buyer here. */
+            url: string;
+        };
         CheckoutAction: {
             /** @example provide_contact */
             id: string;
@@ -833,6 +969,25 @@ export interface components {
             surface?: "embed";
             /** @description The buyer ticked the page's `withdrawalWaiver`: they ask for the digital content at once and acknowledge that it ends the statutory right of withdrawal (plan 6f). Required on every UK sale but the payment of a renewal: without it the charge answers 422 `withdrawal_waiver_required` before anything is frozen or sent to Stripe. The Order records the version, the words and the IP, and the receipt e-mail repeats them. */
             withdrawalWaiver?: boolean;
+        };
+        CheckoutCreateRequest: {
+            /** @description A decimal string; overrides the product's published price. */
+            amount?: string;
+            cancelUrl?: string;
+            /** @description ISO 4217; defaults to the product's currency. */
+            currency?: string;
+            customer: {
+                email?: string;
+                /** @description Your own id for the buyer. */
+                externalId: string;
+                name?: string;
+                phone?: string;
+                taxId?: string;
+            };
+            description?: string;
+            productId: components["schemas"]["ProductId"];
+            /** @description Where the hosted page sends the buyer after paying. */
+            successUrl?: string;
         };
         /** @description A checkout session as the agent contract reads it, at its public level (no contact: the session id travels in a URL, so it reaches referrers and logs). The browser reads the same document as an agent on purpose, so a page and an API never disagree about whether someone paid. */
         CheckoutInteractionSnapshot: {
@@ -1812,6 +1967,11 @@ export interface components {
             /** @description Decimal string. */
             value?: string | null;
         } & (unknown | unknown);
+        FacadeWebhookEndpoint: {
+            events: string[];
+            isActive: boolean;
+            url: string;
+        };
         FloatMetric: {
             delta: number;
             value: number;
@@ -4193,11 +4353,29 @@ export interface components {
          * @example we_3Tz8yU1oI4pA7sD0fG2hJk
          */
         WebhookEndpointId: string;
+        WebhookEndpointList: {
+            data: components["schemas"]["FacadeWebhookEndpoint"][];
+        };
         /**
          * @description Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.
          * @enum {string}
          */
         WebhookEventType: "checkout.session.created" | "checkout.session.completed" | "checkout.session.expired" | "customer.created" | "customer.converted" | "invoice.finalized" | "invoice.sent" | "invoice.paid" | "invoice.voided" | "invoice.uncollectible" | "invoice.auto_collection_failed" | "payment.confirmed" | "payment.failed" | "payment.refunded" | "payment.refund_reversed" | "payment.chargeback" | "payment.chargeback_reversed" | "plan.changed" | "usage.threshold_reached" | "credit.balance_low" | "credit.balance_depleted" | "subscription.cancel_scheduled" | "subscription.cancel_unscheduled" | "subscription.canceled" | "subscription.past_due" | "refund_request.created" | "payment.duplicate_detected" | "payment.duplicate_refunded" | "refund_request.declined";
+        WebhookSubscribeRequest: {
+            events: string[];
+            /** @description The HTTPS address that receives the events. */
+            url: string;
+        };
+        WebhookSubscription: {
+            /** @description Where a person approves a live proposal (`planned`). */
+            approvalUrl?: string;
+            events?: string[];
+            /** @description The signing secret of an endpoint this call created, shown once. */
+            secret?: string;
+            /** @enum {string} */
+            status: "applied" | "planned" | "unchanged";
+            url: string;
+        };
         /** @description Present when the charge needs the buyer to waive withdrawal (plan 6f): the page shows `text` beside a box the buyer ticks before paying, and sends `withdrawalWaiver: true`. */
         WithdrawalWaiver: {
             text: string;
@@ -4451,6 +4629,66 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    checkouts_create: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckoutCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The checkout */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checkout"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    checkouts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                checkoutId: components["schemas"]["InvoiceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The checkout */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Checkout"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
     config_pull: {
         parameters: {
             query?: never;
@@ -5129,6 +5367,106 @@ export interface operations {
             429: components["responses"]["RateLimited"];
         };
     };
+    products_get_deliverable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The `product.id` that `products_publish_draft` answers. */
+                productId: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The deliverable */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deliverable"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    products_set_deliverable: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description The `product.id` that `products_publish_draft` answers. */
+                productId: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutDeliverableRequest"];
+            };
+        };
+        responses: {
+            /** @description The deliverable now set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Deliverable"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    products_create_deliverable_upload: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                productId: components["schemas"]["ProductId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresignDeliverableRequest"];
+            };
+        };
+        responses: {
+            /** @description The upload target */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresignDeliverableResponse"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     usage_get: {
         parameters: {
             query: {
@@ -5194,6 +5532,80 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+            422: components["responses"]["ValidationFailed"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    webhooks_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The endpoints */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookEndpointList"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["RateLimited"];
+        };
+    };
+    webhooks_subscribe: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Client-supplied key for safe retries. The first response for a key is stored and replayed verbatim on any retry with the same key. */
+                "Idempotency-Key"?: components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookSubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description Already subscribed with these events (`unchanged`), or the events changed (`applied`, no secret) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"];
+                };
+            };
+            /** @description Applied. `secret` signs every delivery and is shown only now. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"];
+                };
+            };
+            /** @description Live proposal (`planned`); a person approves it at `approvalUrl` */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookSubscription"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationFailed"];
             429: components["responses"]["RateLimited"];
         };

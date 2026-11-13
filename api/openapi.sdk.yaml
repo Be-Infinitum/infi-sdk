@@ -24,6 +24,10 @@ tags:
     description: Public API (facade) product drafts, from draft to publish.
   - name: links
     description: Public API (facade) payment link drafts, from draft to publish.
+  - name: checkouts
+    description: Public API (facade) checkout per buyer, the invoice of a product with its hosted pay page.
+  - name: webhooks
+    description: Public API (facade) webhook endpoints, subscribed in one call.
 paths:
   /v1/payments:
     get:
@@ -604,6 +608,204 @@ paths:
         "412": {$ref: "#/components/responses/PlanChanged"}
         "422": {$ref: "#/components/responses/ValidationFailed"}
         "428": {$ref: "#/components/responses/IfMatchRequired"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/checkouts:
+    post:
+      tags: [checkouts]
+      summary: Open a checkout for one buyer
+      operationId: checkouts_create
+      x-infi-facade: true
+      x-infi-scope: invoices:write
+      description: >
+        Enrolls the customer on the product by `customer.externalId` and opens the product's invoice for them, as `POST /billing/products/{productID}/invoices` does, without mailing anyone. Send the buyer to `url`, the hosted pay page, then read the result with `checkouts_get` or a webhook. `amount` and `currency` override the product's published price; without a price on the product, `amount` is required. The `Idempotency-Key` makes a retry answer the same checkout.
+
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CheckoutCreateRequest"}
+      responses:
+        "201":
+          description: The checkout
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Checkout"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/checkouts/{checkoutId}:
+    parameters:
+      - name: checkoutId
+        in: path
+        required: true
+        schema: {$ref: "#/components/schemas/InvoiceId"}
+    get:
+      tags: [checkouts]
+      summary: Get a checkout
+      operationId: checkouts_get
+      x-infi-facade: true
+      x-infi-scope: invoices:read
+      description: >
+        The checkout is the invoice, so `status` is the invoice's own and there is no separate checkout status. `payments` are its charge attempts, newest first; the invoice is paid when `status` is `paid` and `paidAt` is set. An invoice of another account answers 404.
+
+      responses:
+        "200":
+          description: The checkout
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Checkout"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/products/{productId}/deliverable:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        description: The `product.id` that `products_publish_draft` answers.
+        schema: {$ref: "#/components/schemas/ProductId"}
+    get:
+      tags: [products]
+      summary: Get a product's deliverable
+      operationId: products_get_deliverable
+      x-infi-facade: true
+      x-infi-scope: products:write
+      description: What the buyer receives once the invoice is paid, a link or a file. 404 when none is set.
+      responses:
+        "200":
+          description: The deliverable
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Deliverable"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+    put:
+      tags: [products]
+      summary: Set a product's deliverable
+      operationId: products_set_deliverable
+      x-infi-facade: true
+      x-infi-scope: products:write
+      description: >
+        Creates or replaces the product's single deliverable. `kind: link` takes `url`; `kind: file` takes the `objectKey` that `products_create_deliverable_upload` answered, after the file was uploaded to its `uploadUrl`.
+
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PutDeliverableRequest"}
+      responses:
+        "200":
+          description: The deliverable now set
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Deliverable"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/products/{productId}/deliverable/upload:
+    parameters:
+      - name: productId
+        in: path
+        required: true
+        schema: {$ref: "#/components/schemas/ProductId"}
+    post:
+      tags: [products]
+      summary: Get an upload URL for a file deliverable
+      operationId: products_create_deliverable_upload
+      x-infi-facade: true
+      x-infi-scope: products:write
+      description: >
+        A presigned PUT to object storage and the `objectKey` that `products_set_deliverable` takes. Answers 503 when the deployment has no object storage.
+
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/PresignDeliverableRequest"}
+      responses:
+        "200":
+          description: The upload target
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/PresignDeliverableResponse"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /v1/webhooks:
+    get:
+      tags: [webhooks]
+      summary: List webhook endpoints
+      operationId: webhooks_list
+      x-infi-facade: true
+      x-infi-scope: config:read
+      description: The account's endpoints as the company document has them. Signing secrets are never listed.
+      responses:
+        "200":
+          description: The endpoints
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WebhookEndpointList"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+    post:
+      tags: [webhooks]
+      summary: Subscribe a URL to events
+      operationId: webhooks_subscribe
+      x-infi-facade: true
+      x-infi-scope: config:write
+      description: >
+        Adds the endpoint, or changes the events of one `config_apply` created, in one call: it plans and applies the account's company document plus this endpoint, so nothing else moves. On sandbox it applies: 201 with the signing `secret`, shown once (200 without a secret when only the events changed). On live (ADR 0070) it only records a proposal: 202 with the `approvalUrl` where a person approves it, and nothing is applied. An endpoint already subscribed with these events answers 200 `unchanged`. A URL that exists but was not created by config answers 409 `webhook_unmanaged`; nothing is applied.
+
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/WebhookSubscribeRequest"}
+      responses:
+        "200":
+          description: Already subscribed with these events (`unchanged`), or the events changed (`applied`, no secret)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WebhookSubscription"}
+        "201":
+          description: Applied. `secret` signs every delivery and is shown only now.
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WebhookSubscription"}
+        "202":
+          description: Live proposal (`planned`); a person approves it at `approvalUrl`
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/WebhookSubscription"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
         "429": {$ref: "#/components/responses/RateLimited"}
   /v1/customer-sessions:
     post:
@@ -2905,6 +3107,80 @@ components:
         url: {type: [string, "null"]}
         createdAt: {type: string, format: date-time}
         updatedAt: {type: string, format: date-time}
+    CheckoutCreateRequest:
+      type: object
+      required: [productId, customer]
+      properties:
+        productId: {$ref: "#/components/schemas/ProductId"}
+        customer:
+          type: object
+          required: [externalId]
+          properties:
+            externalId: {type: string, description: Your own id for the buyer.}
+            email: {type: string}
+            name: {type: string}
+            taxId: {type: string}
+            phone: {type: string}
+        amount: {type: string, description: A decimal string; overrides the product's published price.}
+        currency: {type: string, description: ISO 4217; defaults to the product's currency.}
+        description: {type: string}
+        successUrl: {type: string, description: Where the hosted page sends the buyer after paying.}
+        cancelUrl: {type: string}
+    Checkout:
+      type: object
+      required: [id, status, currency, total, amountDue, createdAt, url, payments]
+      properties:
+        id: {$ref: "#/components/schemas/InvoiceId"}
+        status: {type: string, description: "The invoice's own status (`open`, `paid`, `void`, ...). There is no checkout status of its own."}
+        currency: {type: string}
+        total: {type: string}
+        amountDue: {type: string}
+        paidAt: {type: string, format: date-time}
+        createdAt: {type: string, format: date-time}
+        successUrl: {type: string}
+        cancelUrl: {type: string}
+        productId: {$ref: "#/components/schemas/ProductId"}
+        externalId: {type: string, description: "The buyer's `externalId` as the customer is stored."}
+        url: {type: string, description: The hosted pay page; send the buyer here.}
+        payments:
+          type: array
+          description: Charge attempts, newest first. Empty on creation.
+          items: {$ref: "#/components/schemas/Payment"}
+    WebhookSubscribeRequest:
+      type: object
+      required: [url, events]
+      properties:
+        url: {type: string, description: The HTTPS address that receives the events.}
+        events:
+          type: array
+          items: {type: string}
+    WebhookSubscription:
+      type: object
+      required: [status, url]
+      properties:
+        status: {type: string, enum: [applied, planned, unchanged]}
+        url: {type: string}
+        events:
+          type: array
+          items: {type: string}
+        secret: {type: string, description: "The signing secret of an endpoint this call created, shown once."}
+        approvalUrl: {type: string, description: Where a person approves a live proposal (`planned`).}
+    FacadeWebhookEndpoint:
+      type: object
+      required: [url, events, isActive]
+      properties:
+        url: {type: string}
+        events:
+          type: array
+          items: {type: string}
+        isActive: {type: boolean}
+    WebhookEndpointList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items: {$ref: "#/components/schemas/FacadeWebhookEndpoint"}
     PresignDeliverableRequest:
       type: object
       required: [fileName, contentType, sizeBytes]

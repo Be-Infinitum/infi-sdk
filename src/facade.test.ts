@@ -5,7 +5,7 @@ import { Infi } from "./index.js";
 const infi = new Infi({ secretKey: "sk_test_x" });
 
 test("toda operação do contrato tem método em infi[tag][ação]", () => {
-  expect(OPERATIONS.length).toBe(21);
+  expect(OPERATIONS.length).toBe(28);
   for (const o of OPERATIONS) {
     const res = (infi as any)[o.property];
     expect(res, o.operationId).toBeDefined();

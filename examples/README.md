@@ -24,6 +24,7 @@ INFI_SECRET_KEY=sk_test_... bun examples/run-all.ts   # todos, com ✓/✗ no fi
 | `05-prepaid-credits.ts` | Pré-pago declarado em config, crédito de 1000 na carteira, consumo de 200 e espera do débito pelo worker (até 3 min) |
 | `06-customer-session.ts` | Sessão de portal: criar, verificar, revogar e verificar de novo (401) |
 | `07-reconciliation.ts` | `paginate` sobre `customers.list` (25 clientes, limit 10) e `payments.list` |
+| `08-checkout-delivery-webhook.ts` | Venda para um comprador: produto publicado, entrega por link, webhook inscrito, checkout com a URL hospedada e a leitura que espera o pagamento |
 
 ## Script para operações do SDK
 
@@ -36,3 +37,4 @@ INFI_SECRET_KEY=sk_test_... bun examples/run-all.ts   # todos, com ✓/✗ no fi
 | 05 | `config.plan`, `config.apply`, `config.pull`, `products.saveDraft`, `products.publishDraft`, `customers.create`, `customers.creditWallet`, `customers.getWallet`, `usage.record` |
 | 06 | `products.saveDraft`, `products.publishDraft`, `customers.create`, `customerSessions.create`, `customerSessions.verify`, `customerSessions.revoke` |
 | 07 | `products.saveDraft`, `products.publishDraft`, `customers.create`, `customers.list` e `payments.list` via `paginate` |
+| 08 | `products.saveDraft`, `products.publishDraft`, `products.setDeliverable`, `products.getDeliverable`, `webhooks.subscribe`, `webhooks.list`, `checkouts.create`, `checkouts.get` |

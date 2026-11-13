@@ -1844,6 +1844,69 @@
         ],
         "type": "object"
       },
+      "Checkout": {
+        "properties": {
+          "amountDue": {
+            "type": "string"
+          },
+          "cancelUrl": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "externalId": {
+            "description": "The buyer's `externalId` as the customer is stored.",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/InvoiceId"
+          },
+          "paidAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "payments": {
+            "description": "Charge attempts, newest first. Empty on creation.",
+            "items": {
+              "$ref": "#/components/schemas/Payment"
+            },
+            "type": "array"
+          },
+          "productId": {
+            "$ref": "#/components/schemas/ProductId"
+          },
+          "status": {
+            "description": "The invoice's own status (`open`, `paid`, `void`, ...). There is no checkout status of its own.",
+            "type": "string"
+          },
+          "successUrl": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string"
+          },
+          "url": {
+            "description": "The hosted pay page; send the buyer here.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "currency",
+          "total",
+          "amountDue",
+          "createdAt",
+          "url",
+          "payments"
+        ],
+        "type": "object"
+      },
       "CheckoutAction": {
         "properties": {
           "id": {
@@ -1941,6 +2004,60 @@
         },
         "required": [
           "method"
+        ],
+        "type": "object"
+      },
+      "CheckoutCreateRequest": {
+        "properties": {
+          "amount": {
+            "description": "A decimal string; overrides the product's published price.",
+            "type": "string"
+          },
+          "cancelUrl": {
+            "type": "string"
+          },
+          "currency": {
+            "description": "ISO 4217; defaults to the product's currency.",
+            "type": "string"
+          },
+          "customer": {
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "externalId": {
+                "description": "Your own id for the buyer.",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "taxId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "externalId"
+            ],
+            "type": "object"
+          },
+          "description": {
+            "type": "string"
+          },
+          "productId": {
+            "$ref": "#/components/schemas/ProductId"
+          },
+          "successUrl": {
+            "description": "Where the hosted page sends the buyer after paying.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "productId",
+          "customer"
         ],
         "type": "object"
       },
@@ -5113,6 +5230,28 @@
           "customerId",
           "meter",
           "eventId"
+        ],
+        "type": "object"
+      },
+      "FacadeWebhookEndpoint": {
+        "properties": {
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "events",
+          "isActive"
         ],
         "type": "object"
       },
@@ -12959,6 +13098,20 @@
         "pattern": "^we_[0-9A-Za-z]{22}$",
         "type": "string"
       },
+      "WebhookEndpointList": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/FacadeWebhookEndpoint"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "WebhookEventType": {
         "description": "Event types emitted to the outbox and therefore deliverable to a webhook endpoint. This documents the set with a described payload — it does NOT restrict what an endpoint may subscribe to (see WebhookEndpoint.events), and it is deliberately NOT exhaustive: the outbox also carries payout.*, plan.*, account.* and reconciliation.* families. Each value listed here was verified against its emit site in internal/.\n",
         "enum": [
@@ -12993,6 +13146,59 @@
           "refund_request.declined"
         ],
         "type": "string"
+      },
+      "WebhookSubscribeRequest": {
+        "properties": {
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "url": {
+            "description": "The HTTPS address that receives the events.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "events"
+        ],
+        "type": "object"
+      },
+      "WebhookSubscription": {
+        "properties": {
+          "approvalUrl": {
+            "description": "Where a person approves a live proposal (`planned`).",
+            "type": "string"
+          },
+          "events": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "secret": {
+            "description": "The signing secret of an endpoint this call created, shown once.",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "applied",
+              "planned",
+              "unchanged"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "url"
+        ],
+        "type": "object"
       },
       "WithdrawalWaiver": {
         "description": "Present when the charge needs the buyer to waive withdrawal (plan 6f): the page shows `text` beside a box the buyer ticks before paying, and sends `withdrawalWaiver: true`.\n",
@@ -13046,6 +13252,112 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/checkouts": {
+      "post": {
+        "description": "Enrolls the customer on the product by `customer.externalId` and opens the product's invoice for them, as `POST /billing/products/{productID}/invoices` does, without mailing anyone. Send the buyer to `url`, the hosted pay page, then read the result with `checkouts_get` or a webhook. `amount` and `currency` override the product's published price; without a price on the product, `amount` is required. The `Idempotency-Key` makes a retry answer the same checkout.\n",
+        "operationId": "checkouts_create",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Checkout"
+                }
+              }
+            },
+            "description": "The checkout"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "summary": "Open a checkout for one buyer",
+        "tags": [
+          "checkouts"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "invoices:write"
+      }
+    },
+    "/v1/checkouts/{checkoutId}": {
+      "get": {
+        "description": "The checkout is the invoice, so `status` is the invoice's own and there is no separate checkout status. `payments` are its charge attempts, newest first; the invoice is paid when `status` is `paid` and `paidAt` is set. An invoice of another account answers 404.\n",
+        "operationId": "checkouts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Checkout"
+                }
+              }
+            },
+            "description": "The checkout"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "summary": "Get a checkout",
+        "tags": [
+          "checkouts"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "invoices:read"
+      },
+      "parameters": [
+        {
+          "in": "path",
+          "name": "checkoutId",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/InvoiceId"
+          }
+        }
+      ]
+    },
     "/v1/config": {
       "get": {
         "description": "The canonical document: every product that sells with its terms, meters, prices and grants, and the active webhook endpoints. The same document as `GET /config/document`. Secrets are never in it.\n",
@@ -14376,6 +14688,181 @@
         "x-infi-scope": "products:write"
       }
     },
+    "/v1/products/{productId}/deliverable": {
+      "get": {
+        "description": "What the buyer receives once the invoice is paid, a link or a file. 404 when none is set.",
+        "operationId": "products_get_deliverable",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Deliverable"
+                }
+              }
+            },
+            "description": "The deliverable"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "summary": "Get a product's deliverable",
+        "tags": [
+          "products"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "products:write"
+      },
+      "parameters": [
+        {
+          "description": "The `product.id` that `products_publish_draft` answers.",
+          "in": "path",
+          "name": "productId",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ProductId"
+          }
+        }
+      ],
+      "put": {
+        "description": "Creates or replaces the product's single deliverable. `kind: link` takes `url`; `kind: file` takes the `objectKey` that `products_create_deliverable_upload` answered, after the file was uploaded to its `uploadUrl`.\n",
+        "operationId": "products_set_deliverable",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutDeliverableRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Deliverable"
+                }
+              }
+            },
+            "description": "The deliverable now set"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "summary": "Set a product's deliverable",
+        "tags": [
+          "products"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "products:write"
+      }
+    },
+    "/v1/products/{productId}/deliverable/upload": {
+      "parameters": [
+        {
+          "in": "path",
+          "name": "productId",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/ProductId"
+          }
+        }
+      ],
+      "post": {
+        "description": "A presigned PUT to object storage and the `objectKey` that `products_set_deliverable` takes. Answers 503 when the deployment has no object storage.\n",
+        "operationId": "products_create_deliverable_upload",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignDeliverableRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresignDeliverableResponse"
+                }
+              }
+            },
+            "description": "The upload target"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        },
+        "summary": "Get an upload URL for a file deliverable",
+        "tags": [
+          "products"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "products:write"
+      }
+    },
     "/v1/usage": {
       "get": {
         "description": "Without `from` and `to`, the service's default window applies.",
@@ -14502,6 +14989,114 @@
         "x-infi-facade": true,
         "x-infi-scope": "usage:write"
       }
+    },
+    "/v1/webhooks": {
+      "get": {
+        "description": "The account's endpoints as the company document has them. Signing secrets are never listed.",
+        "operationId": "webhooks_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointList"
+                }
+              }
+            },
+            "description": "The endpoints"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "summary": "List webhook endpoints",
+        "tags": [
+          "webhooks"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "config:read"
+      },
+      "post": {
+        "description": "Adds the endpoint, or changes the events of one `config_apply` created, in one call: it plans and applies the account's company document plus this endpoint, so nothing else moves. On sandbox it applies: 201 with the signing `secret`, shown once (200 without a secret when only the events changed). On live (ADR 0070) it only records a proposal: 202 with the `approvalUrl` where a person approves it, and nothing is applied. An endpoint already subscribed with these events answers 200 `unchanged`. A URL that exists but was not created by config answers 409 `webhook_unmanaged`; nothing is applied.\n",
+        "operationId": "webhooks_subscribe",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookSubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "Already subscribed with these events (`unchanged`), or the events changed (`applied`, no secret)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "Applied. `secret` signs every delivery and is shown only now."
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "Live proposal (`planned`); a person approves it at `approvalUrl`"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationFailed"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        },
+        "summary": "Subscribe a URL to events",
+        "tags": [
+          "webhooks"
+        ],
+        "x-infi-facade": true,
+        "x-infi-scope": "config:write"
+      }
     }
   },
   "security": [
@@ -14541,6 +15136,14 @@
     {
       "description": "Public API (facade) payment link drafts, from draft to publish.",
       "name": "links"
+    },
+    {
+      "description": "Public API (facade) checkout per buyer, the invoice of a product with its hosted pay page.",
+      "name": "checkouts"
+    },
+    {
+      "description": "Public API (facade) webhook endpoints, subscribed in one call.",
+      "name": "webhooks"
     }
   ]
 }
