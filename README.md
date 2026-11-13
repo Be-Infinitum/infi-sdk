@@ -2,7 +2,7 @@
 
 SDK TypeScript da Infi, gerado do contrato da API pública (`api/openapi.sdk.json`, cópia do `backend/api/openapi.sdk.json` do monorepo; ADR 0055).
 
-Para atualizar o contrato: `INFI_BACKEND=<caminho>/backend bun run sync:contract` (padrão `../backend`, quando este repo está dentro do checkout do monorepo).
+O contrato chega sozinho: quando `backend/api/openapi.sdk.*` muda na `main` do monorepo, o workflow `infi-sdk: sync contract` de lá copia o contrato, roda `bun run codegen` e abre um PR aqui (`chore/sync-contract`). À mão, com o monorepo ao lado: `INFI_BACKEND=<caminho>/backend bun run sync:contract`.
 
 ```sh
 bun add @beinfi/sdk   # ou npm i @beinfi/sdk
@@ -33,4 +33,12 @@ Webhooks: `verifyWebhook({ id, timestamp, signature, body }, secret)` com os hea
 
 ## Este pacote é gerado
 
-Edite o contrato, não o código. `bun run codegen` regenera `src/generated/`. À mão ficam só `http.ts`, `paginate.ts`, `webhooks.ts` e `index.ts`.
+Edite o contrato (no monorepo), não o código. `bun run codegen` regenera `src/generated/`. À mão ficam só `http.ts`, `paginate.ts`, `webhooks.ts` e `index.ts`.
+
+O CI (`.github/workflows/ci.yml`) falha se:
+
+- `bun run check:generated` mudar algo em `src/generated/` (o gerado não bate com `api/openapi.sdk.json`);
+- tipos, testes ou build quebrarem;
+- algum exemplo de `examples/` falhar contra `api-sandbox.beinfi.com`, com a chave do secret `INFI_SANDBOX_SECRET_KEY`. Os testes de `src/` só cobrem o transporte; a prova de que o SDK fala com a API são os exemplos.
+
+Publicar é à mão: workflow `publish`, escolhendo a dist-tag (`next` ou `latest`). Ele refaz as checagens, roda os exemplos e publica por trusted publishing do npm, sem token.

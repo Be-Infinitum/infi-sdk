@@ -1,20 +1,16 @@
 import { Infi } from "../src/index.js";
 
-/** Cliente pronto para uso: INFI_SECRET_KEY, ou uma conta de teste nova no backend local. */
+/**
+ * Cliente pronto para uso, numa conta de sandbox que já tem dono.
+ * A conta anônima (`/public/v1/claimables`) saiu na ADR 0076 e responde 410;
+ * a chave vem de uma conta criada pelo cadastro de agente ou pelo painel.
+ */
 export async function setup(): Promise<Infi> {
-  const apiUrl = (process.env.INFI_API_URL ?? "http://127.0.0.1:8098").replace(/\/+$/, "");
-  let secretKey = process.env.INFI_SECRET_KEY;
+  const secretKey = process.env.INFI_SECRET_KEY;
   if (!secretKey) {
-    // Único fetch direto do exemplo: provisionar uma conta de teste (não faz parte do SDK).
-    const res = await fetch(`${apiUrl}/public/v1/claimables`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
-      body: JSON.stringify({ ref: "cli" }),
-    });
-    if (!res.ok) throw new Error(`não consegui provisionar a conta de teste: HTTP ${res.status} ${await res.text()}`);
-    secretKey = ((await res.json()) as { apiKeySecret: string }).apiKeySecret;
-    console.log(`(conta de teste nova em ${apiUrl})`);
+    throw new Error("defina INFI_SECRET_KEY com uma chave sk_test_ de uma conta de sandbox sua");
   }
+  const apiUrl = process.env.INFI_API_URL?.replace(/\/+$/, "");
   return new Infi({ secretKey, apiUrl });
 }
 

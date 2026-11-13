@@ -16,9 +16,10 @@
     "README.md"
   ],
   "scripts": {
-    "codegen": "bunx openapi-typescript@7 api/openapi.sdk.json -o src/generated/openapi.ts && bun scripts/gen-facade.ts",
+    "codegen": "openapi-typescript api/openapi.sdk.json -o src/generated/openapi.ts && bun scripts/gen-facade.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "check:generated": "bun run codegen && git diff --exit-code -- src/generated",
     "build": "tsc -p tsconfig.build.json",
     "sync:contract": "cp ${INFI_BACKEND:-../backend}/api/openapi.sdk.json ${INFI_BACKEND:-../backend}/api/openapi.sdk.yaml api/ && bun run codegen",
     "examples": "bun examples/run-all.ts"
