@@ -2,6 +2,12 @@
   "name": "@beinfi/sdk",
   "version": "1.0.0",
   "description": "Infi TypeScript SDK, generated from the public API contract (ADR 0055).",
+  "author": "BeInfi <hello@beinfi.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Be-Infinitum/infi-sdk.git"
+  },
+  "homepage": "https://beinfi.com",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
