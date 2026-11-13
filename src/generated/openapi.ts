@@ -567,7 +567,7 @@ export interface components {
             closesAt?: string;
             reason?: string;
             reasonCode?: string;
-            /** @description True on sandbox */
+            /** @description True on sandbox, where a closed account can be reopened here. */
             reopenable: boolean;
             /** Format: date-time */
             requestedAt?: string;
@@ -674,7 +674,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             offsets: {
-                /** @description What the payout took of the debt */
+                /** @description What the payout took of the debt, in the debt's currency. */
                 amount: string;
                 /** Format: date-time */
                 at: string;
@@ -686,7 +686,7 @@ export interface components {
                 payoutCurrency: string | null;
                 /** Format: uuid */
                 payoutId: string;
-                /** @description The rate used */
+                /** @description The rate used, payoutCurrency per unit of the debt's currency. */
                 rate: string | null;
                 /**
                  * @description reserved while the payout waits, settled once paid, released when it ended without paying.
@@ -943,7 +943,7 @@ export interface components {
         CheckoutActionRequest: {
             /** @description The `id` of an action the snapshot offered. */
             actionId: string;
-            /** @description The snapshot's `consentDigest`. Required */
+            /** @description The snapshot's `consentDigest`. Required, never optional when absent. */
             consentDigest: string;
             /** @description What the action's `inputSchema` asks for. */
             input?: {
@@ -1239,7 +1239,7 @@ export interface components {
             title?: string;
         };
         CompanyConfigActor: {
-            /** @description The key's id */
+            /** @description The key's id, or the address the person signed in with. */
             id: string;
             /**
              * @description api_key = an agent, the CLI or the MCP; session = a person.
@@ -1884,7 +1884,7 @@ export interface components {
                 name: string;
                 productId: string;
             }[];
-            /** @description Why staff removed it */
+            /** @description Why staff removed it, while removed. */
             removedReason?: string;
             /** @enum {string} */
             status: "off" | "listed" | "removed";
@@ -2482,7 +2482,7 @@ export interface components {
             /** Format: date-time */
             acceptedAt: string | null;
             acceptedVersion: string | null;
-            /** @description The policy */
+            /** @description The policy, in Markdown. */
             text: string;
             /** @example 2026-10-17 */
             version: string;
@@ -2570,7 +2570,7 @@ export interface components {
             tiers?: {
                 [key: string]: unknown;
             }[];
-            /** @description Decimal string */
+            /** @description Decimal string, for per_unit. */
             unitAmount?: string | null;
         };
         OverviewMetrics: {
@@ -3100,7 +3100,7 @@ export interface components {
             usageSince?: string;
         };
         PortalUsageLine: {
-            /** @description Decimal; the period's price so far */
+            /** @description Decimal; the period's price so far, when priced. */
             amount?: string;
             currency?: string;
             meter: string;
@@ -3874,7 +3874,7 @@ export interface components {
             hiddenOptions?: string[];
             /** @enum {string} */
             mode: "all" | "chosen";
-            /** @description Product ids */
+            /** @description Product ids, in the order the site shows them. */
             order?: string[];
         };
         SiteCatalogView: {
@@ -3920,7 +3920,7 @@ export interface components {
             label: {
                 [key: string]: string;
             };
-            /** @description The longest text */
+            /** @description The longest text, or the most items of a list. */
             max?: number;
             /** @description A choice's values; the first is its default. */
             options?: string[];
@@ -4135,7 +4135,7 @@ export interface components {
         /** @description A meter of the product that can carry a top-up, with what one unit costs. */
         TopupMeter: {
             currency: string;
-            /** @description The active plan's permanent top-up discount */
+            /** @description The active plan's permanent top-up discount, 0 to 100. */
             discountPercent: string;
             meter: string;
             unitPrice: string;
@@ -4144,7 +4144,7 @@ export interface components {
             /** @description The payer has a card saved on a UK account. */
             cardOnFile: boolean;
             meters: components["schemas"]["TopupMeter"][];
-            /** @description The least a top-up may be worth */
+            /** @description The least a top-up may be worth, in the unit's currency. */
             minimumPurchase: string;
             policies: components["schemas"]["TopupPolicy"][];
         };
@@ -4750,7 +4750,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyConfigApplyResult"] & {
-                        /** @description The same value as `approvalUrl` */
+                        /** @description The same value as `approvalUrl`, for a chat card. */
                         previewUrl?: string;
                     };
                 };

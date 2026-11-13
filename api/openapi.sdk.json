@@ -768,9 +768,8 @@
             "type": "string"
           },
           "reopenable": {
-            "description": "True on sandbox",
-            "type": "boolean",
-            "where a closed account can be reopened here.": null
+            "description": "True on sandbox, where a closed account can be reopened here.",
+            "type": "boolean"
           },
           "requestedAt": {
             "format": "date-time",
@@ -1046,8 +1045,7 @@
             "items": {
               "properties": {
                 "amount": {
-                  "description": "What the payout took of the debt",
-                  "in the debt's currency.": null,
+                  "description": "What the payout took of the debt, in the debt's currency.",
                   "type": "string"
                 },
                 "at": {
@@ -1073,9 +1071,8 @@
                   "type": "string"
                 },
                 "rate": {
-                  "description": "The rate used",
+                  "description": "The rate used, payoutCurrency per unit of the debt's currency.",
                   "nullable": true,
-                  "payoutCurrency per unit of the debt's currency.": null,
                   "type": "string"
                 },
                 "state": {
@@ -1945,8 +1942,7 @@
             "type": "string"
           },
           "consentDigest": {
-            "description": "The snapshot's `consentDigest`. Required",
-            "never optional when absent.": null,
+            "description": "The snapshot's `consentDigest`. Required, never optional when absent.",
             "type": "string"
           },
           "input": {
@@ -2699,8 +2695,7 @@
       "CompanyConfigActor": {
         "properties": {
           "id": {
-            "description": "The key's id",
-            "or the address the person signed in with.": null,
+            "description": "The key's id, or the address the person signed in with.",
             "type": "string"
           },
           "kind": {
@@ -4966,9 +4961,8 @@
             "type": "array"
           },
           "removedReason": {
-            "description": "Why staff removed it",
-            "type": "string",
-            "while removed.": null
+            "description": "Why staff removed it, while removed.",
+            "type": "string"
           },
           "status": {
             "enum": [
@@ -6909,8 +6903,7 @@
             ]
           },
           "text": {
-            "description": "The policy",
-            "in Markdown.": null,
+            "description": "The policy, in Markdown.",
             "type": "string"
           },
           "version": {
@@ -7180,8 +7173,7 @@
             "type": "array"
           },
           "unitAmount": {
-            "description": "Decimal string",
-            "for per_unit.": null,
+            "description": "Decimal string, for per_unit.",
             "type": [
               "string",
               "null"
@@ -8885,9 +8877,8 @@
       "PortalUsageLine": {
         "properties": {
           "amount": {
-            "description": "Decimal; the period's price so far",
-            "type": "string",
-            "when priced.": null
+            "description": "Decimal; the period's price so far, when priced.",
+            "type": "string"
           },
           "currency": {
             "type": "string"
@@ -11534,8 +11525,7 @@
             "type": "string"
           },
           "order": {
-            "description": "Product ids",
-            "in the order the site shows them.": null,
+            "description": "Product ids, in the order the site shows them.",
             "items": {
               "type": "string"
             },
@@ -11700,8 +11690,7 @@
             "type": "object"
           },
           "max": {
-            "description": "The longest text",
-            "or the most items of a list.": null,
+            "description": "The longest text, or the most items of a list.",
             "type": "integer"
           },
           "options": {
@@ -12400,8 +12389,7 @@
             "type": "string"
           },
           "discountPercent": {
-            "0 to 100.": null,
-            "description": "The active plan's permanent top-up discount",
+            "description": "The active plan's permanent top-up discount, 0 to 100.",
             "type": "string"
           },
           "meter": {
@@ -12432,8 +12420,7 @@
             "type": "array"
           },
           "minimumPurchase": {
-            "description": "The least a top-up may be worth",
-            "in the unit's currency.": null,
+            "description": "The least a top-up may be worth, in the unit's currency.",
             "type": "string"
           },
           "policies": {
@@ -13454,8 +13441,7 @@
                     {
                       "properties": {
                         "previewUrl": {
-                          "description": "The same value as `approvalUrl`",
-                          "for a chat card.": null,
+                          "description": "The same value as `approvalUrl`, for a chat card.",
                           "type": "string"
                         }
                       },

@@ -600,7 +600,7 @@ paths:
                   - $ref: "#/components/schemas/CompanyConfigApplyResult"
                   - type: object
                     properties:
-                      previewUrl: {type: string, description: The same value as `approvalUrl`, for a chat card.: null}
+                      previewUrl: {type: string, description: "The same value as `approvalUrl`, for a chat card."}
         "400": {$ref: "#/components/responses/BadRequest"}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
@@ -1283,7 +1283,7 @@ components:
       required: [kind, id]
       properties:
         kind: {type: string, enum: [api_key, session], description: "api_key = an agent, the CLI or the MCP; session = a person."}
-        id: {type: string, description: The key's id, or the address the person signed in with.: null}
+        id: {type: string, description: "The key's id, or the address the person signed in with."}
     CompanyConfigRevision:
       type: object
       required: [id, number, status, mode, docHash, planHash, author, createdAt]
@@ -2437,7 +2437,7 @@ components:
       properties:
         meterId: {type: string, format: uuid}
         model: {type: string, enum: [per_unit, tiered, volume, package]}
-        unitAmount: {type: [string, "null"], description: Decimal string, for per_unit.: null}
+        unitAmount: {type: [string, "null"], description: "Decimal string, for per_unit."}
         tiers:
           type: array
           items: {type: object, additionalProperties: true}
@@ -2875,7 +2875,7 @@ components:
         meter: {type: string}
         unitPrice: {type: string}
         currency: {type: string}
-        discountPercent: {type: string, description: The active plan's permanent top-up discount, 0 to 100.: null}
+        discountPercent: {type: string, description: "The active plan's permanent top-up discount, 0 to 100."}
     TopupPolicies:
       type: object
       required: [policies, meters, minimumPurchase, cardOnFile]
@@ -2886,7 +2886,7 @@ components:
         meters:
           type: array
           items: {$ref: "#/components/schemas/TopupMeter"}
-        minimumPurchase: {type: string, description: The least a top-up may be worth, in the unit's currency.: null}
+        minimumPurchase: {type: string, description: "The least a top-up may be worth, in the unit's currency."}
         cardOnFile: {type: boolean, description: The payer has a card saved on a UK account.}
     WalletBalances:
       type: object
@@ -4630,7 +4630,7 @@ components:
             properties:
               payoutId: {type: string, format: uuid}
               cycle: {type: string, example: "2026-11-15"}
-              amount: {type: string, description: What the payout took of the debt, in the debt's currency.: null}
+              amount: {type: string, description: "What the payout took of the debt, in the debt's currency."}
               state:
                 type: string
                 enum: [reserved, settled, released]
@@ -4644,7 +4644,7 @@ components:
                 type: string
                 nullable: true
                 description: What the debt paid of the payout, in payoutCurrency, at Wise's mid-market rate with no spread.
-              rate: {type: string, nullable: true, description: The rate used, payoutCurrency per unit of the debt's currency.: null}
+              rate: {type: string, nullable: true, description: "The rate used, payoutCurrency per unit of the debt's currency."}
     AccountPayout:
       type: object
       required: [id, cycle, status, holdReason, owedCurrency, owed, offset, transfer, paidCurrency, paid, fxRate, fee, createdAt, updatedAt, sentAt]
@@ -4727,7 +4727,7 @@ components:
       required: [version, text, acceptedVersion, acceptedAt]
       properties:
         version: {type: string, example: "2026-10-17"}
-        text: {type: string, description: The policy, in Markdown.: null}
+        text: {type: string, description: "The policy, in Markdown."}
         acceptedVersion: {type: [string, "null"]}
         acceptedAt: {type: [string, "null"], format: date-time}
     MorEligibilityAnswers:
@@ -4875,7 +4875,7 @@ components:
         closedAt: {type: string, format: date-time}
         reasonCode: {type: string}
         reason: {type: string}
-        reopenable: {type: boolean, description: True on sandbox, where a closed account can be reopened here.: null}
+        reopenable: {type: boolean, description: "True on sandbox, where a closed account can be reopened here."}
     Tenant:
       type: object
       required: [id, slug, name, status, termsUrl, supportEmail, logoUrl, appearance, createdAt, updatedAt]
@@ -5155,7 +5155,7 @@ components:
         version: {type: string}
         text:
           type: string
-          description: The document's text, in Markdown.
+          description: "The document's text, in Markdown."
     WebhookEndpoint:
       type: object
       required: [id, url, events, isActive, createdAt]
@@ -5329,7 +5329,7 @@ components:
             - $ref: "#/components/schemas/DiscoverCategory"
             - type: "null"
         description: {type: [string, "null"]}
-        removedReason: {type: string, description: Why staff removed it, while removed.: null}
+        removedReason: {type: string, description: "Why staff removed it, while removed."}
         products:
           type: array
           items:
@@ -5347,7 +5347,7 @@ components:
       required: [mode]
       properties:
         mode: {type: string, enum: [all, chosen]}
-        order: {type: array, maxItems: 200, items: {type: string}, description: Product ids, in the order the site shows them.: null}
+        order: {type: array, maxItems: 200, items: {type: string}, description: "Product ids, in the order the site shows them."}
         hidden: {type: array, maxItems: 200, items: {type: string}, description: "Product ids an `all` site leaves out."}
         hiddenOptions: {type: array, maxItems: 200, items: {type: string, format: uuid}, description: Price option ids this site leaves out.}
         description: {type: [string, "null"], maxLength: 500, description: "The site's text below the business name; empty clears it."}
@@ -5393,7 +5393,7 @@ components:
         label: {type: object, additionalProperties: {type: string}}
         hint: {type: object, additionalProperties: {type: string}}
         group: {type: string}
-        max: {type: integer, description: The longest text, or the most items of a list.: null}
+        max: {type: integer, description: "The longest text, or the most items of a list."}
         item: {type: array, items: {$ref: "#/components/schemas/SiteField"}, description: "A list item's fields."}
         options: {type: array, items: {type: string}, description: "A choice's values; the first is its default."}
         default: {}
@@ -5604,7 +5604,7 @@ components:
       properties:
         actionId: {type: string, description: The `id` of an action the snapshot offered.}
         revision: {type: string, description: The snapshot's `revision`.}
-        consentDigest: {type: string, description: The snapshot's `consentDigest`. Required, never optional when absent.: null}
+        consentDigest: {type: string, description: "The snapshot's `consentDigest`. Required, never optional when absent."}
         input:
           type: object
           description: What the action's `inputSchema` asks for.
@@ -5689,7 +5689,7 @@ components:
         meter: {type: string}
         unit: {type: string}
         quantity: {type: string, description: Decimal.}
-        amount: {type: string, description: Decimal; the period's price so far, when priced.: null}
+        amount: {type: string, description: "Decimal; the period's price so far, when priced."}
         currency: {type: string}
     PortalBalance:
       type: object
