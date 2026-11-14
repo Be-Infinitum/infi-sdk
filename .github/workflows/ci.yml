@@ -1,0 +1,53 @@
+name: ci
+
+# O pacote é gerado do contrato (ADR 0055). Este job prova três coisas:
+#   1. src/generated/ é exatamente o que o gerador tira de api/openapi.sdk.json;
+#   2. tipos, testes do transporte e build passam;
+#   3. os exemplos rodam contra o sandbox de verdade, nunca contra um fetch falso
+#      (ADR 0055, D7.4). Sem o secret, o passo 3 falha: não há "passou" sem backend.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  generated-and-unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: src/generated/ bate com o contrato
+        run: bun run check:generated
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
+
+  sandbox:
+    # Os exemplos são a suíte contra o backend real. Um PR vindo de fork não
+    # recebe o secret; nesse caso quem revisa roda o workflow à mão depois do merge.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: generated-and-unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      # Uma conta de sandbox só: duas execuções ao mesmo tempo aplicariam
+      # documentos de config uma por cima da outra.
+      group: sandbox-examples
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Exemplos contra api-sandbox.beinfi.com
+        env:
+          INFI_SECRET_KEY: ${{ secrets.INFI_SANDBOX_SECRET_KEY }}
+        run: bun run examples

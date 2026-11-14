@@ -1,0 +1,45 @@
+name: publish
+
+# Publica @beinfi/sdk no npm. Só roda à mão: a versão vem do package.json e a
+# dist-tag é escolhida na hora (`next` para testar o 1.x sem trocar o `latest`).
+# Autentica por trusted publishing (OIDC): o pacote no npmjs.com precisa ter este
+# repositório e este workflow como publicador confiável. Não há NPM_TOKEN.
+on:
+  workflow_dispatch:
+    inputs:
+      dist_tag:
+        description: "dist-tag do npm (next ou latest)"
+        required: true
+        default: next
+        type: choice
+        options: [next, latest]
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - run: bun run check:generated
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
+      - name: Exemplos contra o sandbox antes de publicar
+        env:
+          INFI_SECRET_KEY: ${{ secrets.INFI_SANDBOX_SECRET_KEY }}
+        run: bun run examples
+      - run: npm publish --provenance --access public --tag "${{ inputs.dist_tag }}"
