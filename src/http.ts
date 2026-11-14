@@ -1,16 +1,16 @@
-// Camada manuscrita (ADR 0055, D3): transporte HTTP.
+// Handwritten layer (ADR 0055, D3): HTTP transport.
 
 export interface CallOptions {
-  /** Chave de idempotência; gerada (uuid) em mutações quando ausente. */
+  /** Idempotency key; generated (uuid) for mutations when absent. */
   idempotencyKey?: string;
-  /** Valor de If-Match (hash da prévia/plano). */
+  /** If-Match value (preview/plan hash). */
   ifMatch?: string;
   channel?: "panel" | "mcp" | "cli" | "api";
 }
 
 export interface RequestSpec extends CallOptions {
   method: string;
-  /** Template com `{param}`, ex.: `/v1/customers/{customerId}`. */
+  /** Template with `{param}`, e.g.: `/v1/customers/{customerId}`. */
   path: string;
   pathParams?: Record<string, unknown>;
   query?: Record<string, unknown>;
@@ -22,9 +22,9 @@ export interface TransportConfig {
   secretKey: string;
   apiUrl?: string;
   fetch?: typeof fetch;
-  /** Injetável para testes. */
+  /** Injectable for tests. */
   sleep?: (ms: number) => Promise<void>;
-  /** Total de tentativas (padrão 3). */
+  /** Total number of attempts (default 3). */
   maxAttempts?: number;
 }
 
@@ -36,9 +36,9 @@ export class InfiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly tracerId?: string;
-  /** Erros por campo (422) ou metadata (409), quando o servidor envia. */
+  /** Per-field errors (422) or metadata (409), when the server sends them. */
   readonly details?: unknown;
-  /** Corpo decodificado da resposta de erro. */
+  /** Decoded body of the error response. */
   readonly body?: unknown;
 
   constructor(init: { status: number; code: string; message: string; tracerId?: string; details?: unknown; body?: unknown }) {
@@ -51,7 +51,7 @@ export class InfiError extends Error {
     this.body = init.body;
   }
 
-  /** Em 412, o estado atual devolvido pelo servidor (para reapresentar a prévia). */
+  /** On 412, the current state returned by the server (to show the preview again). */
   get current(): unknown {
     return this.status === 412 && this.body && typeof this.body === "object" ? (this.body as any).current : undefined;
   }
@@ -76,7 +76,7 @@ export function baseUrlFor(secretKey: string, apiUrl?: string): string {
   if (apiUrl) return apiUrl.replace(/\/+$/, "");
   if (secretKey.startsWith("sk_test_")) return SANDBOX_URL;
   if (secretKey.startsWith("sk_live_")) return LIVE_URL;
-  throw new Error("Infi: secretKey deve começar com sk_test_ ou sk_live_ (ou informe apiUrl)");
+  throw new Error("Infi: secretKey must start with sk_test_ or sk_live_ (or provide apiUrl)");
 }
 
 function retryAfterMs(h: string | null): number | undefined {
@@ -95,7 +95,7 @@ export class Transport {
   private readonly maxAttempts: number;
 
   constructor(cfg: TransportConfig) {
-    if (!cfg.secretKey) throw new Error("Infi: secretKey é obrigatória");
+    if (!cfg.secretKey) throw new Error("Infi: secretKey is required");
     this.secretKey = cfg.secretKey;
     this.baseUrl = baseUrlFor(cfg.secretKey, cfg.apiUrl);
     this.fetchFn = cfg.fetch ?? ((input, init) => fetch(input, init)) as typeof fetch;

@@ -1,16 +1,16 @@
 # @beinfi/sdk
 
-SDK TypeScript da Infi, gerado do contrato da API pública (`api/openapi.sdk.json`, cópia do `backend/api/openapi.sdk.json` do monorepo; ADR 0055).
+Infi TypeScript SDK, generated from the public API contract (`api/openapi.sdk.json`, a copy of the monorepo's `backend/api/openapi.sdk.json`; ADR 0055).
 
-O contrato chega sozinho: quando `backend/api/openapi.sdk.*` muda na `main` do monorepo, o workflow `infi-sdk: sync contract` de lá copia o contrato, roda `bun run codegen` e abre um PR aqui (`chore/sync-contract`). À mão, com o monorepo ao lado: `INFI_BACKEND=<caminho>/backend bun run sync:contract`.
+The contract arrives on its own: when `backend/api/openapi.sdk.*` changes on the monorepo's `main`, the `infi-sdk: sync contract` workflow there copies the contract, runs `bun run codegen` and opens a PR here (`chore/sync-contract`). By hand, with the monorepo next to this repo: `INFI_BACKEND=<caminho>/backend bun run sync:contract`.
 
 ```sh
-bun add @beinfi/sdk   # ou npm i @beinfi/sdk
+bun add @beinfi/sdk   # or npm i @beinfi/sdk
 ```
 
 ```ts
 import { Infi, paginate, verifyWebhook } from "@beinfi/sdk";
-const infi = new Infi({ secretKey: process.env.INFI_SECRET_KEY! }); // sk_test_ -> sandbox, sk_live_ -> produção
+const infi = new Infi({ secretKey: process.env.INFI_SECRET_KEY! }); // sk_test_ -> sandbox, sk_live_ -> production
 ```
 
 - payments: `await infi.payments.list({ query: { status: "confirmed" } })`; `infi.payments.get({ path: { paymentId } })`
@@ -19,29 +19,29 @@ const infi = new Infi({ secretKey: process.env.INFI_SECRET_KEY! }); // sk_test_ 
 - customerSessions: `await infi.customerSessions.create({ body: { customerId } })`
 - products: `const { data } = await infi.products.saveDraft({ path: { draftKey }, body })` e `infi.products.publishDraft(...)`
 - links: `await infi.links.publishDraft({ path: { draftKey } }, { ifMatch: draftHash })`
-- checkouts: `const c = await infi.checkouts.create({ body: { productId, customer: { externalId } } })` — mande o comprador para `c.url`; `infi.checkouts.get({ path: { checkoutId: c.id } })` lê `status` e os pagamentos
-- webhooks: `await infi.webhooks.subscribe({ body: { url, events: ["payment.confirmed"] } })` (no live devolve `approvalUrl`); `infi.webhooks.list()`
-- entrega: `infi.products.setDeliverable({ path: { productId }, body: { kind: "link", url } })`
+- checkouts: `const c = await infi.checkouts.create({ body: { productId, customer: { externalId } } })` — send the buyer to `c.url`; `infi.checkouts.get({ path: { checkoutId: c.id } })` reads `status` and the payments
+- webhooks: `await infi.webhooks.subscribe({ body: { url, events: ["payment.confirmed"] } })` (in live it returns `approvalUrl`); `infi.webhooks.list()`
+- delivery: `infi.products.setDeliverable({ path: { productId }, body: { kind: "link", url } })`
 - config: `const plan = await infi.config.plan({ body: { document } })` e `infi.config.apply({ body }, { ifMatch: plan.planHash })`
 
-Listagens paginam por cursor: `for await (const p of paginate((q) => infi.payments.list(q), { query: { limit: 50 } })) {}`.
-Webhooks: `verifyWebhook({ id, timestamp, signature, body }, secret)` com os headers `X-Webhook-Id`, `X-Webhook-Timestamp`, `X-Webhook-Signature` e o corpo cru.
+Lists paginate by cursor: `for await (const p of paginate((q) => infi.payments.list(q), { query: { limit: 50 } })) {}`.
+Webhooks: `verifyWebhook({ id, timestamp, signature, body }, secret)` with the `X-Webhook-Id`, `X-Webhook-Timestamp` and `X-Webhook-Signature` headers and the raw body.
 
-## Idempotência e If-Match
+## Idempotency and If-Match
 
-- Toda mutação (POST/PUT/PATCH/DELETE) leva `Idempotency-Key`. Se você não passar `{ idempotencyKey }`, o SDK gera um uuid e reusa a mesma chave nos retries (erro de rede, 429, 5xx; até 3 tentativas). 4xx nunca é repetido.
-- Publicar e aplicar exigem `{ ifMatch }` (o hash da prévia ou do plano). Se o estado mudou, o servidor responde 412 e `InfiError.current` traz o estado atual para reapresentar a prévia.
-- Opção `{ channel: "panel" | "mcp" | "cli" | "api" }` envia `X-Infi-Channel`.
-- Erros viram `InfiError` (`status`, `code`, `message`, `tracerId`, `details`, `body`).
+- Every mutation (POST/PUT/PATCH/DELETE) carries an `Idempotency-Key`. If you don't pass `{ idempotencyKey }`, the SDK generates a uuid and reuses the same key on retries (network error, 429, 5xx; up to 3 attempts). Other 4xx responses are never retried.
+- Publish and apply require `{ ifMatch }` (the preview or plan hash). If the state changed, the server answers 412 and `InfiError.current` carries the current state so you can show the preview again.
+- Option `{ channel: "panel" | "mcp" | "cli" | "api" }` sends `X-Infi-Channel`.
+- Errors become `InfiError` (`status`, `code`, `message`, `tracerId`, `details`, `body`).
 
-## Este pacote é gerado
+## This package is generated
 
-Edite o contrato (no monorepo), não o código. `bun run codegen` regenera `src/generated/`. À mão ficam só `http.ts`, `paginate.ts`, `webhooks.ts` e `index.ts`.
+Edit the contract (in the monorepo), not the code. `bun run codegen` regenerates `src/generated/`. Only `http.ts`, `paginate.ts`, `webhooks.ts` and `index.ts` are handwritten.
 
-O CI (`.github/workflows/ci.yml`) falha se:
+CI (`.github/workflows/ci.yml`) fails if:
 
-- `bun run check:generated` mudar algo em `src/generated/` (o gerado não bate com `api/openapi.sdk.json`);
-- tipos, testes ou build quebrarem;
-- algum exemplo de `examples/` falhar contra `api-sandbox.beinfi.com`, com a chave do secret `INFI_SANDBOX_SECRET_KEY`. Os testes de `src/` só cobrem o transporte; a prova de que o SDK fala com a API são os exemplos.
+- `bun run check:generated` changes anything in `src/generated/` (the generated code doesn't match `api/openapi.sdk.json`);
+- types, tests or the build break;
+- any example in `examples/` fails against `api-sandbox.beinfi.com`, using the key from the `INFI_SANDBOX_SECRET_KEY` secret. The tests in `src/` only cover the transport; the proof that the SDK talks to the API is the examples.
 
-Publicar é à mão: workflow `publish`, escolhendo a dist-tag (`next` ou `latest`). Ele refaz as checagens, roda os exemplos e publica por trusted publishing do npm, sem token.
+Publishing is manual: the `publish` workflow, choosing the dist-tag (`next` or `latest`). It reruns the checks, runs the examples and publishes through npm trusted publishing, with no token.

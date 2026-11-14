@@ -1,4 +1,4 @@
-// Billing as code: declara a empresa num documento, planeja, aplica e confere com pull.
+// Billing as code: declare the company in a document, plan, apply and check with pull.
 import type { components } from "../src/index.js";
 import { expectError, setup, show, step, uniq } from "./_setup.js";
 
@@ -11,8 +11,8 @@ const document: CompanyDocument = {
   schemaVersion: 1,
   products: [
     {
-      key: `assinatura-${s}`,
-      name: "Plano Pro",
+      key: `subscription-${s}`,
+      name: "Pro Plan",
       type: "item",
       pricingModel: "subscription",
       currency: "BRL",
@@ -20,8 +20,8 @@ const document: CompanyDocument = {
       billingCycle: "monthly",
     },
     {
-      key: `uso-${s}`,
-      name: "API por uso",
+      key: `usage-${s}`,
+      name: "Pay-per-use API",
       type: "agent",
       pricingModel: "usage",
       currency: "BRL",
@@ -29,8 +29,8 @@ const document: CompanyDocument = {
       prices: [{ meter: "requests", model: "per_unit", unitAmount: "0.05" }],
     },
     {
-      key: `prepago-${s}`,
-      name: "Créditos de IA",
+      key: `prepaid-${s}`,
+      name: "AI Credits",
       type: "agent",
       pricingModel: "prepaid",
       currency: "BRL",
@@ -43,36 +43,36 @@ const document: CompanyDocument = {
   ],
 };
 
-step("Planejar o documento (não escreve nada)");
+step("Plan the document (writes nothing)");
 const plan = await infi.config.plan({ body: { document } });
 show("planHash", plan.planHash);
-show("modo", `${plan.mode}, hasChanges=${plan.hasChanges}, blocked=${plan.blocked}`);
+show("mode", `${plan.mode}, hasChanges=${plan.hasChanges}, blocked=${plan.blocked}`);
 for (const c of plan.changes) console.log(`   - [${c.action}] ${c.resource} ${c.ref}: ${c.sentence}`);
 
-step("Aplicar com If-Match = planHash");
+step("Apply with If-Match = planHash");
 const applied = await infi.config.apply({ body: { document } }, { ifMatch: plan.planHash });
-show("revisão", `#${applied.revision.number} status=${applied.revision.status} modo=${applied.revision.mode}`);
+show("revision", `#${applied.revision.number} status=${applied.revision.status} mode=${applied.revision.mode}`);
 
-step("Aplicar de novo com o hash velho deve dar 412");
+step("Applying again with the stale hash must give 412");
 const stale = await expectError(412, () => infi.config.apply({ body: { document } }, { ifMatch: plan.planHash }));
 show("InfiError", `status=${stale.status} code=${stale.code} message="${stale.message}"`);
-show("current.planHash (plano recomputado)", (stale.current as { planHash?: string } | undefined)?.planHash ?? "(sem current)");
+show("current.planHash (recomputed plan)", (stale.current as { planHash?: string } | undefined)?.planHash ?? "(no current)");
 
-step("Aplicar sem If-Match deve dar 428");
+step("Applying without If-Match must give 428");
 const noMatch = await expectError(428, () => infi.config.apply({ body: { document } }));
 show("InfiError", `status=${noMatch.status} code=${noMatch.code}`);
 
-step("Puxar o documento do servidor e conferir os produtos");
+step("Pull the document from the server and check the products");
 const pulled = await infi.config.pull();
 for (const p of pulled.products) console.log(`   - ${p.key} (${p.pricingModel}) meters=${p.meters?.length ?? 0} prices=${p.prices?.length ?? 0} grants=${p.grants?.length ?? 0}`);
 for (const p of document.products) {
   const got = pulled.products.find((x) => x.key === p.key);
-  if (!got) throw new Error(`produto ${p.key} não veio no pull`);
+  if (!got) throw new Error(`product ${p.key} did not come back in the pull`);
   if (got.pricingModel !== p.pricingModel) throw new Error(`${p.key}: pricingModel ${got.pricingModel} != ${p.pricingModel}`);
 }
-console.log("   ✓ os 3 produtos vieram");
+console.log("   ✓ all 3 products came back");
 
-step("Planejar de novo: nada a mudar");
+step("Plan again: nothing to change");
 const again = await infi.config.plan({ body: { document } });
 show("hasChanges", again.hasChanges);
-if (again.hasChanges) throw new Error("plano após apply ainda tem mudanças");
+if (again.hasChanges) throw new Error("plan after apply still has changes");

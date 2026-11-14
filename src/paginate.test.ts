@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { paginate } from "./paginate.js";
 
-test("segue nextCursor até null e repassa filtros", async () => {
+test("follows nextCursor until null and passes filters through", async () => {
   const seen: unknown[] = [];
   const pages: Record<string, { data: number[]; nextCursor: string | null }> = {
     start: { data: [1, 2], nextCursor: "a" },

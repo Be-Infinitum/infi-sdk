@@ -1,18 +1,18 @@
-// Camada manuscrita (ADR 0055, D3): verificação de webhook.
-// Esquema de backend/internal/messaging/webhook/signer.go:
+// Handwritten layer (ADR 0055, D3): webhook verification.
+// Scheme from backend/internal/messaging/webhook/signer.go:
 //   signed_content = id + "." + timestamp + "." + body
 //   signature      = "v1=" + hex(HMAC_SHA256(secret, signed_content))
-// O header pode trazer várias assinaturas separadas por espaço (rotação).
+// The header may carry several space-separated signatures (rotation).
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 export interface WebhookRequest {
   /** Header X-Webhook-Id. */
   id: string;
-  /** Header X-Webhook-Timestamp (segundos Unix). */
+  /** Header X-Webhook-Timestamp (Unix seconds). */
   timestamp: string | number;
   /** Header X-Webhook-Signature. */
   signature: string;
-  /** Corpo cru, exatamente como recebido. */
+  /** Raw body, exactly as received. */
   body: string | Uint8Array;
 }
 

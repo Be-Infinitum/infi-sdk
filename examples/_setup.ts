@@ -1,14 +1,14 @@
 import { Infi } from "../src/index.js";
 
 /**
- * Cliente pronto para uso, numa conta de sandbox que já tem dono.
- * A conta anônima (`/public/v1/claimables`) saiu na ADR 0076 e responde 410;
- * a chave vem de uma conta criada pelo cadastro de agente ou pelo painel.
+ * Ready-to-use client, on a sandbox account that already has an owner.
+ * The anonymous account (`/public/v1/claimables`) was removed in ADR 0076 and answers 410;
+ * the key comes from an account created through agent signup or the dashboard.
  */
 export async function setup(): Promise<Infi> {
   const secretKey = process.env.INFI_SECRET_KEY;
   if (!secretKey) {
-    throw new Error("defina INFI_SECRET_KEY com uma chave sk_test_ de uma conta de sandbox sua");
+    throw new Error("set INFI_SECRET_KEY to an sk_test_ key from a sandbox account of yours");
   }
   const apiUrl = process.env.INFI_API_URL?.replace(/\/+$/, "");
   return new Infi({ secretKey, apiUrl });
@@ -27,21 +27,21 @@ export function show(label: string, value: unknown): void {
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** Sufixo curto para chaves únicas por execução. */
+/** Short suffix for keys that are unique per run. */
 export const uniq = () => crypto.randomUUID().slice(0, 8);
 
 import { InfiError } from "../src/index.js";
 
-/** Executa `fn` esperando um InfiError com o status dado; falha se não vier. */
+/** Runs `fn` expecting an InfiError with the given status; fails if it doesn't come. */
 export async function expectError(status: number, fn: () => Promise<unknown>): Promise<InfiError> {
   try {
     await fn();
   } catch (e) {
     if (e instanceof InfiError) {
-      if (e.status !== status) throw new Error(`esperava HTTP ${status}, veio ${e.status} (${e.code}): ${e.message}`);
+      if (e.status !== status) throw new Error(`expected HTTP ${status}, got ${e.status} (${e.code}): ${e.message}`);
       return e;
     }
     throw e;
   }
-  throw new Error(`esperava HTTP ${status}, mas a chamada deu certo`);
+  throw new Error(`expected HTTP ${status}, but the call succeeded`);
 }

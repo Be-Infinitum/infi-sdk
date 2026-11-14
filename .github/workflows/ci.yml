@@ -1,10 +1,10 @@
 name: ci
 
-# O pacote é gerado do contrato (ADR 0055). Este job prova três coisas:
-#   1. src/generated/ é exatamente o que o gerador tira de api/openapi.sdk.json;
-#   2. tipos, testes do transporte e build passam;
-#   3. os exemplos rodam contra o sandbox de verdade, nunca contra um fetch falso
-#      (ADR 0055, D7.4). Sem o secret, o passo 3 falha: não há "passou" sem backend.
+# The package is generated from the contract (ADR 0055). This workflow proves three things:
+#   1. src/generated/ is exactly what the generator produces from api/openapi.sdk.json;
+#   2. types, transport tests and the build pass;
+#   3. the examples run against the real sandbox, never against a fake fetch
+#      (ADR 0055, D7.4). Without the secret, step 3 fails: there is no "passed" without a backend.
 on:
   pull_request:
   push:
@@ -25,29 +25,29 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - name: src/generated/ bate com o contrato
+      - name: src/generated/ matches the contract
         run: bun run check:generated
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
 
   sandbox:
-    # Os exemplos são a suíte contra o backend real. Um PR vindo de fork não
-    # recebe o secret; nesse caso quem revisa roda o workflow à mão depois do merge.
+    # The examples are the suite against the real backend. A PR from a fork does
+    # not receive the secret; in that case the reviewer runs the workflow by hand after the merge.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     needs: generated-and-unit
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     concurrency:
-      # Uma conta de sandbox só: duas execuções ao mesmo tempo aplicariam
-      # documentos de config uma por cima da outra.
+      # Only one sandbox account: two simultaneous runs would apply config
+      # documents on top of each other.
       group: sandbox-examples
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - name: Exemplos contra api-sandbox.beinfi.com
+      - name: Examples against api-sandbox.beinfi.com
         env:
           INFI_SECRET_KEY: ${{ secrets.INFI_SANDBOX_SECRET_KEY }}
         run: bun run examples

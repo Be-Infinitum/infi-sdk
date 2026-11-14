@@ -1,14 +1,14 @@
 name: publish
 
-# Publica @beinfi/sdk no npm. Só roda à mão: a versão vem do package.json e a
-# dist-tag é escolhida na hora (`next` para testar o 1.x sem trocar o `latest`).
-# Autentica por trusted publishing (OIDC): o pacote no npmjs.com precisa ter este
-# repositório e este workflow como publicador confiável. Não há NPM_TOKEN.
+# Publishes @beinfi/sdk to npm. Manual only: the version comes from package.json and the
+# dist-tag is chosen at run time (`next` to try 1.x without moving `latest`).
+# Authenticates through trusted publishing (OIDC): the package on npmjs.com must list this
+# repository and this workflow as a trusted publisher. There is no NPM_TOKEN.
 on:
   workflow_dispatch:
     inputs:
       dist_tag:
-        description: "dist-tag do npm (next ou latest)"
+        description: "npm dist-tag (next or latest)"
         required: true
         default: next
         type: choice
@@ -38,7 +38,7 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
-      - name: Exemplos contra o sandbox antes de publicar
+      - name: Examples against the sandbox before publishing
         env:
           INFI_SECRET_KEY: ${{ secrets.INFI_SANDBOX_SECRET_KEY }}
         run: bun run examples

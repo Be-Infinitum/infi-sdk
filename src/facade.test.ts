@@ -4,7 +4,7 @@ import { Infi } from "./index.js";
 
 const infi = new Infi({ secretKey: "sk_test_x" });
 
-test("toda operação do contrato tem método em infi[tag][ação]", () => {
+test("every contract operation has a method at infi[tag][action]", () => {
   expect(OPERATIONS.length).toBe(28);
   for (const o of OPERATIONS) {
     const res = (infi as any)[o.property];
@@ -13,13 +13,13 @@ test("toda operação do contrato tem método em infi[tag][ação]", () => {
   }
 });
 
-test("nomes esperados", () => {
+test("expected names", () => {
   expect(typeof infi.customers.getWallet).toBe("function");
   expect(typeof infi.config.plan).toBe("function");
   expect(typeof infi.customerSessions.create).toBe("function");
 });
 
-test("monta URL, path params, query, body e opções", async () => {
+test("builds the URL, path params, query, body and options", async () => {
   const calls: { url: string; init: RequestInit }[] = [];
   const c = new Infi({
     secretKey: "sk_test_x",
@@ -38,22 +38,22 @@ test("monta URL, path params, query, body e opções", async () => {
   expect(calls[1]!.init.body).toBe('{"document":{}}');
 });
 
-// Verificação de tipos (roda no `tsc --noEmit`): os tipos gerados não podem virar any.
+// Type checks (run by `tsc --noEmit`): the generated types must not become any.
 export async function _types() {
-  // @ts-expect-error customerId é obrigatório no path
+  // @ts-expect-error customerId is required in the path
   await infi.customers.get({ path: {} });
-  // @ts-expect-error opção desconhecida
+  // @ts-expect-error unknown option
   await infi.payments.list({}, { nope: 1 });
   const r = await infi.payments.get({ path: { paymentId: "p" } });
-  // @ts-expect-error campo inexistente na resposta
-  r.naoExiste;
+  // @ts-expect-error field does not exist on the response
+  r.doesNotExist;
   const pd = await infi.products.getDraft({ path: { draftKey: "k" } });
   pd.draftHash.toUpperCase();
   pd.offer.name.toUpperCase();
-  // @ts-expect-error campo inexistente no rascunho de produto
-  pd.naoExiste;
+  // @ts-expect-error field does not exist on the product draft
+  pd.doesNotExist;
   const ld = await infi.links.getDraft({ path: { draftKey: "k" } });
   ld.preview.currency.toUpperCase();
-  // @ts-expect-error campo inexistente no rascunho de link
-  ld.naoExiste;
+  // @ts-expect-error field does not exist on the link draft
+  ld.doesNotExist;
 }

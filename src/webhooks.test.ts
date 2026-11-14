@@ -9,22 +9,22 @@ const sign = (id: string, ts: number, b: string, s = secret) =>
   "v1=" + createHmac("sha256", s).update(`${id}.${ts}.${b}`).digest("hex");
 const req = (over: object = {}) => ({ id: "evt_1", timestamp: String(now), signature: sign("evt_1", now, body), body, ...over });
 
-test("assinatura válida passa", () => {
+test("a valid signature passes", () => {
   expect(verifyWebhook(req(), secret)).toBe(true);
 });
-test("aceita bytes e várias assinaturas (rotação)", () => {
+test("accepts bytes and several signatures (rotation)", () => {
   const sig = `${sign("evt_1", now, body, "old")} ${sign("evt_1", now, body)}`;
   expect(verifyWebhook(req({ signature: sig, body: new TextEncoder().encode(body) }), secret)).toBe(true);
 });
-test("corpo alterado falha", () => {
+test("a changed body fails", () => {
   expect(verifyWebhook(req({ body: body + " " }), secret)).toBe(false);
 });
-test("id, segredo ou formato errados falham", () => {
+test("a wrong id, secret or format fails", () => {
   expect(verifyWebhook(req({ id: "evt_2" }), secret)).toBe(false);
-  expect(verifyWebhook(req(), "outro")).toBe(false);
+  expect(verifyWebhook(req(), "other")).toBe(false);
   expect(verifyWebhook(req({ signature: "abc" }), secret)).toBe(false);
 });
-test("timestamp velho ou futuro falha", () => {
+test("an old or future timestamp fails", () => {
   const old = now - 400;
   expect(verifyWebhook(req({ timestamp: String(old), signature: sign("evt_1", old, body) }), secret)).toBe(false);
   expect(verifyWebhook(req({ timestamp: String(old), signature: sign("evt_1", old, body) }), secret, 500)).toBe(true);

@@ -1,47 +1,47 @@
-// Venda para um comprador: produto publicado -> entrega por URL -> webhook -> checkout -> esperar o pagamento.
+// Sale to a buyer: published product -> delivery by URL -> webhook -> checkout -> wait for the payment.
 import { setup, show, step } from "./_setup.js";
 
 const infi = await setup();
 
-step("Publicar um produto avulso");
+step("Publish a one-time product");
 const draftKey = crypto.randomUUID();
 const saved = await infi.products.saveDraft({
   path: { draftKey },
-  body: { name: "Guia em PDF", pricingModel: "one_time", currency: "BRL", basePrice: "19.00" },
+  body: { name: "PDF guide", pricingModel: "one_time", currency: "BRL", basePrice: "19.00" },
 });
 const published = await infi.products.publishDraft({ path: { draftKey } }, { ifMatch: saved.draftHash });
 const productId = published.product?.id;
-if (!productId) throw new Error("o produto não saiu publicado com id");
+if (!productId) throw new Error("the product was not published with an id");
 show("productId", productId);
 
-step("Definir a entrega: o comprador recebe esta URL depois de pagar");
-await infi.products.setDeliverable({ path: { productId }, body: { kind: "link", url: "https://example.com/guia.pdf" } });
+step("Set the delivery: the buyer receives this URL after paying");
+await infi.products.setDeliverable({ path: { productId }, body: { kind: "link", url: "https://example.com/guide.pdf" } });
 const deliverable = await infi.products.getDeliverable({ path: { productId } });
-show("entrega", deliverable);
+show("delivery", deliverable);
 
-step("Inscrever um webhook para saber do pagamento");
-// No sandbox aplica na hora e devolve o segredo uma vez; no live devolve approvalUrl para uma pessoa aprovar.
-// Se o sandbox ainda não tiver o cofre de segredos configurado, responde 503: o passo é pulado.
+step("Subscribe a webhook to learn about the payment");
+// In the sandbox it applies immediately and returns the secret once; in live it returns approvalUrl for a person to approve.
+// If the sandbox does not have the secrets vault configured yet, it answers 503: the step is skipped.
 try {
   const hook = await infi.webhooks.subscribe({ body: { url: "https://example.com/hooks/infi", events: ["payment.confirmed"] } });
-  show("webhook", `${hook.status}${hook.secret ? " (segredo recebido)" : ""}${hook.approvalUrl ? ` aprovar em ${hook.approvalUrl}` : ""}`);
+  show("webhook", `${hook.status}${hook.secret ? " (secret received)" : ""}${hook.approvalUrl ? ` approve at ${hook.approvalUrl}` : ""}`);
   const list = await infi.webhooks.list();
   show("webhooks", list.data.map((w) => w.url));
 } catch (e) {
   if ((e as { status?: number }).status !== 503) throw e;
-  show("webhook", "503: o sandbox ainda não guarda segredos de webhook");
+  show("webhook", "503: the sandbox does not store webhook secrets yet");
 }
 
-step("Abrir o checkout de um comprador");
+step("Open a buyer's checkout");
 const checkout = await infi.checkouts.create({
-  body: { productId, customer: { externalId: `buyer_${crypto.randomUUID().slice(0, 8)}`, email: "comprador@example.com" } },
+  body: { productId, customer: { externalId: `buyer_${crypto.randomUUID().slice(0, 8)}`, email: "buyer@example.com" } },
 });
 show("checkout", `${checkout.id} ${checkout.status} ${checkout.total} ${checkout.currency}`);
-show("mande o comprador para", checkout.url);
-if (!checkout.url.includes(`/invoices/${checkout.id}`)) throw new Error("url do checkout não aponta para a fatura");
+show("send the buyer to", checkout.url);
+if (!checkout.url.includes(`/invoices/${checkout.id}`)) throw new Error("checkout url does not point to the invoice");
 
-step("Ler o checkout: é assim que o código espera o pagamento");
+step("Read the checkout: this is how the code waits for the payment");
 const again = await infi.checkouts.get({ path: { checkoutId: checkout.id } });
 show("status", again.status);
-show("pagamentos", again.payments.length);
-if (again.id !== checkout.id) throw new Error("checkout lido não é o criado");
+show("payments", again.payments.length);
+if (again.id !== checkout.id) throw new Error("the checkout that was read is not the one that was created");
