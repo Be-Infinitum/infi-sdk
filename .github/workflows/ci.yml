@@ -39,8 +39,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     concurrency:
-      # Only one sandbox account: two simultaneous runs would apply config
-      # documents on top of each other.
+      # One run at a time in this repo. A concurrency group does not reach the
+      # other SDK repos, so each one needs its own sandbox account in
+      # INFI_SANDBOX_SECRET_KEY; on a shared account their runs race.
       group: sandbox-examples
       cancel-in-progress: false
     steps:

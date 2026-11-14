@@ -42,6 +42,6 @@ CI (`.github/workflows/ci.yml`) fails if:
 
 - `bun run check:generated` changes anything in `src/generated/` (the generated code doesn't match `api/openapi.sdk.json`);
 - types, tests or the build break;
-- any example in `examples/` fails against `api-sandbox.beinfi.com`, using the key from the `INFI_SANDBOX_SECRET_KEY` secret. The tests in `src/` only cover the transport; the proof that the SDK talks to the API is the examples.
+- any example in `examples/` fails against `api-sandbox.beinfi.com`, using the key from the `INFI_SANDBOX_SECRET_KEY` secret. Each SDK repo uses its own sandbox account: the four CIs run at the same time, and on a shared account they race on its config (412 `plan_changed`) and on its rate limit (429). The tests in `src/` only cover the transport; the proof that the SDK talks to the API is the examples.
 
 Publishing is manual: the `publish` workflow, choosing the dist-tag (`next` or `latest`). It reruns the checks, runs the examples and publishes through npm trusted publishing, with no token.
