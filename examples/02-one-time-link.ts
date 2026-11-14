@@ -1,36 +1,36 @@
-// Produto avulso: rascunho de produto -> prévia -> rascunho de link -> publicar com If-Match.
+// One-time product: product draft -> preview -> link draft -> publish with If-Match.
 import { expectError, setup, show, step } from "./_setup.js";
 
 const infi = await setup();
 
-step("Salvar o rascunho do produto avulso");
+step("Save the one-time product draft");
 const productKey = crypto.randomUUID();
 const saved = await infi.products.saveDraft({
   path: { draftKey: productKey },
-  body: { name: "Mentoria de 1h", description: "Uma sessão individual", pricingModel: "one_time", currency: "BRL", basePrice: "150.00" },
+  body: { name: "1h mentoring", description: "One individual session", pricingModel: "one_time", currency: "BRL", basePrice: "150.00" },
 });
 show("draftHash", saved.draftHash);
 
-step("Ler a prévia do produto com ?hash=");
+step("Read the product preview with ?hash=");
 const preview = await infi.products.getDraft({ path: { draftKey: productKey }, query: { hash: saved.draftHash } });
-show("oferta", `${preview.offer.name} — ${preview.offer.basePrice} ${preview.offer.currency}`);
+show("offer", `${preview.offer.name} — ${preview.offer.basePrice} ${preview.offer.currency}`);
 show("published", preview.published);
 
-step("Salvar o rascunho do link apontando para o rascunho do produto");
+step("Save the link draft pointing to the product draft");
 const linkKey = crypto.randomUUID();
 const link = await infi.links.saveDraft({
   path: { draftKey: linkKey },
-  body: { product: { draftKey: productKey }, successUrl: "https://example.com/obrigado" },
+  body: { product: { draftKey: productKey }, successUrl: "https://example.com/thank-you" },
 });
-show("prévia do link", link.preview);
-show("draftHash do link", link.draftHash);
+show("link preview", link.preview);
+show("link draftHash", link.draftHash);
 
-step("Publicar o link sem If-Match deve dar 428");
+step("Publishing the link without If-Match must give 428");
 const e428 = await expectError(428, () => infi.links.publishDraft({ path: { draftKey: linkKey } }));
 show("InfiError", `status=${e428.status} code=${e428.code}`);
 
-step("Publicar o link com If-Match = draftHash");
+step("Publish the link with If-Match = draftHash");
 const published = await infi.links.publishDraft({ path: { draftKey: linkKey } }, { ifMatch: link.draftHash });
 show("published", published.published);
-show("URL do link", published.link?.url ?? "(sem url)");
-if (!published.published || !published.link?.url) throw new Error("link não saiu publicado com url");
+show("Link URL", published.link?.url ?? "(no url)");
+if (!published.published || !published.link?.url) throw new Error("link was not published with a url");

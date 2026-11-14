@@ -1,4 +1,4 @@
-// Camada manuscrita (ADR 0055, D3): paginação por cursor.
+// Handwritten layer (ADR 0055, D3): cursor pagination.
 
 interface Page<T> {
   data: T[];
@@ -6,8 +6,8 @@ interface Page<T> {
 }
 
 /**
- * Itera todos os itens seguindo `nextCursor`.
- * `fn` é um método de listagem do cliente, ex.: `(p) => infi.payments.list(p)`.
+ * Iterates over all items following `nextCursor`.
+ * `fn` is a list method of the client, e.g.: `(p) => infi.payments.list(p)`.
  */
 export async function* paginate<T, P extends { query?: Record<string, any> }>(
   fn: (params: P) => Promise<Page<T>>,

@@ -3,9 +3,9 @@ import { Transport, type TransportConfig } from "./http.js";
 
 export interface InfiConfig {
   secretKey: string;
-  /** Sobrescreve a URL derivada do prefixo da chave. */
+  /** Overrides the URL derived from the key prefix. */
   apiUrl?: string;
-  /** Para testes ou runtimes sem fetch global. */
+  /** For tests or runtimes without a global fetch. */
   fetch?: typeof fetch;
 }
 

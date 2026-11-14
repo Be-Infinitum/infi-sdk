@@ -1,4 +1,4 @@
-// Pré-pago: produto com grant e preço per_unit, crédito na carteira, consumo e débito pelo worker.
+// Prepaid: product with a grant and per_unit price, wallet credit, consumption and debit by the worker.
 import type { components } from "../src/index.js";
 import { setup, show, sleep, step, uniq } from "./_setup.js";
 
@@ -7,13 +7,13 @@ type CompanyDocument = components["schemas"]["CompanyDocument"];
 const infi = await setup();
 const s = uniq();
 
-step("Declarar o produto pré-pago (billing as code)");
+step("Declare the prepaid product (billing as code)");
 const document: CompanyDocument = {
   schemaVersion: 1,
   products: [
     {
-      key: `creditos-${s}`,
-      name: "Créditos de IA",
+      key: `credits-${s}`,
+      name: "AI Credits",
       type: "agent",
       pricingModel: "prepaid",
       currency: "BRL",
@@ -27,42 +27,42 @@ const document: CompanyDocument = {
 };
 const plan = await infi.config.plan({ body: { document } });
 const applied = await infi.config.apply({ body: { document } }, { ifMatch: plan.planHash });
-show("revisão", `#${applied.revision.number} ${applied.revision.status}`);
+show("revision", `#${applied.revision.number} ${applied.revision.status}`);
 
 const productKey = document.products[0]!.key;
 const meter = "tokens";
 show("productKey / meter", `${productKey} / ${meter}`);
 
-step("Criar o cliente");
+step("Create the customer");
 const externalId = `user_${uniq()}`;
 const customer = await infi.customers.create({ body: { productKey, externalId } });
 const walletId = customer.enrollmentId;
-show("enrollmentId (id da carteira)", walletId);
+show("enrollmentId (wallet id)", walletId);
 
 const balanceOf = async (): Promise<string> => {
   const w = await infi.customers.getWallet({ path: { enrollmentId: walletId }, query: { meter } });
   return "balance" in w ? w.balance : (w.balances.find((b) => b.meter === meter)?.balance ?? "0");
 };
 
-step("Creditar 1000 na carteira");
-const credited = await infi.customers.creditWallet({ path: { enrollmentId: walletId }, body: { meter, amount: "1000", reason: "pacote inicial" } });
-show("carteira", credited);
+step("Credit 1000 to the wallet");
+const credited = await infi.customers.creditWallet({ path: { enrollmentId: walletId }, body: { meter, amount: "1000", reason: "starter pack" } });
+show("wallet", credited);
 const before = await balanceOf();
-show("saldo antes", before);
+show("balance before", before);
 
-step("Registrar consumo de 200");
-const rec = await infi.usage.record({ body: { productKey, customerId: externalId, meter, value: "200", eventId: `consumo-${uniq()}` } });
-show("evento", rec);
+step("Record consumption of 200");
+const rec = await infi.usage.record({ body: { productKey, customerId: externalId, meter, value: "200", eventId: `consumption-${uniq()}` } });
+show("event", rec);
 
-step("Esperar o worker debitar (lendo o saldo a cada 10s, até 3 min)");
+step("Wait for the worker to debit (reading the balance every 10s, up to 3 min)");
 const deadline = Date.now() + 3 * 60_000;
 let after = await balanceOf();
 while (after === before && Date.now() < deadline) {
   await sleep(10_000);
   after = await balanceOf();
-  console.log(`   ... saldo agora: ${after}`);
+  console.log(`   ... balance now: ${after}`);
 }
-show("saldo antes", before);
-show("saldo depois", after);
-if (after === before) throw new Error("o saldo não desceu em 3 minutos: o worker não debitou a carteira do produto pré-pago");
-console.log(`   ✓ debitado: ${Number(before) - Number(after)}`);
+show("balance before", before);
+show("balance after", after);
+if (after === before) throw new Error("the balance did not go down in 3 minutes: the worker did not debit the prepaid product's wallet");
+console.log(`   ✓ debited: ${Number(before) - Number(after)}`);

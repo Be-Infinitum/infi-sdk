@@ -1,4 +1,4 @@
-// Roda os exemplos em sequência e imprime ✓/✗ por script.
+// Runs the examples in sequence and prints ✓/✗ per script.
 import { readdirSync } from "node:fs";
 
 const dir = import.meta.dir;
@@ -13,7 +13,7 @@ for (const name of scripts) {
   results.push({ name, ok: code === 0, seconds: Math.round((Date.now() - started) / 1000) });
 }
 
-console.log("\n════════ Resumo ════════");
+console.log("\n════════ Summary ════════");
 for (const r of results) console.log(`${r.ok ? "✓" : "✗"} ${r.name} (${r.seconds}s)`);
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${results.length - failed}/${results.length} scripts ok`);
